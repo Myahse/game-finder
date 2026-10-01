@@ -1,0 +1,62 @@
+import { Link } from 'react-router-dom'
+import { useLocation } from '../lib/location'
+import { useMyGames, useMyPresence } from '../lib/queries'
+import { GameCard } from '../components/GameCard'
+import { Card, Empty, PageHeader } from '../components/ui'
+import { Loading } from './CourtPage'
+
+export function MyGamesPage() {
+  const { coords } = useLocation()
+  const { data, isLoading } = useMyGames(coords)
+  const { data: presence } = useMyPresence()
+
+  return (
+    <div className="pb-10">
+      <PageHeader title="My games" />
+      <div className="mx-auto grid max-w-2xl gap-6 p-4">
+        {presence && (
+          <Link to={`/courts/${presence.court_id}`}>
+            <Card className="border-live/40 bg-live/10">
+              <p className="font-semibold text-live">🟢 Checked in at {presence.court.name}</p>
+              <p className="text-sm text-ink-2">
+                Until {new Date(presence.expires_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            </Card>
+          </Link>
+        )}
+        {isLoading ? (
+          <Loading />
+        ) : (
+          <>
+            <section>
+              <h2 className="display mb-2 text-2xl font-bold">Now & upcoming</h2>
+              {data?.current.length ? (
+                <div className="grid gap-2">
+                  {data.current.map((g) => (
+                    <GameCard key={g.id} game={g} />
+                  ))}
+                </div>
+              ) : (
+                <Empty icon="📅" title="No games yet">
+                  <Link to="/play" className="font-semibold text-brand">
+                    Find a game near you →
+                  </Link>
+                </Empty>
+              )}
+            </section>
+            {!!data?.past.length && (
+              <section>
+                <h2 className="display mb-2 text-2xl font-bold text-ink-2">Past</h2>
+                <div className="grid gap-2 opacity-80">
+                  {data.past.map((g) => (
+                    <GameCard key={g.id} game={g} />
+                  ))}
+                </div>
+              </section>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  )
+}

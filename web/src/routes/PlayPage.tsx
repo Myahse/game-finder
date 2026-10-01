@@ -1,0 +1,74 @@
+import { Link, useSearchParams } from 'react-router-dom'
+import { useLocation } from '../lib/location'
+import { useGamesNearby, useSports } from '../lib/queries'
+import { sortPlayable } from '../lib/sort'
+import { GameCard } from '../components/GameCard'
+import { Chip, Empty, PageHeader } from '../components/ui'
+import { Loading } from './CourtPage'
+
+/** "I want to play": live games nearby, closest → liveliest → most room. */
+export function PlayPage() {
+  const [params, setParams] = useSearchParams()
+  const sport = params.get('sport')
+  const { center, status } = useLocation()
+  const { data: sports } = useSports()
+  const { data: games, isLoading } = useGamesNearby(center, sport)
+  const sorted = sortPlayable(games ?? [])
+  const live = sorted.filter((g) => g.status === 'active')
+  const soon = sorted.filter((g) => g.status === 'scheduled')
+
+  return (
+    <div className="pb-10">
+      <PageHeader title="I want to play" back="/" />
+      <div className="mx-auto max-w-2xl p-4">
+        <div className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4">
+          <Chip active={!sport} onClick={() => setParams({}, { replace: true })}>
+            All
+          </Chip>
+          {sports
+            ?.filter((s) => s.active)
+            .map((s) => (
+              <Chip key={s.id} active={sport === s.slug} onClick={() => setParams({ sport: s.slug }, { replace: true })}>
+                {s.icon} {s.name}
+              </Chip>
+            ))}
+        </div>
+        {status === 'denied' && <p className="mb-3 text-sm text-ink-2">Distances are from Grand-Bassam — allow location for yours.</p>}
+
+        {isLoading ? (
+          <Loading />
+        ) : sorted.length === 0 ? (
+          <Empty icon="🏀" title="No games nearby yet">
+            Be the one who starts it.{' '}
+            <Link to="/games/new" className="font-semibold text-brand">
+              Create a game
+            </Link>
+          </Empty>
+        ) : (
+          <>
+            {live.length > 0 && (
+              <section>
+                <h2 className="display mb-2 text-2xl font-bold">🔥 Playing now</h2>
+                <div className="grid gap-2">
+                  {live.map((g) => (
+                    <GameCard key={g.id} game={g} />
+                  ))}
+                </div>
+              </section>
+            )}
+            {soon.length > 0 && (
+              <section className="mt-6">
+                <h2 className="display mb-2 text-2xl font-bold">Starting soon</h2>
+                <div className="grid gap-2">
+                  {soon.map((g) => (
+                    <GameCard key={g.id} game={g} />
+                  ))}
+                </div>
+              </section>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  )
+}

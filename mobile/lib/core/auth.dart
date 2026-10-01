@@ -1,0 +1,68 @@
+import 'package:flutter/foundation.dart';
+
+import 'api.dart';
+import 'models.dart';
+
+class AuthState extends ChangeNotifier {
+  final Api api;
+  AuthState(this.api) {
+    api.addListener(notifyListeners); // session cleared by a failed refresh
+  }
+
+  Me? get user => api.session == null ? null : Me.fromJson(api.session!.user);
+
+  Future<void> login(String email, String password) async {
+    final s = await api.post('/api/auth/login', {'email': email.trim(), 'password': password});
+    await api.setSession(Session.fromJson(s));
+  }
+
+  Future<void> register({
+    required String firstName,
+    required String lastName,
+    required String username,
+    required String email,
+    required String password,
+  }) async {
+    final s = await api.post('/api/auth/register', {
+      'first_name': firstName.trim(),
+      'last_name': lastName.trim(),
+      'username': username.trim(),
+      'email': email.trim(),
+      'password': password,
+    });
+    await api.setSession(Session.fromJson(s));
+  }
+
+  Future<Me> updateMe(Map<String, dynamic> patch) async {
+    final j = Map<String, dynamic>.from(await api.patch('/api/me', patch));
+    await _storeUser(j);
+    return Me.fromJson(j);
+  }
+
+  Future<void> refreshMe() async {
+    try {
+      await _storeUser(Map<String, dynamic>.from(await api.get('/api/me')));
+    } catch (_) {}
+  }
+
+  Future<void> _storeUser(Map<String, dynamic> j) async {
+    final s = api.session;
+    if (s != null) await api.setSession(Session(s.accessToken, s.refreshToken, s.accessExpiresAt, j));
+  }
+
+  Future<void> logout() async {
+    final s = api.session;
+    if (s != null) {
+      try {
+        await api.post('/api/auth/logout', {'refresh_token': s.refreshToken});
+      } catch (_) {}
+    }
+    await api.setSession(null);
+  }
+
+  @override
+  void dispose() {
+    api.removeListener(notifyListeners);
+    super.dispose();
+  }
+}

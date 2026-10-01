@@ -1,0 +1,412 @@
+// Package api is the HTTP + WebSocket interface used by the web and mobile apps.
+package api
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"log/slog"
+	"net"
+	"net/http"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/coder/websocket"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
+
+	"findthegame/backend/internal/auth"
+	"findthegame/backend/internal/config"
+	"findthegame/backend/internal/db"
+	"findthegame/backend/internal/realtime"
+)
+
+type Server struct {
+	cfg    config.Config
+	db     *db.DB
+	tokens *auth.Issuer
+	hub    *realtime.Hub
+	limit  *rateLimiter
+}
+
+func New(cfg config.Config, d *db.DB, hub *realtime.Hub) *Server {
+	return &Server{
+		cfg:    cfg,
+		db:     d,
+		tokens: auth.NewIssuer(cfg.JWTSecret, cfg.AccessTokenTTL),
+		hub:    hub,
+		limit:  newRateLimiter(20, time.Minute),
+	}
+}
+
+func (s *Server) Routes() http.Handler {
+	r := chi.NewRouter()
+	r.Use(middleware.RequestID, middleware.RealIP, middleware.Recoverer)
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   s.cfg.CORSOrigins,
+		AllowedMethods:   []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Authorization", "Content-Type"},
+		AllowCredentials: false,
+		MaxAge:           600,
+	}))
+	r.Use(s.authenticate)
+
+	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		if err := s.db.Pool.Ping(r.Context()); err != nil {
+			http.Error(w, "db down", http.StatusServiceUnavailable)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "ws_clients": s.hub.Count()})
+	})
+	r.Handle("/uploads/*", http.StripPrefix("/uploads/", noDirListing(http.FileServer(http.Dir(s.cfg.UploadDir)))))
+
+	// WebSockets are long-lived: keep them outside the request timeout.
+	r.Get("/api/ws", s.handleWS)
+
+	r.Route("/api", func(r chi.Router) {
+		r.Use(middleware.Timeout(30 * time.Second))
+
+		r.Route("/auth", func(r chi.Router) {
+			r.With(s.rateLimited).Post("/register", s.register)
+			r.With(s.rateLimited).Post("/login", s.login)
+			r.With(s.rateLimited).Post("/refresh", s.refresh)
+			r.Post("/logout", s.logout)
+			r.Get("/username-available", s.usernameAvailable)
+		})
+
+		// Public browsing (the map works before sign-in).
+		r.Get("/sports", s.listSports)
+		r.Get("/courts/nearby", s.courtsNearby)
+
+		r.Group(func(r chi.Router) {
+			r.Use(s.requireActiveUser)
+
+			r.Get("/me", s.getMe)
+			r.Patch("/me", s.updateMe)
+			r.Post("/me/notify-area", s.setNotifyArea)
+			r.Post("/me/push-tokens", s.registerPushToken)
+			r.Delete("/me/push-tokens", s.deletePushToken)
+			r.Get("/me/games", s.myGames)
+			r.Get("/me/presence", s.myPresence)
+
+			r.Get("/users/{id}", s.getUser)
+
+			r.Get("/courts/{id}", s.getCourt)
+			r.Post("/courts", s.proposeCourt)
+			r.Post("/courts/{id}/reports", s.reportCourt)
+
+			r.Get("/games/nearby", s.gamesNearby)
+			r.Post("/games", s.createGame)
+			r.Get("/games/{id}", s.getGame)
+			r.Patch("/games/{id}", s.updateGame)
+			r.Post("/games/{id}/join", s.joinGame)
+			r.Post("/games/{id}/leave", s.leaveGame)
+			r.Post("/games/{id}/cancel", s.cancelGame)
+			r.Post("/games/{id}/invite", s.inviteToGame)
+
+			r.Post("/presence", s.markPresent)
+			r.Post("/presence/confirm", s.confirmPresence)
+			r.Delete("/presence", s.endPresence)
+
+			r.Get("/notifications", s.listNotifications)
+			r.Post("/notifications/{id}/read", s.readNotification)
+			r.Post("/notifications/read-all", s.readAllNotifications)
+
+			r.Post("/uploads", s.upload)
+
+			r.Route("/admin", func(r chi.Router) {
+				r.Use(s.requireAdmin)
+				r.Get("/stats", s.adminStats)
+				r.Get("/courts", s.adminCourts)
+				r.Post("/courts", s.adminCreateCourt)
+				r.Patch("/courts/{id}", s.adminUpdateCourt)
+				r.Post("/courts/{id}/review", s.adminReviewCourt)
+				r.Delete("/courts/{id}", s.adminDeleteCourt)
+				r.Get("/games", s.adminGames)
+				r.Post("/games/{id}/cancel", s.cancelGame)
+				r.Delete("/games/{id}", s.adminDeleteGame)
+				r.Get("/users", s.adminUsers)
+				r.Post("/users/{id}/suspend", s.adminSuspendUser)
+				r.Delete("/users/{id}", s.adminDeleteUser)
+				r.Get("/reports", s.adminReports)
+				r.Post("/reports/{id}/resolve", s.adminResolveReport)
+				r.Get("/settings", s.adminSettings)
+				r.Patch("/settings", s.adminUpdateSettings)
+			})
+		})
+	})
+	return r
+}
+
+// ---------------------------------------------------------------------------
+// Auth context
+// ---------------------------------------------------------------------------
+
+type ctxKey int
+
+const userKey ctxKey = 1
+
+type principal struct {
+	ID   string
+	Role string
+}
+
+func (s *Server) authenticate(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tok := ""
+		if h := r.Header.Get("Authorization"); strings.HasPrefix(h, "Bearer ") {
+			tok = strings.TrimPrefix(h, "Bearer ")
+		} else if r.URL.Path == "/api/ws" {
+			// Browsers can't set headers on WebSocket upgrades.
+			tok = r.URL.Query().Get("token")
+		}
+		if tok != "" {
+			claims, err := s.tokens.Verify(tok)
+			if err != nil {
+				writeError(w, http.StatusUnauthorized, "invalid_token", "Session expired. Please sign in again.")
+				return
+			}
+			r = r.WithContext(context.WithValue(r.Context(), userKey, principal{ID: claims.Subject, Role: claims.Role}))
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func currentUser(r *http.Request) (principal, bool) {
+	p, ok := r.Context().Value(userKey).(principal)
+	return p, ok
+}
+
+func uid(r *http.Request) string {
+	p, _ := currentUser(r)
+	return p.ID
+}
+
+// requireActiveUser rejects anonymous requests and, because access tokens
+// outlive moderation actions, re-checks that the account still exists and is
+// not suspended.
+func (s *Server) requireActiveUser(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		p, ok := currentUser(r)
+		if !ok {
+			writeError(w, http.StatusUnauthorized, "not_authenticated", "Please sign in.")
+			return
+		}
+		var suspended bool
+		err := s.db.Pool.QueryRow(r.Context(), "select suspended_at is not null from users where id = $1", p.ID).Scan(&suspended)
+		switch {
+		case db.IsNoRows(err):
+			writeError(w, http.StatusUnauthorized, "not_authenticated", "Please sign in.")
+			return
+		case err != nil:
+			writeDBError(w, r, err)
+			return
+		case suspended:
+			writeError(w, http.StatusForbidden, "suspended", "This account is suspended.")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// requireAdmin re-checks the database, so demoting or suspending an admin
+// takes effect immediately rather than when their token expires.
+func (s *Server) requireAdmin(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var ok bool
+		err := s.db.Pool.QueryRow(r.Context(),
+			"select exists(select 1 from users where id=$1 and role='admin' and suspended_at is null)", uid(r)).Scan(&ok)
+		if err != nil || !ok {
+			writeError(w, http.StatusForbidden, "admin_only", "Admins only.")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
+	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
+		OriginPatterns: originPatterns(s.cfg.CORSOrigins),
+	})
+	if err != nil {
+		return
+	}
+	s.hub.Serve(r.Context(), conn, uid(r))
+}
+
+func originPatterns(origins []string) []string {
+	var out []string
+	for _, o := range origins {
+		o = strings.TrimPrefix(strings.TrimPrefix(o, "https://"), "http://")
+		out = append(out, o)
+	}
+	return out
+}
+
+// ---------------------------------------------------------------------------
+// JSON helpers
+// ---------------------------------------------------------------------------
+
+func writeJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(v)
+}
+
+func writeRaw(w http.ResponseWriter, status int, b []byte) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_, _ = w.Write(b)
+}
+
+type apiError struct {
+	Error   string `json:"error"`
+	Message string `json:"message"`
+}
+
+func writeError(w http.ResponseWriter, status int, code, msg string) {
+	writeJSON(w, status, apiError{Error: code, Message: msg})
+}
+
+func readJSON(w http.ResponseWriter, r *http.Request, dst any) bool {
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(dst); err != nil {
+		writeError(w, http.StatusBadRequest, "bad_request", "Invalid request body.")
+		return false
+	}
+	return true
+}
+
+// Human-readable messages for SQL business errors.
+var appErrors = map[string]struct {
+	status int
+	msg    string
+}{
+	"not_authenticated":          {http.StatusUnauthorized, "Please sign in."},
+	"admin_only":                 {http.StatusForbidden, "Admins only."},
+	"not_allowed":                {http.StatusForbidden, "You can't do that."},
+	"use_cancel_game":            {http.StatusForbidden, "Use cancel to stop a game."},
+	"game_not_found":             {http.StatusNotFound, "Game not found."},
+	"court_not_found":            {http.StatusNotFound, "Court not found."},
+	"user_not_found":             {http.StatusNotFound, "No player with that username."},
+	"report_not_found":           {http.StatusNotFound, "Report not found."},
+	"already_joined":             {http.StatusConflict, "You're already in this game."},
+	"game_full":                  {http.StatusConflict, "This game is full."},
+	"game_closed":                {http.StatusConflict, "This game is no longer open."},
+	"removed_from_game":          {http.StatusConflict, "You were removed from this game."},
+	"not_in_game":                {http.StatusConflict, "You're not in this game."},
+	"no_active_presence":         {http.StatusConflict, "You're not checked in anywhere."},
+	"too_far_from_court":         {http.StatusUnprocessableEntity, "You need to be at the court to check in."},
+	"location_required":          {http.StatusUnprocessableEntity, "Turn on location to check in."},
+	"court_not_available":        {http.StatusUnprocessableEntity, "This court isn't available."},
+	"sport_not_offered_at_court": {http.StatusUnprocessableEntity, "That sport isn't played at this court."},
+	"start_time_in_past":         {http.StatusUnprocessableEntity, "Start time is in the past."},
+	"start_time_too_far":         {http.StatusUnprocessableEntity, "Start time must be within 30 days."},
+	"max_players_below_current":  {http.StatusUnprocessableEntity, "More players have already joined."},
+	"cannot_suspend_self":        {http.StatusUnprocessableEntity, "You can't suspend yourself."},
+	"invalid_input":              {http.StatusUnprocessableEntity, "Invalid input."},
+	"invalid_reference":          {http.StatusUnprocessableEntity, "Something referenced doesn't exist."},
+}
+
+// writeDBError maps errors from the SQL layer to HTTP responses.
+func writeDBError(w http.ResponseWriter, r *http.Request, err error) {
+	if db.IsNoRows(err) {
+		writeError(w, http.StatusNotFound, "not_found", "Not found.")
+		return
+	}
+	if code, ok := db.AppError(err); ok {
+		if e, ok := appErrors[code]; ok {
+			writeError(w, e.status, code, e.msg)
+			return
+		}
+		switch {
+		case strings.HasPrefix(code, "already_exists:"):
+			msg := "That already exists."
+			if strings.Contains(code, "username") {
+				msg = "That username is taken."
+			} else if strings.Contains(code, "email") {
+				msg = "An account with that email already exists."
+			}
+			writeError(w, http.StatusConflict, "already_exists", msg)
+			return
+		case strings.HasPrefix(code, "invalid:"):
+			writeError(w, http.StatusUnprocessableEntity, "invalid", "Invalid value: "+strings.TrimPrefix(code, "invalid:"))
+			return
+		}
+	}
+	if errors.Is(err, context.Canceled) {
+		return
+	}
+	slog.Error("request failed", "path", r.URL.Path, "err", err)
+	writeError(w, http.StatusInternalServerError, "internal", "Something went wrong.")
+}
+
+func noDirListing(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "" || strings.HasSuffix(r.URL.Path, "/") {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		h.ServeHTTP(w, r)
+	})
+}
+
+// ---------------------------------------------------------------------------
+// Rate limiting (per IP, fixed window) for auth endpoints
+// ---------------------------------------------------------------------------
+
+type rateLimiter struct {
+	mu     sync.Mutex
+	max    int
+	window time.Duration
+	hits   map[string]*window
+}
+
+type window struct {
+	start time.Time
+	n     int
+}
+
+func newRateLimiter(max int, per time.Duration) *rateLimiter {
+	return &rateLimiter{max: max, window: per, hits: map[string]*window{}}
+}
+
+func (l *rateLimiter) allow(key string) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	now := time.Now()
+	if len(l.hits) > 10000 {
+		for k, v := range l.hits {
+			if now.Sub(v.start) > l.window {
+				delete(l.hits, k)
+			}
+		}
+	}
+	h, ok := l.hits[key]
+	if !ok || now.Sub(h.start) > l.window {
+		l.hits[key] = &window{start: now, n: 1}
+		return true
+	}
+	h.n++
+	return h.n <= l.max
+}
+
+func (s *Server) rateLimited(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ip, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			ip = r.RemoteAddr
+		}
+		if !s.limit.allow(ip) {
+			writeError(w, http.StatusTooManyRequests, "rate_limited", "Too many attempts. Try again in a minute.")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}

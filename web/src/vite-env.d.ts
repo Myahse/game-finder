@@ -1,0 +1,7 @@
+/// <reference types="vite/client" />
+
+interface ImportMetaEnv {
+  readonly VITE_API_URL?: string
+  readonly VITE_MAP_STYLE_LIGHT?: string
+  readonly VITE_MAP_STYLE_DARK?: string
+}

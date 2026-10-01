@@ -1,0 +1,51 @@
+# Local stack: Postgres + Go API + web app.
+#   cp .env.example .env   # set JWT_SECRET
+#   docker compose up --build
+# Web: http://localhost:5173   API: http://localhost:8080
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ftg
+      POSTGRES_PASSWORD: ftg
+      POSTGRES_DB: ftg
+    volumes:
+      - db:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ftg"]
+      interval: 3s
+      retries: 20
+
+  api:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://ftg:ftg@db:5432/ftg?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env (32+ chars)}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      CORS_ORIGINS: http://localhost:5173
+      PUBLIC_BASE_URL: http://localhost:8080
+      SEED_DEMO: ${SEED_DEMO:-true}
+      FCM_PROJECT_ID: ${FCM_PROJECT_ID:-}
+      FCM_SERVICE_ACCOUNT_JSON: ${FCM_SERVICE_ACCOUNT_JSON:-}
+    volumes:
+      - uploads:/data/uploads
+    ports:
+      - "8080:8080"
+
+  web:
+    build:
+      context: ./web
+      args:
+        VITE_API_URL: http://localhost:8080
+    depends_on: [api]
+    ports:
+      - "5173:80"
+
+volumes:
+  db:
+  uploads:

@@ -1,0 +1,83 @@
+import { useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
+import { api } from '../lib/api'
+import { timeAgo } from '../lib/format'
+import { qk, useNotifications } from '../lib/queries'
+import type { AppNotification } from '../lib/types'
+import { Button, Empty, PageHeader } from '../components/ui'
+import { Loading } from './CourtPage'
+
+const icons: Record<AppNotification['type'], string> = {
+  game_reminder: '⏰',
+  game_invite: '🤝',
+  game_activity: '🔥',
+  presence_check: '📍',
+  game_cancelled: '✖',
+  system: '📣',
+}
+
+export function NotificationsPage() {
+  const { data, isLoading } = useNotifications()
+  const qc = useQueryClient()
+  const navigate = useNavigate()
+
+  const open = async (n: AppNotification) => {
+    if (!n.read) {
+      await api(`/api/notifications/${n.id}/read`, { method: 'POST' }).catch(() => {})
+      qc.invalidateQueries({ queryKey: qk.notifications })
+    }
+    if (n.data.game_id) navigate(`/games/${n.data.game_id}`)
+    else if (n.data.court_id) navigate(`/?court=${n.data.court_id}`)
+  }
+
+  const readAll = async () => {
+    await api('/api/notifications/read-all', { method: 'POST' }).catch(() => {})
+    qc.invalidateQueries({ queryKey: qk.notifications })
+  }
+
+  return (
+    <div className="pb-10">
+      <PageHeader
+        title="Notifications"
+        right={
+          !!data?.unread && (
+            <Button variant="ghost" className="min-h-9 px-3 text-base" onClick={readAll}>
+              Mark all read
+            </Button>
+          )
+        }
+      />
+      <div className="mx-auto max-w-2xl p-4">
+        {isLoading ? (
+          <Loading />
+        ) : !data?.items.length ? (
+          <Empty icon="🔔" title="All quiet">
+            Game reminders, invites and games starting near you show up here.
+          </Empty>
+        ) : (
+          <ul className="grid gap-2">
+            {data.items.map((n) => (
+              <li key={n.id}>
+                <button
+                  type="button"
+                  onClick={() => open(n)}
+                  className={`flex w-full gap-3 rounded-2xl border p-3 text-left ${n.read ? 'border-line bg-surface' : 'border-brand/40 bg-brand/5'}`}
+                >
+                  <span className="text-2xl" aria-hidden>
+                    {icons[n.type]}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-semibold">{n.title}</span>
+                    <span className="block text-sm text-ink-2">{n.body}</span>
+                    <span className="mt-1 block text-xs text-ink-2">{timeAgo(n.created_at)}</span>
+                  </span>
+                  {!n.read && <span className="mt-2 size-2.5 shrink-0 rounded-full bg-brand" aria-label="Unread" />}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  )
+}
