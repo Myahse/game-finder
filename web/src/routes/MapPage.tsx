@@ -1,23 +1,27 @@
 import { useEffect, useRef } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { formatDistance, timeAgo } from '../lib/format'
 import { useLocation, type Coords } from '../lib/location'
-import { useCourt, useCourtsNearby, useSports } from '../lib/queries'
+import { useCourt, useCourtsNearby, useGamesNearby, useSports } from '../lib/queries'
+import { MapBottomSheet } from '../components/MapBottomSheet'
+import { MapGamesRail } from '../components/MapGamesRail'
 import type { Court } from '../lib/types'
 import { CourtMap } from '../components/CourtMap'
 import { CourtActions } from '../components/CourtActions'
 import { GameCard } from '../components/GameCard'
+import { DistanceText, LiveText, SportName } from '../components/icons'
 import { Chip, Spinner, StatusPill } from '../components/ui'
+import { Plus } from 'lucide-react'
 
 export function MapPage() {
   const [params, setParams] = useSearchParams()
-  const navigate = useNavigate()
   const sport = params.get('sport')
   const selectedId = params.get('court')
   const { coords, status, center } = useLocation()
   const { data: sports } = useSports()
-  const { data: courts, isLoading } = useCourtsNearby(center, sport)
+  const { data: courts } = useCourtsNearby(center, sport)
+  const { data: nearbyGames, isLoading: gamesLoading } = useGamesNearby(center, sport)
 
   // Share a coarse (~1 km) area once so we can alert about games nearby.
   const sentArea = useRef(false)
@@ -54,8 +58,8 @@ export function MapPage() {
           <p className="display text-3xl font-extrabold md:hidden">
             Find the <span className="text-brand">Game</span>
           </p>
-          <span className="display shrink-0 whitespace-nowrap rounded-full bg-live px-3 py-1 text-base font-bold text-white shadow">
-            🔥 {liveCount} live
+          <span className="display inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-live px-3 py-1 text-base font-bold text-white shadow">
+            <LiveText>{liveCount} live</LiveText>
           </span>
         </div>
         <div className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
@@ -66,11 +70,15 @@ export function MapPage() {
             ?.filter((s) => s.active)
             .map((s) => (
               <Chip key={s.id} active={sport === s.slug} onClick={() => update('sport', s.slug)}>
-                <span aria-hidden>{s.icon}</span> {s.name}
+                <SportName sport={s} iconClassName="size-4" />
               </Chip>
             ))}
           <Link to="/courts/new">
-            <Chip>＋ Add court</Chip>
+            <Chip>
+              <span className="inline-flex items-center gap-1">
+                <Plus className="size-4" aria-hidden /> Add court
+              </span>
+            </Chip>
           </Link>
         </div>
         {status === 'denied' && (
@@ -78,25 +86,9 @@ export function MapPage() {
             Location is off — showing Grand-Bassam. Allow location to see games near you.
           </p>
         )}
-        {isLoading && (
-          <div className="mt-2">
-            <Spinner className="text-brand" />
-          </div>
-        )}
       </div>
 
-      {/* I WANT TO PLAY */}
-      {!selectedId && (
-        <div className="absolute inset-x-0 bottom-4 z-10 flex justify-center px-4">
-          <button
-            type="button"
-            onClick={() => navigate(sport ? `/play?sport=${sport}` : '/play')}
-            className="display flex min-h-16 w-full max-w-sm items-center justify-center gap-3 rounded-2xl bg-brand text-3xl font-extrabold text-white shadow-2xl shadow-brand/30 transition active:scale-[0.98]"
-          >
-            <span aria-hidden>🏀</span> I want to play
-          </button>
-        </div>
-      )}
+      {!selectedId && <MapGamesRail games={nearbyGames} isLoading={gamesLoading} sport={sport} />}
 
       {selectedId && <CourtSheet id={selectedId} coords={coords} onClose={() => update('court', null)} />}
     </div>
@@ -109,18 +101,11 @@ function CourtSheet({ id, coords, onClose }: { id: string; coords: Coords | null
   const live = games.filter((g) => g.status === 'active')
 
   return (
-    <div
-      className="absolute inset-x-0 bottom-0 z-20 max-h-[78%] overflow-y-auto rounded-t-3xl border-t border-line bg-surface shadow-[0_-12px_40px_rgba(0,0,0,0.18)] md:inset-x-auto md:bottom-4 md:right-4 md:top-4 md:max-h-none md:w-[400px] md:rounded-3xl md:border"
-      role="dialog"
-      aria-label={court?.name ?? 'Court'}
-    >
-      <div className="sticky top-0 flex justify-center bg-surface pt-2 md:hidden">
-        <span className="h-1.5 w-10 rounded-full bg-line" />
-      </div>
+    <MapBottomSheet ariaLabel={court?.name ?? 'Court'} layout="panel" className="z-20 md:left-auto">
       <button
         type="button"
         onClick={onClose}
-        className="absolute right-3 top-3 z-10 rounded-full bg-surface-2 p-2 text-ink-2 hover:text-ink"
+        className="absolute right-3 top-3 z-10 rounded-full bg-surface-2 p-2 text-ink-2 hover:text-ink md:top-4"
         aria-label="Close"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6">
@@ -136,11 +121,18 @@ function CourtSheet({ id, coords, onClose }: { id: string; coords: Coords | null
       {error && <p className="p-6 text-ink-2">This court isn't available.</p>}
 
       {court && (
-        <div className="p-5 pt-3">
+        <div className="relative p-5 pt-3 md:pt-5">
           <h2 className="display pr-10 text-4xl font-extrabold">{court.name}</h2>
           <p className="mt-1 flex flex-wrap gap-x-3 text-sm text-ink-2">
-            <span>{court.sports.map((s) => `${s.icon} ${s.name}`).join(' · ')}</span>
-            {court.distance_m != null && <span>📍 {formatDistance(court.distance_m)} away</span>}
+            <span className="inline-flex flex-wrap gap-x-2 gap-y-1">
+              {court.sports.map((s, i) => (
+                <span key={s.id} className="inline-flex items-center gap-2">
+                  {i > 0 && <span className="text-ink-2/50">·</span>}
+                  <SportName sport={s} />
+                </span>
+              ))}
+            </span>
+            {court.distance_m != null && <DistanceText>{formatDistance(court.distance_m)} away</DistanceText>}
           </p>
 
           <div className="mt-4 rounded-2xl bg-surface-2 p-4">
@@ -178,6 +170,6 @@ function CourtSheet({ id, coords, onClose }: { id: string; coords: Coords | null
           </Link>
         </div>
       )}
-    </div>
+    </MapBottomSheet>
   )
 }

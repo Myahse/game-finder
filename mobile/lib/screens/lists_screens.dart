@@ -10,6 +10,7 @@ import '../core/models.dart';
 import '../core/presence.dart';
 import '../core/realtime.dart';
 import '../ui/theme.dart';
+import '../ui/app_icons.dart';
 import '../ui/widgets.dart';
 import 'court_screens.dart';
 import 'game_screens.dart';
@@ -86,7 +87,7 @@ class _PlayScreenState extends _LiveListState<PlayScreen> {
           ErrorBanner(error),
           if (!loading && _games.isEmpty)
             EmptyState(
-              icon: '🏀',
+              icon: Icons.sports_basketball,
               title: 'No games nearby yet',
               body: 'Be the one who starts it.',
               action: FilledButton(
@@ -95,7 +96,11 @@ class _PlayScreenState extends _LiveListState<PlayScreen> {
               ),
             ),
           if (live.isNotEmpty) ...[
-            Text('🔥 PLAYING NOW', style: Theme.of(context).textTheme.titleLarge),
+            Row(children: [
+              Icon(Icons.local_fire_department, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 8),
+              Text('PLAYING NOW', style: Theme.of(context).textTheme.titleLarge),
+            ]),
             const SizedBox(height: 8),
             for (final g in live) Padding(padding: const EdgeInsets.only(bottom: 8), child: GameCard(game: g, onTap: () => openGame(g.id))),
           ],
@@ -139,7 +144,7 @@ class _MyGamesScreenState extends _LiveListState<MyGamesScreen> {
             Card(
               color: Palette.live.withValues(alpha: 0.12),
               child: ListTile(
-                leading: const Text('🟢', style: TextStyle(fontSize: 22)),
+                leading: const Icon(Icons.circle, color: Palette.live, size: 14),
                 title: Text('Present at ${presence.courtName}', style: const TextStyle(fontWeight: FontWeight.w700)),
                 subtitle: Text('Since ${clock(presence.startedAt)} · until ${clock(presence.expiresAt)}'),
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CourtDetailsScreen(courtId: presence.courtId))),
@@ -150,7 +155,8 @@ class _MyGamesScreenState extends _LiveListState<MyGamesScreen> {
           ErrorBanner(error),
           Text('NOW & UPCOMING', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
-          if (!loading && _current.isEmpty) const EmptyState(icon: '📅', title: 'No games yet', body: 'Tap Play to find a game near you.'),
+          if (!loading && _current.isEmpty)
+            const EmptyState(icon: Icons.event, title: 'No games yet', body: 'Tap Play to find a game near you.'),
           for (final g in _current) Padding(padding: const EdgeInsets.only(bottom: 8), child: GameCard(game: g, onTap: () => openGame(g.id))),
           if (_past.isNotEmpty) ...[
             const SizedBox(height: 16),
@@ -176,15 +182,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   List<AppNotification> _items = [];
   bool _loading = true;
   StreamSubscription? _rt;
-
-  static const _icons = {
-    'game_reminder': '⏰',
-    'game_invite': '🤝',
-    'game_activity': '🔥',
-    'presence_check': '📍',
-    'game_cancelled': '✖',
-    'system': '📣',
-  };
 
   @override
   void initState() {
@@ -243,7 +240,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ? const Center(child: CircularProgressIndicator())
             : _items.isEmpty
                 ? ListView(children: const [
-                    EmptyState(icon: '🔔', title: 'All quiet', body: 'Game reminders, invites and games starting near you show up here.'),
+                    EmptyState(icon: Icons.notifications_outlined, title: 'All quiet', body: 'Game reminders, invites and games starting near you show up here.'),
                   ])
                 : ListView.separated(
                     padding: const EdgeInsets.all(16),
@@ -254,7 +251,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       return Card(
                         color: n.read ? null : Palette.brand.withValues(alpha: 0.06),
                         child: ListTile(
-                          leading: Text(_icons[n.type] ?? '📣', style: const TextStyle(fontSize: 24)),
+                          leading: Icon(notificationIconData(n.type), color: Palette.brand),
                           title: Text(n.title, style: const TextStyle(fontWeight: FontWeight.w700)),
                           subtitle: Text('${n.body}\n${timeAgo(n.createdAt)}'),
                           isThreeLine: true,

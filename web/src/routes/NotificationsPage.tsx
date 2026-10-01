@@ -4,17 +4,9 @@ import { api } from '../lib/api'
 import { timeAgo } from '../lib/format'
 import { qk, useNotifications } from '../lib/queries'
 import type { AppNotification } from '../lib/types'
+import { Bell, notificationIcons } from '../components/icons'
 import { Button, Empty, PageHeader } from '../components/ui'
 import { Loading } from './CourtPage'
-
-const icons: Record<AppNotification['type'], string> = {
-  game_reminder: '⏰',
-  game_invite: '🤝',
-  game_activity: '🔥',
-  presence_check: '📍',
-  game_cancelled: '✖',
-  system: '📣',
-}
 
 export function NotificationsPage() {
   const { data, isLoading } = useNotifications()
@@ -51,30 +43,31 @@ export function NotificationsPage() {
         {isLoading ? (
           <Loading />
         ) : !data?.items.length ? (
-          <Empty icon="🔔" title="All quiet">
+          <Empty icon={<Bell className="size-14" strokeWidth={1.5} />} title="All quiet">
             Game reminders, invites and games starting near you show up here.
           </Empty>
         ) : (
           <ul className="grid gap-2">
-            {data.items.map((n) => (
-              <li key={n.id}>
-                <button
-                  type="button"
-                  onClick={() => open(n)}
-                  className={`flex w-full gap-3 rounded-2xl border p-3 text-left ${n.read ? 'border-line bg-surface' : 'border-brand/40 bg-brand/5'}`}
-                >
-                  <span className="text-2xl" aria-hidden>
-                    {icons[n.type]}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-semibold">{n.title}</span>
-                    <span className="block text-sm text-ink-2">{n.body}</span>
-                    <span className="mt-1 block text-xs text-ink-2">{timeAgo(n.created_at)}</span>
-                  </span>
-                  {!n.read && <span className="mt-2 size-2.5 shrink-0 rounded-full bg-brand" aria-label="Unread" />}
-                </button>
-              </li>
-            ))}
+            {data.items.map((n) => {
+              const Icon = notificationIcons[n.type]
+              return (
+                <li key={n.id}>
+                  <button
+                    type="button"
+                    onClick={() => open(n)}
+                    className={`flex w-full gap-3 rounded-2xl border p-3 text-left ${n.read ? 'border-line bg-surface' : 'border-brand/40 bg-brand/5'}`}
+                  >
+                    <Icon className="size-7 shrink-0 text-brand" aria-hidden />
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-semibold">{n.title}</span>
+                      <span className="block text-sm text-ink-2">{n.body}</span>
+                      <span className="mt-1 block text-xs text-ink-2">{timeAgo(n.created_at)}</span>
+                    </span>
+                    {!n.read && <span className="mt-2 size-2.5 shrink-0 rounded-full bg-brand" aria-label="Unread" />}
+                  </button>
+                </li>
+              )
+            })}
           </ul>
         )}
       </div>

@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'core/api.dart';
+import 'core/api_bootstrap.dart';
+import 'core/env.dart';
 import 'core/auth.dart';
 import 'core/location.dart';
 import 'core/notifications.dart';
@@ -13,6 +16,10 @@ import 'ui/theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await loadAppEnv();
+  if (kDebugMode) {
+    debugPrint('Find the Game API_URL=$apiUrl mapbox=${mapboxAccessToken.isNotEmpty}');
+  }
   final api = Api();
   await api.load();
   final notifications = Notifications(api);
@@ -57,16 +64,59 @@ class RootGate extends StatefulWidget {
 class _RootGateState extends State<RootGate> {
   bool _booting = true;
   String? _sessionUser = '';
+  String _bootStatus = 'Connecting to server…';
+  AuthState? _auth;
+  bool _authListenerAttached = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final auth = context.read<AuthState>();
-      if (auth.user != null) await auth.refreshMe();
-      await Future<void>.delayed(const Duration(milliseconds: 600)); // let the splash breathe
-      if (mounted) setState(() => _booting = false);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _boot());
+  }
+
+  void _attachAuthListener() {
+    if (_authListenerAttached || !mounted) return;
+    _auth = context.read<AuthState>();
+    _auth!.addListener(_onAuthChanged);
+    _authListenerAttached = true;
+    _syncServices(_auth!.user?.id);
+  }
+
+  void _onAuthChanged() {
+    if (!mounted) return;
+    _syncServices(_auth?.user?.id);
+  }
+
+  @override
+  void dispose() {
+    _auth?.removeListener(_onAuthChanged);
+    super.dispose();
+  }
+
+  Future<void> _boot() async {
+    setState(() => _bootStatus = 'Connecting to server…');
+    await ensureApiReachable();
+    if (!mounted) return;
+    if (!apiReachable) {
+      setState(() => _booting = false);
+      return;
+    }
+    setState(() => _bootStatus = 'Loading…');
+    final auth = context.read<AuthState>();
+    if (auth.user != null) await auth.refreshMe();
+    await Future<void>.delayed(const Duration(milliseconds: 400));
+    if (mounted) {
+      setState(() => _booting = false);
+      _attachAuthListener();
+    }
+  }
+
+  Future<void> _retryServer() async {
+    setState(() {
+      _booting = true;
+      _bootStatus = 'Connecting to server…';
     });
+    await _boot();
   }
 
   /// Start/stop session-scoped services when the signed-in user changes.
@@ -88,10 +138,13 @@ class _RootGateState extends State<RootGate> {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthState>().user;
-    if (_booting) return const SplashScreen();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _syncServices(user?.id);
-    });
+    if (_booting) return SplashScreen(status: _bootStatus);
+    if (!apiReachable) {
+      return ServerConnectScreen(apiUrl: apiUrl, onRetry: _retryServer);
+    }
+    if (!_authListenerAttached) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _attachAuthListener());
+    }
     if (user == null) return const WelcomeScreen();
     if (!user.onboarded) return const OnboardingScreen();
     return const HomeShell();

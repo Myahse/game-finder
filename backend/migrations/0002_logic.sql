@@ -666,7 +666,7 @@ begin
   )
   insert into public.notifications (user_id, type, title, body, data, dedupe_key)
   select d.user_id, 'game_reminder', 'Game reminder',
-         s.icon || ' Your game at ' || c.name || ' starts in ' ||
+         s.name || ' game at ' || c.name || ' starts in ' ||
            greatest(1, ceil(extract(epoch from d.start_time - now()) / 60))::int || ' minutes.',
          jsonb_build_object('game_id', d.game_id, 'court_id', d.court_id),
          'reminder:' || d.game_id || ':' || d.user_id
@@ -686,10 +686,7 @@ begin
   )
   insert into public.notifications (user_id, type, title, body, data, dedupe_key)
   select p.id, 'game_activity', 'Game on nearby',
-         coalesce((
-           select s.icon from public.court_sports cs join public.sports s on s.id = cs.sport_id
-           where cs.court_id = c.id order by s.sort_order limit 1
-         ), '🔥') || ' A game is active ' ||
+         'A game is active ' ||
            round((public.distance_m(p.notify_lat, p.notify_lng, c.latitude, c.longitude) / 1000)::numeric, 1)
            || ' km from you at ' || c.name || '.',
          jsonb_build_object('court_id', c.id),

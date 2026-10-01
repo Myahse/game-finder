@@ -5,9 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
-/// Set with: flutter run --dart-define=API_URL=https://api.example.com
-/// 10.0.2.2 reaches the host machine from the Android emulator.
-const apiUrl = String.fromEnvironment('API_URL', defaultValue: 'http://10.0.2.2:8080');
+import 'env.dart';
 
 class ApiException implements Exception {
   final int status;

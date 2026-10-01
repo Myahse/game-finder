@@ -39,6 +39,9 @@ app.*.symbols
 # Obfuscation related
 app.*.map.json
 
+# Synced secrets from repo .env (use assets/.env.example as template)
+/assets/.env
+
 # Android Studio will place build artifacts here
 /android/app/debug
 /android/app/profile

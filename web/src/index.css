@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 @import 'tailwindcss';
-@import 'maplibre-gl/dist/maplibre-gl.css';
+@import 'mapbox-gl/dist/mapbox-gl.css';
 
 /* Court-at-night palette: hardwood orange for action, scoreboard green for live. */
 :root {
@@ -101,6 +101,12 @@ body {
   }
 }
 
-.maplibregl-ctrl-attrib {
+.mapboxgl-ctrl-attrib {
   font-size: 10px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent) !important;
+}
+
+/* Mapbox GL (not OSM raster tiles). Hide duplicate OSM link; data credit stays in Mapbox terms. */
+.mapboxgl-ctrl-attrib a[href*='openstreetmap.org'] {
+  display: none !important;
 }

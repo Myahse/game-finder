@@ -1,54 +1,11 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { api, errorMessage, uploadImage } from '../lib/api'
 import { useAuth } from '../lib/auth'
-import { Avatar, Button, ErrorText, Field, Input, PageHeader } from '../components/ui'
+import { Avatar, Button, ErrorText, Field, Input, PageHeader, PasswordInput } from '../components/ui'
 
 export function LoginPage() {
-  const { login } = useAuth()
-  const navigate = useNavigate()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
-
-  const submit = async (e: FormEvent) => {
-    e.preventDefault()
-    setBusy(true)
-    setError('')
-    try {
-      await login(email, password)
-      navigate('/', { replace: true })
-    } catch (err) {
-      setError(errorMessage(err))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <div className="min-h-full">
-      <PageHeader title="Log in" back="/welcome" />
-      <form onSubmit={submit} className="mx-auto grid max-w-md gap-4 p-5">
-        <Field label="Email">
-          <Input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-        </Field>
-        <Field label="Password">
-          <Input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-        </Field>
-        <ErrorText>{error}</ErrorText>
-        <Button type="submit" loading={busy}>
-          Log in
-        </Button>
-        <p className="text-center text-sm text-ink-2">
-          New here?{' '}
-          <Link to="/register" className="font-semibold text-brand">
-            Create an account
-          </Link>
-        </p>
-      </form>
-    </div>
-  )
+  return <Navigate to="/welcome?login=1" replace />
 }
 
 export function RegisterPage() {
@@ -123,7 +80,7 @@ export function RegisterPage() {
           <Input type="email" required autoComplete="email" value={form.email} onChange={set('email')} />
         </Field>
         <Field label="Password" hint="At least 8 characters.">
-          <Input type="password" required minLength={8} autoComplete="new-password" value={form.password} onChange={set('password')} />
+          <PasswordInput required minLength={8} autoComplete="new-password" value={form.password} onChange={set('password')} />
         </Field>
         <ErrorText>{error}</ErrorText>
         <Button type="submit" loading={busy} disabled={usernameTaken}>
@@ -131,7 +88,7 @@ export function RegisterPage() {
         </Button>
         <p className="text-center text-sm text-ink-2">
           Already playing?{' '}
-          <Link to="/login" className="font-semibold text-brand">
+          <Link to="/welcome?login=1" className="font-semibold text-brand">
             Log in
           </Link>
         </p>

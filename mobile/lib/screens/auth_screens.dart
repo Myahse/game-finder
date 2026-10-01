@@ -4,24 +4,110 @@ import 'package:provider/provider.dart';
 
 import '../core/api.dart';
 import '../core/auth.dart';
+import '../core/env.dart';
 import '../core/format.dart';
 import '../core/models.dart';
 import '../ui/theme.dart';
+import '../ui/app_icons.dart';
 import '../ui/widgets.dart';
 
 class SplashScreen extends StatelessWidget {
-  const SplashScreen({super.key});
+  final String? status;
+  const SplashScreen({super.key, this.status});
   @override
-  Widget build(BuildContext context) => const Scaffold(
+  Widget build(BuildContext context) => Scaffold(
         backgroundColor: Palette.night,
         body: Center(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text('🏀', style: TextStyle(fontSize: 64)),
-            SizedBox(height: 12),
-            _Wordmark(size: 40),
+            const Icon(Icons.sports_basketball, size: 72, color: Palette.brand),
+            const SizedBox(height: 12),
+            const _Wordmark(size: 40),
+            if (status != null) ...[
+              const SizedBox(height: 28),
+              Text(status!, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70)),
+              const SizedBox(height: 16),
+              const SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 2, color: Palette.brand)),
+            ],
           ]),
         ),
       );
+}
+
+/// Shown when the API cannot be reached after startup discovery.
+class ServerConnectScreen extends StatefulWidget {
+  final String apiUrl;
+  final Future<void> Function() onRetry;
+
+  const ServerConnectScreen({super.key, required this.apiUrl, required this.onRetry});
+
+  @override
+  State<ServerConnectScreen> createState() => _ServerConnectScreenState();
+}
+
+class _ServerConnectScreenState extends State<ServerConnectScreen> {
+  late final TextEditingController _url;
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _url = TextEditingController(text: widget.apiUrl);
+  }
+
+  @override
+  void dispose() {
+    _url.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveAndRetry() async {
+    setApiUrl(_url.text);
+    setState(() => _busy = true);
+    try {
+      await widget.onRetry();
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Spacer(),
+              const Icon(Icons.wifi_off, size: 56, color: Palette.brand),
+              const SizedBox(height: 16),
+              Text('CAN\'T REACH THE SERVER', style: Theme.of(context).textTheme.headlineMedium),
+              const SizedBox(height: 8),
+              Text(
+                'Start Docker on your PC: docker compose up -d db api\n'
+                'Phone and PC must be on the same Wi‑Fi.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 24),
+              TextField(
+                controller: _url,
+                decoration: const InputDecoration(labelText: 'API URL', hintText: 'http://192.168.1.10:8080'),
+                keyboardType: TextInputType.url,
+                autocorrect: false,
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: _busy ? null : _saveAndRetry,
+                child: _busy ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('TRY AGAIN'),
+              ),
+              const Spacer(flex: 2),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _Wordmark extends StatelessWidget {
@@ -35,6 +121,16 @@ class _Wordmark extends StatelessWidget {
         ]),
         style: TextStyle(fontSize: size, fontWeight: FontWeight.w900, height: 0.95, letterSpacing: -1),
       );
+}
+
+void showLoginSheet(BuildContext context) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    useRootNavigator: true,
+    builder: (ctx) => const _LoginSheet(),
+  );
 }
 
 class WelcomeScreen extends StatelessWidget {
@@ -70,7 +166,7 @@ class WelcomeScreen extends StatelessWidget {
             const SizedBox(height: 12),
             OutlinedButton(
               style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: const BorderSide(color: Colors.white24)),
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen())),
+              onPressed: () => showLoginSheet(context),
               child: const Text('LOG IN'),
             ),
           ]),
@@ -80,17 +176,25 @@ class WelcomeScreen extends StatelessWidget {
   }
 }
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class _LoginSheet extends StatefulWidget {
+  const _LoginSheet();
+
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<_LoginSheet> createState() => _LoginSheetState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginSheetState extends State<_LoginSheet> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   String? _error;
   bool _busy = false;
+
+  @override
+  void dispose() {
+    _email.dispose();
+    _password.dispose();
+    super.dispose();
+  }
 
   Future<void> _submit() async {
     setState(() {
@@ -99,7 +203,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
     try {
       await context.read<AuthState>().login(_email.text, _password.text);
-      if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
+      if (mounted) Navigator.of(context).pop();
     } catch (e) {
       setState(() => _error = errorText(e));
     } finally {
@@ -108,28 +212,63 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('LOG IN')),
-        body: ListView(padding: const EdgeInsets.all(20), children: [
-          TextField(
-            controller: _email,
-            keyboardType: TextInputType.emailAddress,
-            autofillHints: const [AutofillHints.email],
-            decoration: const InputDecoration(labelText: 'Email'),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _password,
-            obscureText: true,
-            autofillHints: const [AutofillHints.password],
-            decoration: const InputDecoration(labelText: 'Password'),
-            onSubmitted: (_) => _submit(),
-          ),
-          const SizedBox(height: 16),
-          ErrorBanner(_error),
-          FilledButton(onPressed: _busy ? null : _submit, child: Text(_busy ? '…' : 'LOG IN')),
-        ]),
-      );
+  Widget build(BuildContext context) {
+    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
+    final safe = MediaQuery.paddingOf(context).bottom;
+    return AnimatedPadding(
+      padding: EdgeInsets.only(bottom: keyboard),
+      duration: const Duration(milliseconds: 120),
+      curve: Curves.easeOut,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + (keyboard > 0 ? 8 : safe)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 5,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(color: Theme.of(context).dividerColor, borderRadius: BorderRadius.circular(99)),
+              ),
+            ),
+            Text('LOG IN', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
+            const SizedBox(height: 4),
+            Text('Pick up where you left off on the map.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _email,
+              keyboardType: TextInputType.emailAddress,
+              autofillHints: const [AutofillHints.email],
+              decoration: const InputDecoration(labelText: 'Email'),
+            ),
+            const SizedBox(height: 12),
+            PasswordTextField(
+              controller: _password,
+              labelText: 'Password',
+              autofillHints: const [AutofillHints.password],
+              onSubmitted: (_) => _submit(),
+            ),
+            const SizedBox(height: 16),
+            ErrorBanner(_error),
+            FilledButton(onPressed: _busy ? null : _submit, child: Text(_busy ? '…' : 'LOG IN')),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen()));
+              },
+              child: const Text('Create an account'),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
 }
 
 class RegisterScreen extends StatefulWidget {
@@ -169,7 +308,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         try {
           final url = await api.upload(await _photo!.readAsBytes(), _photo!.name, 'avatar');
           await auth.updateMe({'avatar_url': url});
-        } catch (_) {} // optional; they can add it later from Profile
+        } catch (_) {}
       }
       if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
     } catch (e) {
@@ -223,15 +362,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
               validator: (v) => (v ?? '').contains('@') ? null : 'Enter a valid email',
             ),
             const SizedBox(height: 12),
-            TextFormField(
+            PasswordTextField(
               controller: _password,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Password', helperText: 'At least 8 characters'),
+              labelText: 'Password',
+              helperText: 'At least 8 characters',
               validator: (v) => (v ?? '').length >= 8 ? null : 'At least 8 characters',
             ),
             const SizedBox(height: 16),
             ErrorBanner(_error),
             FilledButton(onPressed: _busy ? null : _submit, child: Text(_busy ? '…' : 'CREATE ACCOUNT')),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                showLoginSheet(context);
+              },
+              child: const Text('Already playing? Log in'),
+            ),
           ]),
         ),
       );
@@ -289,11 +436,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           for (final s in active)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
-              child: ChoiceTile(label: '${s.icon}  ${s.name.toUpperCase()}', selected: chosen == s.id, onTap: () => setState(() => _sportId = s.id)),
+              child: ChoiceTile(
+                leading: SportIcon(s.slug, size: 22, color: Palette.brand),
+                label: s.name.toUpperCase(),
+                selected: chosen == s.id,
+                onTap: () => setState(() => _sportId = s.id),
+              ),
             ),
           if (soon.isNotEmpty)
-            Text('Coming soon: ${soon.map((s) => '${s.icon} ${s.name}').join(' · ')}',
-                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            Wrap(
+              spacing: 10,
+              runSpacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text('Coming soon:', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                for (final s in soon) SportInline(s, iconSize: 14, textStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+              ],
+            ),
           const SizedBox(height: 28),
           Text('YOUR LEVEL', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 10),

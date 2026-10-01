@@ -57,6 +57,11 @@ func setup(t *testing.T) *env {
 	if _, err := d.Pool.Exec(ctx, seed.Demo); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := d.Pool.Exec(ctx, `
+		update courts set photos = array['http://test/place.jpg']::text[]
+		where coalesce(array_length(photos, 1), 0) = 0`); err != nil {
+		t.Fatal(err)
+	}
 
 	cfg := config.Config{
 		JWTSecret:       []byte(strings.Repeat("s", 32)),

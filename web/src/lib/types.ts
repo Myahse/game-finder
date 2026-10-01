@@ -79,7 +79,7 @@ export interface Game {
   player_count: number
   spots_left: number
   joined: boolean
-  court: Pick<Court, 'id' | 'name' | 'latitude' | 'longitude' | 'address'>
+  court: Pick<Court, 'id' | 'name' | 'latitude' | 'longitude' | 'address'> & { photos?: string[] }
   sport: Sport
   creator: PublicUser | null
   distance_m: number | null

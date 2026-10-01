@@ -47,10 +47,10 @@ export function gameTimeLabel(g: Pick<Game, 'status' | 'start_time'>): string {
   return g.status === 'active' ? `Started ${clock(g.start_time)}` : dayAndClock(g.start_time)
 }
 
-export const activityMeta: Record<Activity, { label: string; emoji: string; tone: string }> = {
-  active: { label: 'GAME ACTIVE', emoji: '🔥', tone: 'live' },
-  players: { label: 'PLAYERS PRESENT', emoji: '🟡', tone: 'players' },
-  inactive: { label: 'INACTIVE', emoji: '⚪', tone: 'idle' },
+export const activityMeta: Record<Activity, { label: string; tone: string }> = {
+  active: { label: 'GAME ACTIVE', tone: 'live' },
+  players: { label: 'PLAYERS PRESENT', tone: 'players' },
+  inactive: { label: 'INACTIVE', tone: 'idle' },
 }
 
 export const skillLabels: Record<SkillLevel, string> = {

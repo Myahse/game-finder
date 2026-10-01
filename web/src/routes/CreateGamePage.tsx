@@ -1,11 +1,13 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { api, errorMessage } from '../lib/api'
+import { api, errorMessage, uploadImage } from '../lib/api'
 import { formatDistance, gameTypeLabels, skillLabels } from '../lib/format'
 import { useLocation } from '../lib/location'
 import { useCourtsNearby, useSports } from '../lib/queries'
 import type { Game, GameType, SkillLevel } from '../lib/types'
+import { Clock, Flame, SportIcon, SportName } from '../components/icons'
+import { Plus } from 'lucide-react'
 import { Button, ErrorText, Field, Input, PageHeader, Select } from '../components/ui'
 
 function localInputValue(d: Date) {
@@ -33,14 +35,41 @@ export function CreateGamePage() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [created, setCreated] = useState<Game | null>(null)
+  const [placePhotos, setPlacePhotos] = useState<string[]>([])
+  const [uploading, setUploading] = useState(false)
 
   const court = courts?.find((c) => c.id === courtId)
+  const existingPhotos = court?.photos ?? []
+  const needsPlacePhoto = !!courtId && existingPhotos.length === 0 && placePhotos.length === 0
+
+  useEffect(() => {
+    setPlacePhotos([])
+  }, [courtId])
   const courtSports = court ? active.filter((s) => court.sports.some((cs) => cs.id === s.id)) : active
   const chosenSport = courtSports.find((s) => s.id === sportId) ?? courtSports[0]
+
+  const addPlacePhoto = async (files: FileList | null) => {
+    if (!files?.length) return
+    setUploading(true)
+    setError('')
+    try {
+      const f = files[0]
+      const url = await uploadImage(f, 'court')
+      setPlacePhotos((p) => (p.length ? p : [url]))
+    } catch (err) {
+      setError(errorMessage(err))
+    } finally {
+      setUploading(false)
+    }
+  }
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     if (!chosenSport) return
+    if (needsPlacePhoto) {
+      setError('Add a photo of the court so others can find the place.')
+      return
+    }
     setBusy(true)
     setError('')
     try {
@@ -53,10 +82,13 @@ export function CreateGamePage() {
           max_players: maxPlayers,
           skill_level: skill,
           game_type: type,
+          court_photos: placePhotos,
         },
       })
       qc.invalidateQueries({ queryKey: ['court', courtId] })
       qc.invalidateQueries({ queryKey: ['my-games'] })
+      qc.invalidateQueries({ queryKey: ['games-nearby'] })
+      qc.invalidateQueries({ queryKey: ['courts'] })
       setCreated(game)
     } catch (err) {
       setError(errorMessage(err))
@@ -68,9 +100,7 @@ export function CreateGamePage() {
   if (created) {
     return (
       <div className="mx-auto flex min-h-full max-w-md flex-col items-center justify-center p-8 text-center">
-        <p className="text-6xl" aria-hidden>
-          {created.sport.icon}
-        </p>
+        <SportIcon slug={created.sport.slug} className="size-16 text-brand" />
         <h1 className="display mt-3 text-5xl font-extrabold">Game created successfully.</h1>
         <p className="mt-2 text-ink-2">
           You're in. Players near {created.court.name} can see it now.
@@ -99,6 +129,37 @@ export function CreateGamePage() {
           </Select>
         </Field>
 
+        {courtId && (
+          <Field
+            label="Photo of the place"
+            hint={
+              existingPhotos.length
+                ? 'This court already has photos. You can add another (optional).'
+                : 'Required — show players what the court looks like.'
+            }
+          >
+            <div className="flex flex-wrap gap-2">
+              {existingPhotos.map((p) => (
+                <img key={p} src={p} alt="" className="size-20 rounded-xl object-cover" />
+              ))}
+              {placePhotos.map((p) => (
+                <img key={p} src={p} alt="" className="size-20 rounded-xl object-cover ring-2 ring-brand" />
+              ))}
+              {existingPhotos.length + placePhotos.length < 6 && (
+                <label className="flex size-20 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-line text-ink-2">
+                  {uploading ? '…' : <Plus className="size-8" aria-hidden />}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    onChange={(e) => addPlacePhoto(e.target.files)}
+                  />
+                </label>
+              )}
+            </div>
+          </Field>
+        )}
+
         <Field label="Sport">
           <div className="flex flex-wrap gap-2">
             {courtSports.map((s) => (
@@ -109,7 +170,7 @@ export function CreateGamePage() {
                 aria-pressed={chosenSport?.id === s.id}
                 className={`rounded-xl border-2 px-4 py-2.5 font-semibold ${chosenSport?.id === s.id ? 'border-brand bg-brand/10' : 'border-line bg-surface'}`}
               >
-                {s.icon} {s.name}
+                <SportName sport={s} />
               </button>
             ))}
           </div>
@@ -125,7 +186,17 @@ export function CreateGamePage() {
                 aria-pressed={when === w}
                 className={`rounded-xl border-2 py-2.5 font-semibold ${when === w ? 'border-brand bg-brand/10' : 'border-line bg-surface'}`}
               >
-                {w === 'now' ? '🔥 Right now' : '🕕 Later'}
+                {w === 'now' ? (
+                  <span className="inline-flex items-center justify-center gap-2">
+                    <Flame className="size-4" aria-hidden />
+                    Right now
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center justify-center gap-2">
+                    <Clock className="size-4" aria-hidden />
+                    Later
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -166,7 +237,7 @@ export function CreateGamePage() {
         </Field>
 
         <ErrorText>{error}</ErrorText>
-        <Button type="submit" loading={busy} disabled={!courtId || !chosenSport}>
+        <Button type="submit" loading={busy} disabled={!courtId || !chosenSport || uploading || needsPlacePhoto}>
           Create game
         </Button>
       </form>

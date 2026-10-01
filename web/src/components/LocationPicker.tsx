@@ -1,19 +1,39 @@
-import Map, { Marker } from 'react-map-gl/maplibre'
+import Map, { AttributionControl, Marker } from 'react-map-gl/mapbox'
+import { MapPin } from './icons'
 import type { Coords } from '../lib/location'
-
-const STYLE = import.meta.env.VITE_MAP_STYLE_LIGHT ?? 'https://tiles.openfreemap.org/styles/positron'
+import { MAPBOX_ACCESS_TOKEN, MAP_STYLE_LIGHT, mapboxConfigured } from '../lib/mapbox'
 
 /** Tap the map to drop the court pin. */
-export function LocationPicker({ value, initial, onChange }: { value: Coords | null; initial: Coords; onChange: (c: Coords) => void }) {
+export function LocationPicker({
+  value,
+  initial,
+  onChange,
+}: {
+  value: Coords | null
+  initial: Coords
+  onChange: (c: Coords) => void
+}) {
+  if (!mapboxConfigured()) {
+    return (
+      <div className="flex h-64 items-center justify-center rounded-2xl border border-line bg-surface-2 p-4 text-center text-xs text-ink-2">
+        Add <code className="text-ink">VITE_MAPBOX_ACCESS_TOKEN</code> to show the map.
+      </div>
+    )
+  }
+
   return (
     <div className="relative h-64 overflow-hidden rounded-2xl border border-line">
       <Map
+        mapboxAccessToken={MAPBOX_ACCESS_TOKEN}
         initialViewState={{ longitude: initial.longitude, latitude: initial.latitude, zoom: 15 }}
-        mapStyle={STYLE}
+        mapStyle={MAP_STYLE_LIGHT}
         onClick={(e) => onChange({ latitude: e.lngLat.lat, longitude: e.lngLat.lng })}
+        attributionControl={false}
+        logoPosition="bottom-right"
         style={{ width: '100%', height: '100%' }}
         cursor="crosshair"
       >
+        <AttributionControl compact position="bottom-left" />
         {value && (
           <Marker
             longitude={value.longitude}
@@ -22,9 +42,7 @@ export function LocationPicker({ value, initial, onChange }: { value: Coords | n
             draggable
             onDragEnd={(e) => onChange({ latitude: e.lngLat.lat, longitude: e.lngLat.lng })}
           >
-            <span className="text-4xl drop-shadow" aria-label="Court location">
-              📍
-            </span>
+            <MapPin className="size-10 text-brand drop-shadow" strokeWidth={2.4} aria-label="Court location" />
           </Marker>
         )}
       </Map>

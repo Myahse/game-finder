@@ -55,6 +55,7 @@ export function useGamesNearby(center: Coords, sport: string | null) {
     queryKey: qk.gamesNearby(c.lat, c.lng, sport),
     queryFn: () =>
       api<Game[]>(`/api/games/nearby?lat=${center.latitude}&lng=${center.longitude}${sport ? `&sport=${sport}` : ''}`),
+    placeholderData: (prev) => prev,
   })
 }
 

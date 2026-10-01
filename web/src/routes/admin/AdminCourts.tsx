@@ -5,6 +5,7 @@ import { api, errorMessage } from '../../lib/api'
 import { DEFAULT_CENTER, type Coords } from '../../lib/location'
 import { useSports } from '../../lib/queries'
 import type { Court, PublicUser } from '../../lib/types'
+import { Plus, SportIcon, SportName } from '../../components/icons'
 import { LocationPicker } from '../../components/LocationPicker'
 import { Button, Card, Chip, ErrorText, Field, Input, Textarea } from '../../components/ui'
 import { Loading } from '../CourtPage'
@@ -42,7 +43,10 @@ export function AdminCourts() {
         ))}
         <Input className="max-w-56 py-2" placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} />
         <Button className="ml-auto min-h-10" onClick={() => setEditing('new')}>
-          ＋ Add court
+          <span className="inline-flex items-center gap-2">
+            <Plus className="size-4" aria-hidden />
+            Add court
+          </span>
         </Button>
       </div>
       {isLoading && <Loading />}
@@ -62,7 +66,10 @@ export function AdminCourts() {
               {c.open_reports > 0 && <span className="ml-2 text-xs font-semibold text-danger">⚑ {c.open_reports} reports</span>}
             </p>
             <p className="text-sm text-ink-2">
-              {c.sports.map((s) => s.icon).join(' ')} {c.address ?? `${c.latitude.toFixed(5)}, ${c.longitude.toFixed(5)}`}
+              <span className="inline-flex items-center gap-1">
+                {c.sports.map((s) => <SportIcon key={s.id} slug={s.slug} className="size-4" />)}
+              </span>
+              {c.address ?? `${c.latitude.toFixed(5)}, ${c.longitude.toFixed(5)}`}
             </p>
             {c.creator && <p className="text-xs text-ink-2">Proposed by @{c.creator.username}</p>}
             {c.description && <p className="mt-1 text-sm">{c.description}</p>}
@@ -167,7 +174,7 @@ function CourtEditor({ court, onDone }: { court: AdminCourt | null; onDone: () =
                 }))
               }
             >
-              {s.icon} {s.name}
+              <SportName sport={s} />
             </Chip>
           ))}
         </div>

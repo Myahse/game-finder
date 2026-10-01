@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { api, errorMessage } from '../lib/api'
 import { reportLabels } from '../lib/format'
 import type { ReportType } from '../lib/types'
+import { CheckCircle } from '../components/icons'
 import { Button, ErrorText, Field, PageHeader, Textarea } from '../components/ui'
 
 export function ReportCourtPage() {
@@ -32,9 +33,7 @@ export function ReportCourtPage() {
   if (sent) {
     return (
       <div className="mx-auto flex min-h-full max-w-md flex-col items-center justify-center p-8 text-center">
-        <p className="text-6xl" aria-hidden>
-          🙏
-        </p>
+        <CheckCircle className="size-16 text-brand" strokeWidth={1.5} aria-hidden />
         <h1 className="display mt-3 text-5xl font-extrabold">Thanks for the report</h1>
         <p className="mt-2 text-ink-2">An admin will review it.</p>
         <Button className="mt-8 w-full" onClick={() => navigate(`/?court=${id}`)}>

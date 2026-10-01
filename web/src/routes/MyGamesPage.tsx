@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useLocation } from '../lib/location'
 import { useMyGames, useMyPresence } from '../lib/queries'
 import { GameCard } from '../components/GameCard'
+import { CalendarDays, Circle } from '../components/icons'
 import { Card, Empty, PageHeader } from '../components/ui'
 import { Loading } from './CourtPage'
 
@@ -17,7 +18,10 @@ export function MyGamesPage() {
         {presence && (
           <Link to={`/courts/${presence.court_id}`}>
             <Card className="border-live/40 bg-live/10">
-              <p className="font-semibold text-live">🟢 Checked in at {presence.court.name}</p>
+              <p className="flex items-center gap-2 font-semibold text-live">
+                <Circle className="size-3 fill-live text-live" aria-hidden />
+                Checked in at {presence.court.name}
+              </p>
               <p className="text-sm text-ink-2">
                 Until {new Date(presence.expires_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </p>
@@ -37,7 +41,7 @@ export function MyGamesPage() {
                   ))}
                 </div>
               ) : (
-                <Empty icon="📅" title="No games yet">
+                <Empty icon={<CalendarDays className="size-14" strokeWidth={1.5} />} title="No games yet">
                   <Link to="/play" className="font-semibold text-brand">
                     Find a game near you →
                   </Link>

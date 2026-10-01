@@ -8,14 +8,14 @@ Basketball first; the data model supports any sport.
 | Part | Stack | Folder |
 |------|-------|--------|
 | API | Go 1.26, chi, pgx, PostgreSQL 16, WebSockets | [`backend/`](backend) |
-| Web app + admin dashboard | React 19, TypeScript, Vite, Tailwind, MapLibre | [`web/`](web) |
+| Web app + admin dashboard | React 19, TypeScript, Vite, Tailwind, Mapbox GL | [`web/`](web) |
 | Mobile app (Android/iOS) | Flutter, flutter_map, FCM, local notifications | [`mobile/`](mobile) |
 
 ## Quick start
 
 ```bash
-cp .env.example .env            # set JWT_SECRET and ADMIN_EMAILS
-docker compose up --build       # Postgres + API (:8080) + web (:5173)
+cp .env.example .env            # set JWT_SECRET, ADMIN_EMAILS, VITE_MAPBOX_ACCESS_TOKEN
+docker compose up --build       # Postgres + API (:8080) + web (see compose for host port)
 ```
 
 Open http://localhost:5173 and create an account. If you register with an email from `ADMIN_EMAILS`, you get the **Admin** dashboard. `SEED_DEMO=true` loads 8 demo courts around Grand-Bassam and Abidjan. Their coordinates are approximate, so verify them before launch.
@@ -42,9 +42,9 @@ cd mobile && flutter run --dart-define=API_URL=http://10.0.2.2:8080
 
 | Status | Rule | Marker |
 |--------|------|--------|
-| 🔥 **GAME ACTIVE** | an active game with ≥1 player, **or** ≥ `active_court_min_players` (default 6) people checked in | green `🏀 8` |
-| 🟡 **PLAYERS PRESENT** | 1+ people checked in, no game | yellow `👥 4` |
-| ⚪ **INACTIVE** | nobody | gray `🏀` |
+| **GAME ACTIVE** | an active game with ≥1 player, **or** ≥ `active_court_min_players` (default 6) people checked in | green marker with sport icon + count |
+| **PLAYERS PRESENT** | 1+ people checked in, no game | yellow marker with groups icon + count |
+| **INACTIVE** | nobody | gray marker with sport icon only |
 
 `player_count` counts distinct people who are checked in **or** joined to an active game at the court.
 
@@ -143,10 +143,10 @@ CI runs all three (`.github/workflows/ci.yml`).
 
 ## Map tiles
 
-- **Web:** MapLibre with [OpenFreeMap](https://openfreemap.org) styles (`VITE_MAP_STYLE_LIGHT` / `VITE_MAP_STYLE_DARK`). It falls back to OSM raster tiles if the style can't be loaded.
-- **Mobile:** flutter_map with CARTO basemaps (`--dart-define=TILE_URL_LIGHT=…`).
+- **Web:** [Mapbox GL](https://www.mapbox.com/) via `react-map-gl` — set `VITE_MAPBOX_ACCESS_TOKEN` in `.env` (baked in at `docker compose build`). Optional style overrides: `VITE_MAP_STYLE_LIGHT` / `VITE_MAP_STYLE_DARK` (Mapbox style URLs).
+- **Mobile:** flutter_map with Mapbox raster tiles — pass `--dart-define=MAPBOX_ACCESS_TOKEN=pk....` (same token as web).
 
-For production traffic, point both at a provider you have an agreement with (MapTiler, Mapbox, Stadia…).
+Create a token at [mapbox.com](https://account.mapbox.com/access-tokens/) and restrict it by URL in production.
 
 ## Roadmap
 

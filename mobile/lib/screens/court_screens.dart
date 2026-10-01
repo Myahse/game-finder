@@ -9,9 +9,11 @@ import 'package:provider/provider.dart';
 import '../core/api.dart';
 import '../core/format.dart';
 import '../core/location.dart';
+import '../core/map_tiles.dart';
 import '../core/models.dart';
 import '../core/presence.dart';
 import '../core/realtime.dart';
+import '../ui/app_icons.dart';
 import '../ui/theme.dart';
 import '../ui/widgets.dart';
 import 'game_screens.dart';
@@ -80,10 +82,19 @@ class _CourtSheetState extends State<CourtSheet> with _CourtLoader {
         return ListView(controller: scroll, padding: const EdgeInsets.fromLTRB(20, 0, 20, 24), children: [
           Text(c.name.toUpperCase(), style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 4),
-          Text(
-            [c.sports.map((s) => '${s.icon} ${s.name}').join(' · '), if (c.distanceM != null) '📍 ${formatDistance(c.distanceM)} away']
-                .join('   '),
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+          Wrap(
+            spacing: 12,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              for (final s in c.sports) SportInline(s, iconSize: 14, textStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+              if (c.distanceM != null)
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.place, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  const SizedBox(width: 4),
+                  Text('${formatDistance(c.distanceM)} away', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                ]),
+            ],
           ),
           const SizedBox(height: 14),
           _StatusCard(court: c),
@@ -185,7 +196,11 @@ class _CourtActionsState extends State<CourtActions> {
         FilledButton(
           style: FilledButton.styleFrom(backgroundColor: Palette.live),
           onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => GameScreen(gameId: mine.id))),
-          child: Text("✅ YOU'RE IN · ${mine.playerCount}/${mine.maxPlayers}"),
+          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            const Icon(Icons.check_circle_outline),
+            const SizedBox(width: 8),
+            Text("YOU'RE IN · ${mine.playerCount}/${mine.maxPlayers}"),
+          ]),
         )
       else
         FilledButton(
@@ -218,22 +233,28 @@ class _CourtActionsState extends State<CourtActions> {
             onPressed: _busy
                 ? null
                 : () => _run(() => hereNow ? presence.leave() : presence.checkIn(c.id, me)),
-            child: Text(hereNow ? "I'VE LEFT" : "📍 I'M HERE"),
+            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              if (!hereNow) ...[const Icon(Icons.place, size: 18), const SizedBox(width: 6)],
+              Text(hereNow ? "I'VE LEFT" : "I'M HERE"),
+            ]),
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
           child: OutlinedButton(
             onPressed: () => openDirections(c.latitude, c.longitude),
-            child: const Text('🧭 DIRECTIONS'),
+            child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Icon(Icons.navigation_outlined, size: 18),
+              SizedBox(width: 6),
+              Text('DIRECTIONS'),
+            ]),
           ),
         ),
       ]),
       if (hereNow)
         Padding(
           padding: const EdgeInsets.only(top: 8),
-          child: Text("🟢 You're present since ${clock(presence.current!.startedAt)}",
-              textAlign: TextAlign.center, style: const TextStyle(color: Palette.live, fontWeight: FontWeight.w700)),
+          child: PresenceLiveText("You're present since ${clock(presence.current!.startedAt)}", textAlign: TextAlign.center),
         ),
       if (far && !hereNow)
         Padding(
@@ -291,7 +312,16 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> with _CourtLoad
                   ),
                 if (c.photos.isNotEmpty) const SizedBox(height: 16),
                 if (c.status == 'pending')
-                  const Card(child: Padding(padding: EdgeInsets.all(12), child: Text('⏳ Waiting for review. Only you can see this court.'))),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(children: [
+                        const Icon(Icons.hourglass_top, size: 20),
+                        const SizedBox(width: 10),
+                        const Expanded(child: Text('Waiting for review. Only you can see this court.')),
+                      ]),
+                    ),
+                  ),
                 _StatusCard(court: c),
                 const SizedBox(height: 14),
                 if (c.status == 'approved') CourtActions(court: c, onChanged: load),
@@ -315,11 +345,21 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> with _CourtLoad
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text('COURT INFO', style: Theme.of(context).textTheme.titleLarge),
                       const SizedBox(height: 8),
-                      _info('Sports', c.sports.map((s) => '${s.icon} ${s.name}').join(', ')),
+                      _infoRow(
+                        'Sports',
+                        Wrap(spacing: 10, runSpacing: 6, children: [for (final s in c.sports) SportInline(s)]),
+                      ),
                       _info('Address', c.address),
                       _info('Opening hours', c.openingHours),
                       _info('Surface', c.surface),
-                      _info('Lighting', c.lighting == null ? null : (c.lighting! ? '💡 Lit at night' : 'No lights')),
+                      _infoRow(
+                        'Lighting',
+                        c.lighting == null
+                            ? const Text('—')
+                            : c.lighting!
+                                ? const Row(children: [Icon(Icons.lightbulb_outline, size: 18), SizedBox(width: 6), Text('Lit at night')])
+                                : const Text('No lights'),
+                      ),
                       if (c.description != null) ...[const SizedBox(height: 8), Text(c.description!)],
                     ]),
                   ),
@@ -329,11 +369,13 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> with _CourtLoad
     );
   }
 
-  Widget _info(String label, String? value) => Padding(
+  Widget _info(String label, String? value) => _infoRow(label, Text(value ?? '—'));
+
+  Widget _infoRow(String label, Widget value) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 3),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           SizedBox(width: 120, child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700))),
-          Expanded(child: Text(value ?? '—')),
+          Expanded(child: value),
         ]),
       );
 }
@@ -352,6 +394,8 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
   final Set<String> _sportIds = {};
   final List<String> _photos = [];
   bool _busy = false, _uploading = false, _done = false;
+  Court? _doneCourt;
+  bool _reusedNearby = false;
   String? _error;
 
   @override
@@ -384,7 +428,7 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
       _error = null;
     });
     try {
-      await context.read<Api>().post('/api/courts', {
+      final j = await context.read<Api>().post('/api/courts', {
         'name': _name.text.trim(),
         'latitude': _where!.latitude,
         'longitude': _where!.longitude,
@@ -392,7 +436,12 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
         'description': _description.text.trim().isEmpty ? null : _description.text.trim(),
         'photos': _photos,
       });
-      setState(() => _done = true);
+      final court = Court.fromJson(j as Map<String, dynamic>);
+      setState(() {
+        _doneCourt = court;
+        _reusedNearby = j['reused_nearby'] == true;
+        _done = true;
+      });
     } catch (e) {
       setState(() => _error = errorText(e));
     } finally {
@@ -403,13 +452,36 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
   @override
   Widget build(BuildContext context) {
     final loc = context.watch<LocationState>();
-    if (_done) {
+    if (_done && _doneCourt != null) {
+      final c = _doneCourt!;
       return Scaffold(
         appBar: AppBar(),
-        body: const EmptyState(
-          icon: '⏳',
-          title: 'Court submitted',
-          body: 'Status: PENDING. It appears on the map once an admin approves it.',
+        body: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            const Icon(Icons.check_circle_outline, size: 64, color: Palette.brand),
+            const SizedBox(height: 16),
+            Text(_reusedNearby ? 'Court already here' : 'Court on the map',
+                textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
+            const SizedBox(height: 12),
+            Text(
+              _reusedNearby
+                  ? 'Nobody was playing at this spot — use this court and start a game for others to join.'
+                  : 'It’s on the map now (pending review). Anyone nearby can create a game when the court is quiet.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 24),
+            FilledButton(
+              onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => CreateGameScreen(courtId: c.id))),
+              child: const Text('CREATE A GAME'),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton(
+              onPressed: () => Navigator.popUntil(context, (r) => r.isFirst),
+              child: const Text('VIEW ON MAP'),
+            ),
+          ]),
         ),
       );
     }
@@ -432,13 +504,19 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
               ),
               children: [
                 TileLayer(
-                  urlTemplate: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-                  subdomains: const ['a', 'b', 'c', 'd'],
+                  urlTemplate: mapboxTileUrl(dark: Theme.of(context).brightness == Brightness.dark),
                   userAgentPackageName: 'com.findthegame.find_the_game',
+                  retinaMode: RetinaMode.isHighDensity(context),
                 ),
                 if (_where != null)
                   MarkerLayer(markers: [
-                    Marker(point: _where!, width: 40, height: 40, alignment: Alignment.topCenter, child: const Text('📍', style: TextStyle(fontSize: 32))),
+                    Marker(
+                      point: _where!,
+                      width: 40,
+                      height: 40,
+                      alignment: Alignment.topCenter,
+                      child: Icon(Icons.place, size: 36, color: Palette.brand),
+                    ),
                   ]),
               ],
             ),
@@ -457,7 +535,8 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
         Wrap(spacing: 8, runSpacing: 8, children: [
           for (final s in _sports)
             ChoiceTile(
-              label: '${s.icon} ${s.name}',
+              leading: SportIcon(s.slug, size: 20),
+              label: s.name,
               selected: _sportIds.contains(s.id),
               onTap: () => setState(() => _sportIds.contains(s.id) ? _sportIds.remove(s.id) : _sportIds.add(s.id)),
             ),
@@ -520,7 +599,7 @@ class _ReportCourtScreenState extends State<ReportCourtScreen> {
   @override
   Widget build(BuildContext context) {
     if (_sent) {
-      return Scaffold(appBar: AppBar(), body: const EmptyState(icon: '🙏', title: 'Thanks for the report', body: 'An admin will review it.'));
+      return Scaffold(appBar: AppBar(), body: const EmptyState(icon: Icons.check_circle_outline, title: 'Thanks for the report', body: 'An admin will review it.'));
     }
     return Scaffold(
       appBar: AppBar(title: const Text('REPORT COURT')),

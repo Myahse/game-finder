@@ -85,25 +85,25 @@ void main() {
 
     testWidgets('active pin shows sport and player count', (t) async {
       await t.pumpWidget(wrap(CourtPin(court: court(), onTap: () {})));
-      expect(find.text('🏀'), findsOneWidget);
+      expect(find.byIcon(Icons.sports_basketball), findsOneWidget);
       expect(find.text('8'), findsOneWidget);
     });
 
-    testWidgets('players-present pin shows 👥 and count', (t) async {
+    testWidgets('players-present pin shows groups icon and count', (t) async {
       await t.pumpWidget(wrap(CourtPin(court: court(activity: 'players', players: 4), onTap: () {})));
-      expect(find.text('👥'), findsOneWidget);
+      expect(find.byIcon(Icons.groups), findsOneWidget);
       expect(find.text('4'), findsOneWidget);
     });
 
     testWidgets('inactive pin shows only the sport', (t) async {
       await t.pumpWidget(wrap(CourtPin(court: court(activity: 'inactive', players: 0), onTap: () {})));
-      expect(find.text('🏀'), findsOneWidget);
+      expect(find.byIcon(Icons.sports_basketball), findsOneWidget);
       expect(find.text('0'), findsNothing);
     });
 
     testWidgets('status pill labels', (t) async {
       await t.pumpWidget(wrap(const StatusPill(Activity.active)));
-      expect(find.text('🔥 GAME ACTIVE'), findsOneWidget);
+      expect(find.text('GAME ACTIVE'), findsOneWidget);
     });
 
     testWidgets('game card shows count, distance and spots', (t) async {

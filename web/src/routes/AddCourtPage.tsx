@@ -4,6 +4,7 @@ import { api, errorMessage, uploadImage } from '../lib/api'
 import { useLocation, type Coords } from '../lib/location'
 import { useSports } from '../lib/queries'
 import type { Court } from '../lib/types'
+import { Hourglass, Plus, SportName } from '../components/icons'
 import { LocationPicker } from '../components/LocationPicker'
 import { Button, ErrorText, Field, Input, PageHeader, Textarea } from '../components/ui'
 
@@ -20,6 +21,7 @@ export function AddCourtPage() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
+  const [doneCourt, setDoneCourt] = useState<(Court & { reused_nearby?: boolean }) | null>(null)
 
   const toggleSport = (id: string) => setSportIds((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))
 
@@ -44,10 +46,11 @@ export function AddCourtPage() {
     setBusy(true)
     setError('')
     try {
-      await api<Court>('/api/courts', {
+      const court = await api<Court & { reused_nearby?: boolean }>('/api/courts', {
         method: 'POST',
         json: { name, latitude: where.latitude, longitude: where.longitude, sport_ids: sportIds, description: description || null, photos },
       })
+      setDoneCourt(court)
       setDone(true)
     } catch (err) {
       setError(errorMessage(err))
@@ -56,16 +59,22 @@ export function AddCourtPage() {
     }
   }
 
-  if (done) {
+  if (done && doneCourt) {
+    const reused = doneCourt.reused_nearby
     return (
       <div className="mx-auto flex min-h-full max-w-md flex-col items-center justify-center p-8 text-center">
-        <p className="text-6xl" aria-hidden>
-          ⏳
+        <Hourglass className="size-16 text-brand" aria-hidden />
+        <h1 className="display mt-3 text-5xl font-extrabold">{reused ? 'Court already here' : 'Court on the map'}</h1>
+        <p className="mt-2 text-ink-2">
+          {reused
+            ? 'Nobody was playing at this spot — we linked you to the existing court. Others can start a game here.'
+            : 'Your court is on the map now (pending review). Anyone nearby can create a game when the court is quiet.'}
         </p>
-        <h1 className="display mt-3 text-5xl font-extrabold">Court submitted</h1>
-        <p className="mt-2 text-ink-2">Status: PENDING. It appears on the map once an admin approves it.</p>
-        <Button className="mt-8 w-full" onClick={() => navigate('/')}>
-          Back to map
+        <Button className="mt-4 w-full" variant="live" onClick={() => navigate(`/games/new?court=${doneCourt.id}`)}>
+          Create a game
+        </Button>
+        <Button className="mt-2 w-full" onClick={() => navigate(`/?court=${doneCourt.id}`)}>
+          View on map
         </Button>
       </div>
     )
@@ -96,7 +105,7 @@ export function AddCourtPage() {
                 aria-pressed={sportIds.includes(s.id)}
                 className={`rounded-xl border-2 px-3 py-2 font-semibold ${sportIds.includes(s.id) ? 'border-brand bg-brand/10' : 'border-line bg-surface'}`}
               >
-                {s.icon} {s.name}
+                <SportName sport={s} />
               </button>
             ))}
           </div>
@@ -108,7 +117,7 @@ export function AddCourtPage() {
             ))}
             {photos.length < 6 && (
               <label className="flex size-20 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-line text-2xl text-ink-2">
-                {uploading ? '…' : '＋'}
+                {uploading ? '…' : <Plus className="size-8" aria-hidden />}
                 <input type="file" multiple accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => addPhotos(e.target.files)} />
               </label>
             )}

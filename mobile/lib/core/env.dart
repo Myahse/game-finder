@@ -1,0 +1,33 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+const _defaultApi = 'http://10.0.2.2:8080';
+
+String _apiUrl = _defaultApi;
+String _mapboxToken = '';
+
+/// Load `assets/.env` (sync from repo `.env` via `sync-env.ps1` or `run-device.ps1`).
+/// `--dart-define` values override the file when non-empty.
+Future<void> loadAppEnv() async {
+  try {
+    await dotenv.load(fileName: 'assets/.env');
+  } catch (_) {
+    // Missing asset is OK — use dart-define or defaults.
+  }
+
+  const defineApi = String.fromEnvironment('API_URL');
+  const defineMapbox = String.fromEnvironment('MAPBOX_ACCESS_TOKEN');
+
+  final fileApi = dotenv.env['API_URL']?.trim() ?? '';
+  final fileMapbox = (dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? dotenv.env['VITE_MAPBOX_ACCESS_TOKEN'] ?? '').trim();
+
+  _apiUrl = defineApi.isNotEmpty ? defineApi : (fileApi.isNotEmpty ? fileApi : _defaultApi);
+  _mapboxToken = defineMapbox.isNotEmpty ? defineMapbox : fileMapbox;
+}
+
+void setApiUrl(String url) {
+  final t = url.trim().replaceAll(RegExp(r'/+$'), '');
+  if (t.isNotEmpty) _apiUrl = t;
+}
+
+String get apiUrl => _apiUrl;
+String get mapboxAccessToken => _mapboxToken;

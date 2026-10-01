@@ -1,5 +1,7 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react'
+import { useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { activityIcons } from './icons'
 import { activityMeta } from '../lib/format'
 import type { Activity, PublicUser } from '../lib/types'
 
@@ -58,6 +60,32 @@ export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} className={`${inputCls} ${props.className ?? ''}`} />
 }
 
+export function PasswordInput({
+  className = '',
+  autoComplete = 'current-password',
+  ...props
+}: Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>) {
+  const [visible, setVisible] = useState(false)
+  return (
+    <div className="relative">
+      <input
+        {...props}
+        type={visible ? 'text' : 'password'}
+        autoComplete={autoComplete}
+        className={`${inputCls} pr-11 ${className}`}
+      />
+      <button
+        type="button"
+        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-ink-2 hover:text-ink"
+        onClick={() => setVisible((v) => !v)}
+        aria-label={visible ? 'Hide password' : 'Show password'}
+      >
+        {visible ? <EyeOff className="size-5" aria-hidden /> : <Eye className="size-5" aria-hidden />}
+      </button>
+    </div>
+  )
+}
+
 export function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
   return <select {...props} className={`${inputCls} appearance-none ${props.className ?? ''}`} />
 }
@@ -97,9 +125,10 @@ const toneCls: Record<string, string> = {
 
 export function StatusPill({ activity, className = '' }: { activity: Activity; className?: string }) {
   const m = activityMeta[activity]
+  const Icon = activityIcons[activity]
   return (
     <span className={`display inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-base font-bold ${toneCls[m.tone]} ${className}`}>
-      <span aria-hidden>{m.emoji}</span>
+      <Icon className="size-4 shrink-0" aria-hidden />
       {m.label}
     </span>
   )
@@ -142,10 +171,10 @@ export function PageHeader({ title, back, right }: { title: string; back?: strin
   )
 }
 
-export function Empty({ icon, title, children }: { icon: string; title: string; children?: ReactNode }) {
+export function Empty({ icon, title, children }: { icon: ReactNode; title: string; children?: ReactNode }) {
   return (
     <div className="flex flex-col items-center px-6 py-14 text-center">
-      <div className="mb-3 text-5xl" aria-hidden>
+      <div className="mb-3 text-ink-2" aria-hidden>
         {icon}
       </div>
       <p className="display text-2xl font-bold">{title}</p>

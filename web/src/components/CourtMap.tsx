@@ -1,24 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import Map, { Marker, type MapRef } from 'react-map-gl/maplibre'
+import Map, { AttributionControl, Marker, type MapRef } from 'react-map-gl/mapbox'
 import Supercluster, { type ClusterProperties } from 'supercluster'
 import type { Coords } from '../lib/location'
+import { MAPBOX_ACCESS_TOKEN, MAP_STYLE_DARK, MAP_STYLE_LIGHT, mapboxConfigured } from '../lib/mapbox'
+import { SportIcon, Users } from './icons'
 import type { Activity, Court } from '../lib/types'
-
-const STYLE_LIGHT = import.meta.env.VITE_MAP_STYLE_LIGHT ?? 'https://tiles.openfreemap.org/styles/positron'
-const STYLE_DARK = import.meta.env.VITE_MAP_STYLE_DARK ?? 'https://tiles.openfreemap.org/styles/dark'
-
-const FALLBACK_STYLE = {
-  version: 8 as const,
-  sources: {
-    osm: {
-      type: 'raster' as const,
-      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-      tileSize: 256,
-      attribution: '© OpenStreetMap contributors',
-    },
-  },
-  layers: [{ id: 'osm', type: 'raster' as const, source: 'osm' }],
-}
 
 function useDark() {
   const [dark, setDark] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches)
@@ -48,7 +34,6 @@ export function CourtMap({ courts, center, me, sportSlug, selectedId, onSelect }
   const dark = useDark()
   const [view, setView] = useState({ zoom: 13, bounds: null as [number, number, number, number] | null })
   const centeredOnUser = useRef(false)
-  const [styleFailed, setStyleFailed] = useState(false)
 
   // Fly to the user the first time we learn where they are.
   useEffect(() => {
@@ -87,10 +72,10 @@ export function CourtMap({ courts, center, me, sportSlug, selectedId, onSelect }
     const m = mapRef.current
     if (!m) return
     const b = m.getBounds()
+    if (!b) return
     setView({ zoom: m.getZoom(), bounds: [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()] })
   }
 
-  // Markers need bounds even if the tile style is slow or fails to load.
   useEffect(() => {
     const t = setTimeout(sync, 300)
     return () => clearTimeout(t)
@@ -101,21 +86,31 @@ export function CourtMap({ courts, center, me, sportSlug, selectedId, onSelect }
     mapRef.current?.flyTo({ center: [target.longitude, target.latitude], zoom: 14, duration: 700 })
   }
 
+  if (!mapboxConfigured()) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center bg-surface-2 p-6 text-center">
+        <p className="max-w-sm text-sm text-ink-2">
+          Set <code className="text-ink">VITE_MAPBOX_ACCESS_TOKEN</code> in <code className="text-ink">.env</code> (get a
+          public token at mapbox.com), then rebuild or restart the dev server.
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div className="absolute inset-0">
       <Map
         ref={mapRef}
+        mapboxAccessToken={MAPBOX_ACCESS_TOKEN}
         initialViewState={{ longitude: center.longitude, latitude: center.latitude, zoom: 13 }}
-        mapStyle={styleFailed ? FALLBACK_STYLE : dark ? STYLE_DARK : STYLE_LIGHT}
+        mapStyle={dark ? MAP_STYLE_DARK : MAP_STYLE_LIGHT}
         onLoad={sync}
         onMoveEnd={sync}
-        onError={(e) => {
-          // Fall back to plain OSM raster tiles if the vector style is unreachable.
-          if (!styleFailed && /style|fetch|Failed/i.test(String(e.error?.message))) setStyleFailed(true)
-        }}
-        attributionControl={{ compact: true }}
+        attributionControl={false}
+        logoPosition="bottom-right"
         style={{ width: '100%', height: '100%' }}
       >
+        <AttributionControl compact position="bottom-left" />
         {me && (
           <Marker longitude={me.longitude} latitude={me.latitude} anchor="center">
             <span className="relative block size-5 text-[#3b82f6]" aria-label="You are here">
@@ -167,7 +162,7 @@ export function CourtMap({ courts, center, me, sportSlug, selectedId, onSelect }
       <button
         type="button"
         onClick={recenter}
-        className="absolute bottom-28 right-4 z-10 flex size-12 items-center justify-center rounded-full border border-line bg-surface text-ink shadow-lg md:bottom-8"
+        className="absolute bottom-44 right-4 z-[5] flex size-12 items-center justify-center rounded-full border border-line bg-surface text-ink shadow-lg md:bottom-8"
         aria-label="Center on my location"
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
@@ -185,7 +180,6 @@ const pinStyle: Record<Activity, string> = {
   inactive: 'bg-surface text-ink-2',
 }
 
-/** 🏀 8 (green, live) · 👥 4 (yellow) · 🏀 (gray) */
 export function CourtPin({
   court,
   sportSlug,
@@ -198,7 +192,6 @@ export function CourtPin({
   onClick?: () => void
 }) {
   const sport = court.sports.find((s) => s.slug === sportSlug) ?? court.sports[0]
-  const icon = court.activity === 'players' ? '👥' : (sport?.icon ?? '📍')
   const label =
     court.activity === 'inactive'
       ? `${court.name}: inactive`
@@ -219,7 +212,13 @@ export function CourtPin({
         } ${pinStyle[court.activity]} ${court.activity === 'active' ? 'pulse text-white' : ''}`}
         style={court.activity === 'active' ? { color: 'white' } : undefined}
       >
-        <span aria-hidden>{icon}</span>
+        <span aria-hidden className="inline-flex">
+          {court.activity === 'players' ? (
+            <Users className="size-4" />
+          ) : (
+            <SportIcon slug={sport?.slug ?? 'basketball'} className="size-4" />
+          )}
+        </span>
         {court.activity !== 'inactive' && <span className="display text-xl leading-none">{court.player_count}</span>}
       </span>
       <span

@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, errorMessage } from '../../lib/api'
 import { dayAndClock, gameTypeLabels } from '../../lib/format'
 import type { Game, GameStatus } from '../../lib/types'
+import { SportName } from '../../components/icons'
 import { Button, Card, Chip } from '../../components/ui'
 import { Loading } from '../CourtPage'
 
@@ -37,7 +38,8 @@ export function AdminGames() {
         <Card key={g.id} className="flex flex-wrap items-center gap-3">
           <div className="min-w-0 flex-1">
             <Link to={`/games/${g.id}`} className="font-semibold hover:text-brand">
-              {g.sport.icon} {gameTypeLabels[g.game_type]} · {g.court.name}
+              <SportName sport={g.sport} />
+              {gameTypeLabels[g.game_type]} · {g.court.name}
             </Link>
             <p className="text-sm text-ink-2">
               {g.status.toUpperCase()} · {dayAndClock(g.start_time)} · {g.player_count}/{g.max_players} players

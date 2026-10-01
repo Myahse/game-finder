@@ -3,10 +3,11 @@ import { useLocation } from '../lib/location'
 import { useGamesNearby, useSports } from '../lib/queries'
 import { sortPlayable } from '../lib/sort'
 import { GameCard } from '../components/GameCard'
+import { BasketballIcon, LiveText, SportName } from '../components/icons'
 import { Chip, Empty, PageHeader } from '../components/ui'
 import { Loading } from './CourtPage'
 
-/** "I want to play": live games nearby, closest → liveliest → most room. */
+/** Live games nearby, closest → liveliest → most room. */
 export function PlayPage() {
   const [params, setParams] = useSearchParams()
   const sport = params.get('sport')
@@ -19,7 +20,7 @@ export function PlayPage() {
 
   return (
     <div className="pb-10">
-      <PageHeader title="I want to play" back="/" />
+      <PageHeader title="Play" back="/" />
       <div className="mx-auto max-w-2xl p-4">
         <div className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4">
           <Chip active={!sport} onClick={() => setParams({}, { replace: true })}>
@@ -29,7 +30,7 @@ export function PlayPage() {
             ?.filter((s) => s.active)
             .map((s) => (
               <Chip key={s.id} active={sport === s.slug} onClick={() => setParams({ sport: s.slug }, { replace: true })}>
-                {s.icon} {s.name}
+                <SportName sport={s} />
               </Chip>
             ))}
         </div>
@@ -38,7 +39,7 @@ export function PlayPage() {
         {isLoading ? (
           <Loading />
         ) : sorted.length === 0 ? (
-          <Empty icon="🏀" title="No games nearby yet">
+          <Empty icon={<BasketballIcon className="size-14" />} title="No games nearby yet">
             Be the one who starts it.{' '}
             <Link to="/games/new" className="font-semibold text-brand">
               Create a game
@@ -48,7 +49,9 @@ export function PlayPage() {
           <>
             {live.length > 0 && (
               <section>
-                <h2 className="display mb-2 text-2xl font-bold">🔥 Playing now</h2>
+                <h2 className="display mb-2 inline-flex items-center gap-2 text-2xl font-bold">
+                  <LiveText>Playing now</LiveText>
+                </h2>
                 <div className="grid gap-2">
                   {live.map((g) => (
                     <GameCard key={g.id} game={g} />

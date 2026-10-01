@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../core/models.dart';
 
 /// Court-at-night palette: hardwood orange for action, scoreboard green for live.
+/// Space for the floating tab bar above the system inset (map CTAs sit above this).
+const kFloatingNavClearance = 84.0;
+
 class Palette {
   static const brand = Color(0xFFFF5A1F);
   static const live = Color(0xFF16A34A);
@@ -71,6 +74,31 @@ ThemeData buildTheme(Brightness b) {
         side: BorderSide(color: dark ? const Color(0xFF262D37) : const Color(0xFFE2DED6)),
       ),
       margin: EdgeInsets.zero,
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      height: 72,
+      elevation: 0,
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      shadowColor: Colors.transparent,
+      indicatorColor: Palette.brand.withValues(alpha: 0.14),
+      labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+      labelTextStyle: WidgetStateProperty.resolveWith((states) {
+        final selected = states.contains(WidgetState.selected);
+        return TextStyle(
+          fontSize: 12,
+          fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+          letterSpacing: 0.1,
+          color: selected ? Palette.brand : scheme.onSurfaceVariant,
+        );
+      }),
+      iconTheme: WidgetStateProperty.resolveWith((states) {
+        final selected = states.contains(WidgetState.selected);
+        return IconThemeData(
+          size: 24,
+          color: selected ? Palette.brand : scheme.onSurfaceVariant,
+        );
+      }),
     ),
   );
 }

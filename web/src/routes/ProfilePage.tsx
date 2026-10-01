@@ -6,6 +6,8 @@ import { useAuth } from '../lib/auth'
 import { skillLabels } from '../lib/format'
 import { useSports, useUpdateMe, useUser } from '../lib/queries'
 import type { Me, PublicUser, SkillLevel } from '../lib/types'
+import { Star } from 'lucide-react'
+import { SportName, Wrench } from '../components/icons'
 import { Avatar, Button, Card, ErrorText, Field, Input, PageHeader, Select } from '../components/ui'
 import { Loading } from './CourtPage'
 
@@ -22,12 +24,13 @@ function ProfileCard({ user }: { user: PublicUser }) {
       </h2>
       <p className="text-ink-2">@{user.username}</p>
       <p className="mt-3 flex justify-center gap-4 font-semibold">
-        {sport && (
-          <span>
-            {sport.icon} {sport.name}
+        {sport && <SportName sport={sport} />}
+        {user.skill_level && (
+          <span className="inline-flex items-center gap-1">
+            <Star className="size-4 shrink-0" aria-hidden />
+            {skillLabels[user.skill_level]}
           </span>
         )}
-        {user.skill_level && <span>⭐ {skillLabels[user.skill_level]}</span>}
       </p>
       <div className="mt-5 grid grid-cols-2 gap-2">
         <Stat value={user.stats?.games_played ?? 0} label="games played" />
@@ -79,8 +82,9 @@ export function ProfilePage() {
           <ProfileCard user={current} />
         )}
         {user.role === 'admin' && (
-          <Link to="/admin" className="rounded-xl bg-surface p-4 font-semibold">
-            🛠️ Admin dashboard
+          <Link to="/admin" className="flex items-center gap-2 rounded-xl bg-surface p-4 font-semibold">
+            <Wrench className="size-5 shrink-0" aria-hidden />
+            Admin dashboard
           </Link>
         )}
         <Button variant="secondary" onClick={logout}>
@@ -152,7 +156,7 @@ function EditProfile({ me, onSaved }: { me: Me; onSaved: (u: Me) => void }) {
             ?.filter((s) => s.active)
             .map((s) => (
               <option key={s.id} value={s.id}>
-                {s.icon} {s.name}
+                {s.name}
               </option>
             ))}
         </Select>

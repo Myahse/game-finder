@@ -8,6 +8,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
+
+	"findthegame/backend/internal/db"
 )
 
 // ---------------------------------------------------------------------------
@@ -93,7 +95,7 @@ func (s *Server) getCourt(w http.ResponseWriter, r *http.Request) {
 			)
 		)
 		from courts c
-		where c.id = $1 and (c.status = 'approved' or c.created_by = app_uid() or is_admin())`,
+		where c.id = $1 and (c.status in ('approved', 'pending') or c.created_by = app_uid() or is_admin())`,
 		chi.URLParam(r, "id"), optFloat(r, "lat"), optFloat(r, "lng"))
 	if err != nil {
 		writeDBError(w, r, err)
@@ -168,7 +170,58 @@ func (s *Server) proposeCourt(w http.ResponseWriter, r *http.Request) {
 	if !readJSON(w, r, &in) || !in.validate(w) {
 		return
 	}
-	s.insertCourt(w, r, in, "pending")
+	// Reuse a quiet court pin nearby instead of duplicating the same spot.
+	var out []byte
+	err := s.db.Tx(r.Context(), uid(r), func(tx pgx.Tx) error {
+		var existingID string
+		err := tx.QueryRow(r.Context(), `
+			select c.id::text
+			from courts c
+			left join court_live_stats st on st.court_id = c.id
+			where public.court_is_playable(c.status)
+			  and public.distance_m($1, $2, c.latitude, c.longitude) <= 75
+			  and coalesce(st.player_count, 0) = 0
+			  and coalesce(st.active_game_count, 0) = 0
+			  and coalesce(st.activity, 'inactive') = 'inactive'
+			order by public.distance_m($1, $2, c.latitude, c.longitude)
+			limit 1`, in.Latitude, in.Longitude).Scan(&existingID)
+		if err == nil {
+			if _, err := tx.Exec(r.Context(), `
+				insert into court_sports (court_id, sport_id)
+				select $1, unnest($2::uuid[])
+				on conflict do nothing`, existingID, in.SportIDs); err != nil {
+				return err
+			}
+			return tx.QueryRow(r.Context(), `
+				select court_json(c) || jsonb_build_object('reused_nearby', true)
+				from courts c where c.id = $1`, existingID).Scan(&out)
+		}
+		if !db.IsNoRows(err) {
+			return err
+		}
+		var id string
+		if err := tx.QueryRow(r.Context(), `
+			insert into courts (name, latitude, longitude, address, description, photos, opening_hours, lighting, surface, status, created_by)
+			values ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending', app_uid())
+			returning id`,
+			in.Name, in.Latitude, in.Longitude, in.Address, in.Description, in.Photos,
+			in.OpeningHours, in.Lighting, in.Surface).Scan(&id); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(r.Context(), `
+			insert into court_sports (court_id, sport_id) select $1, unnest($2::uuid[])
+			on conflict do nothing`, id, in.SportIDs); err != nil {
+			return err
+		}
+		return tx.QueryRow(r.Context(), `
+			select court_json(c) || jsonb_build_object('reused_nearby', false)
+			from courts c where c.id = $1`, id).Scan(&out)
+	})
+	if err != nil {
+		writeDBError(w, r, err)
+		return
+	}
+	writeRaw(w, http.StatusCreated, out)
 }
 
 var reportTypes = map[string]bool{
@@ -239,6 +292,7 @@ func (s *Server) createGame(w http.ResponseWriter, r *http.Request) {
 		SkillLevel      string     `json:"skill_level"`
 		GameType        string     `json:"game_type"`
 		DurationMinutes int        `json:"duration_minutes"`
+		CourtPhotos     []string   `json:"court_photos"`
 	}
 	if !readJSON(w, r, &in) {
 		return
@@ -259,6 +313,9 @@ func (s *Server) createGame(w http.ResponseWriter, r *http.Request) {
 	if in.GameType == "" {
 		in.GameType = "pickup"
 	}
+	if in.CourtPhotos == nil {
+		in.CourtPhotos = []string{}
+	}
 	switch {
 	case in.CourtID == "" || in.SportID == "":
 		writeError(w, http.StatusUnprocessableEntity, "court_required", "Choose a court and sport.")
@@ -272,21 +329,47 @@ func (s *Server) createGame(w http.ResponseWriter, r *http.Request) {
 	case in.DurationMinutes < 15 || in.DurationMinutes > 600:
 		writeError(w, http.StatusUnprocessableEntity, "invalid_duration", "Duration must be 15–600 minutes.")
 		return
+	case len(in.CourtPhotos) > 6:
+		writeError(w, http.StatusUnprocessableEntity, "too_many_photos", "Up to 6 photos for the court.")
+		return
 	}
-	b, err := s.db.JSON(r.Context(), uid(r), `
-		with g as (
+	var have int
+	if err := s.db.Pool.QueryRow(r.Context(), `
+		select coalesce(array_length(c.photos, 1), 0)
+		from courts c
+		where c.id = $1 and c.status in ('approved', 'pending')`, in.CourtID).Scan(&have); err != nil {
+		writeDBError(w, r, err)
+		return
+	}
+	if have == 0 && len(in.CourtPhotos) == 0 {
+		writeError(w, http.StatusUnprocessableEntity, "photo_required", "Add a photo of the court so others can find it.")
+		return
+	}
+
+	var gameID string
+	err := s.db.Tx(r.Context(), uid(r), func(tx pgx.Tx) error {
+		if len(in.CourtPhotos) > 0 {
+			_, err := tx.Exec(r.Context(), `
+				update courts set photos = (
+					select coalesce(array_agg(x), '{}')
+					from (select unnest(array_cat(photos, $2::text[])) as x limit 6) q
+				)
+				where id = $1`, in.CourtID, in.CourtPhotos)
+			if err != nil {
+				return err
+			}
+		}
+		return tx.QueryRow(r.Context(), `
 			insert into games (court_id, sport_id, creator_id, start_time, max_players, skill_level, game_type, duration_minutes)
 			values ($1, $2, app_uid(), $3, $4, $5::skill_level, $6::game_type, $7)
-			returning *
-		)
-		select g.id::text from g`,
-		in.CourtID, in.SportID, *in.StartTime, in.MaxPlayers, in.SkillLevel, in.GameType, in.DurationMinutes)
+			returning id::text`,
+			in.CourtID, in.SportID, *in.StartTime, in.MaxPlayers, in.SkillLevel, in.GameType, in.DurationMinutes).Scan(&gameID)
+	})
 	if err != nil {
 		writeDBError(w, r, err)
 		return
 	}
-	// Re-read after commit so the creator's auto-join is counted.
-	s.writeGame(w, r, strings.Trim(string(b), `"`), http.StatusCreated)
+	s.writeGame(w, r, gameID, http.StatusCreated)
 }
 
 func (s *Server) writeGame(w http.ResponseWriter, r *http.Request, id string, status int) {

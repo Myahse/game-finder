@@ -9,6 +9,7 @@ import '../core/format.dart';
 import '../core/models.dart';
 import '../core/notifications.dart';
 import '../ui/theme.dart';
+import '../ui/app_icons.dart';
 import '../ui/widgets.dart';
 
 class _ProfileCard extends StatelessWidget {
@@ -28,9 +29,18 @@ class _ProfileCard extends StatelessWidget {
           Text(user.fullName.toUpperCase(), textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium),
           Text('@${user.username}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
           const SizedBox(height: 10),
-          Text(
-            [if (sport != null) '${sport.icon} ${sport.name}', if (user.skillLevel != null) '⭐ ${skillLabels[user.skillLevel]}'].join('    '),
-            style: const TextStyle(fontWeight: FontWeight.w700),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (sport != null) SportInline(sport, iconSize: 18),
+              if (sport != null && user.skillLevel != null) const SizedBox(width: 16),
+              if (user.skillLevel != null)
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.star, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  const SizedBox(width: 4),
+                  Text(skillLabels[user.skillLevel]!, style: const TextStyle(fontWeight: FontWeight.w700)),
+                ]),
+            ],
           ),
           const SizedBox(height: 16),
           Row(children: [
@@ -99,7 +109,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (me.isAdmin)
             const Padding(
               padding: EdgeInsets.only(top: 12),
-              child: Card(child: ListTile(leading: Text('🛠️'), title: Text('Admin tools are in the web dashboard'))),
+              child: Card(child: ListTile(leading: const Icon(Icons.build_outlined), title: Text('Admin tools are in the web dashboard'))),
             ),
           const SizedBox(height: 16),
           OutlinedButton(
@@ -184,7 +194,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           DropdownButtonFormField<String>(
             initialValue: widget.sports.any((s) => s.id == _sportId) ? _sportId : null,
             decoration: const InputDecoration(labelText: 'Preferred sport'),
-            items: [for (final s in widget.sports.where((s) => s.active)) DropdownMenuItem(value: s.id, child: Text('${s.icon} ${s.name}'))],
+            items: [
+              for (final s in widget.sports.where((s) => s.active))
+                DropdownMenuItem(value: s.id, child: SportInline(s)),
+            ],
             onChanged: (v) => setState(() => _sportId = v),
           ),
           const SizedBox(height: 12),

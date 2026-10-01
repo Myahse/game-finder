@@ -10,6 +10,7 @@ import '../core/location.dart';
 import '../core/models.dart';
 import '../core/realtime.dart';
 import '../ui/theme.dart';
+import '../ui/app_icons.dart';
 import '../ui/widgets.dart';
 import 'profile_screen.dart';
 
@@ -25,6 +26,7 @@ class _GameScreenState extends State<GameScreen> {
   String? _error;
   bool _busy = false;
   StreamSubscription? _rt;
+  Timer? _loadDebounce;
   final _invite = TextEditingController();
 
   @override
@@ -33,12 +35,15 @@ class _GameScreenState extends State<GameScreen> {
     _load();
     // Player count updates live: someone joins → 7/10 becomes 8/10.
     _rt = context.read<Realtime>().events.listen((ev) {
-      if (ev['game_id'] == widget.gameId || ev['type'] == 'reconnected') _load();
+      if (ev['game_id'] != widget.gameId && ev['type'] != 'reconnected') return;
+      _loadDebounce?.cancel();
+      _loadDebounce = Timer(const Duration(milliseconds: 350), _load);
     });
   }
 
   @override
   void dispose() {
+    _loadDebounce?.cancel();
     _rt?.cancel();
     super.dispose();
   }
@@ -86,11 +91,11 @@ class _GameScreenState extends State<GameScreen> {
     if (g == null) {
       return Scaffold(appBar: AppBar(), body: Center(child: _error != null ? Text(_error!) : const CircularProgressIndicator()));
     }
-    final (statusText, statusColor) = switch (g.status) {
-      'active' => ('🔥 ACTIVE', Palette.live),
-      'scheduled' => ('🕕 UPCOMING', Palette.idle),
-      'completed' => ('✔ FINISHED', Palette.idle),
-      _ => ('✖ CANCELLED', Theme.of(context).colorScheme.error),
+    final (statusLabel, statusIcon, statusColor) = switch (g.status) {
+      'active' => ('ACTIVE', Icons.local_fire_department, Palette.live),
+      'scheduled' => ('UPCOMING', Icons.schedule, Palette.idle),
+      'completed' => ('FINISHED', Icons.check, Palette.idle),
+      _ => ('CANCELLED', Icons.close, Theme.of(context).colorScheme.error),
     };
     final isCreator = g.creatorId == me?.id;
 
@@ -106,11 +111,27 @@ class _GameScreenState extends State<GameScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(color: statusColor, borderRadius: BorderRadius.circular(6)),
-                  child: Text(statusText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(statusIcon, size: 16, color: Colors.white),
+                    const SizedBox(width: 6),
+                    Text(statusLabel, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+                  ]),
                 ),
                 const SizedBox(height: 10),
-                Text('${g.sport.icon} ${g.courtName.toUpperCase()}', style: Theme.of(context).textTheme.headlineMedium),
-                if (g.distanceM != null) Text('📍 ${formatDistance(g.distanceM)} away'),
+                Row(children: [
+                  SportIcon(g.sport.slug, size: 28, color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(g.courtName.toUpperCase(), style: Theme.of(context).textTheme.headlineMedium)),
+                ]),
+                if (g.distanceM != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Row(children: [
+                      Icon(Icons.place, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      const SizedBox(width: 4),
+                      Text('${formatDistance(g.distanceM)} away'),
+                    ]),
+                  ),
                 const SizedBox(height: 18),
                 Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
                   Text('${g.playerCount}', style: const TextStyle(fontSize: 52, fontWeight: FontWeight.w900, height: 1)),
@@ -129,7 +150,23 @@ class _GameScreenState extends State<GameScreen> {
                   ),
                 ),
                 const SizedBox(height: 14),
-                Text('⭐ ${skillLabels[g.skillLevel]}   🕕 ${gameTime(g)}   ⏱ ${g.durationMinutes} min'),
+                Wrap(spacing: 12, runSpacing: 6, children: [
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.star, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 4),
+                    Text(skillLabels[g.skillLevel]!),
+                  ]),
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.schedule, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 4),
+                    Text(gameTime(g)),
+                  ]),
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.timer_outlined, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 4),
+                    Text('${g.durationMinutes} min'),
+                  ]),
+                ]),
                 if (g.cancelledReason != null)
                   Text('Reason: ${g.cancelledReason}', style: TextStyle(color: Theme.of(context).colorScheme.error)),
                 const SizedBox(height: 18),
@@ -147,7 +184,11 @@ class _GameScreenState extends State<GameScreen> {
                           child: Text(g.spotsLeft == 0 ? 'GAME FULL' : 'JOIN GAME'),
                         ),
                 const SizedBox(height: 10),
-                OutlinedButton(onPressed: () => openDirections(g.courtLat, g.courtLng), child: const Text('🧭 GET DIRECTIONS')),
+                OutlinedButton.icon(
+                  onPressed: () => openDirections(g.courtLat, g.courtLng),
+                  icon: const Icon(Icons.navigation_outlined),
+                  label: const Text('GET DIRECTIONS'),
+                ),
                 if (g.isOpen && isCreator)
                   TextButton(
                     onPressed: _busy
@@ -269,7 +310,7 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
       return Scaffold(
         appBar: AppBar(),
         body: EmptyState(
-          icon: _created!.sport.icon,
+          icon: sportIconData(_created!.sport.slug),
           title: 'Game created successfully.',
           body: "You're in. Players near ${_created!.courtName} can see it now.",
           action: FilledButton(
@@ -304,15 +345,35 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
         const Text('Sport', style: TextStyle(fontWeight: FontWeight.w700)),
         const SizedBox(height: 6),
         Wrap(spacing: 8, children: [
-          for (final s in sports) ChoiceTile(label: '${s.icon} ${s.name}', selected: sport?.id == s.id, onTap: () => setState(() => _sportId = s.id)),
+          for (final s in sports)
+            ChoiceTile(
+              leading: SportIcon(s.slug, size: 20),
+              label: s.name,
+              selected: sport?.id == s.id,
+              onTap: () => setState(() => _sportId = s.id),
+            ),
         ]),
         const SizedBox(height: 16),
         const Text('Start time', style: TextStyle(fontWeight: FontWeight.w700)),
         const SizedBox(height: 6),
         Row(children: [
-          Expanded(child: ChoiceTile(label: '🔥 Right now', selected: _now, onTap: () => setState(() => _now = true))),
+          Expanded(
+            child: ChoiceTile(
+              leading: const Icon(Icons.local_fire_department, size: 18),
+              label: 'Right now',
+              selected: _now,
+              onTap: () => setState(() => _now = true),
+            ),
+          ),
           const SizedBox(width: 8),
-          Expanded(child: ChoiceTile(label: '🕕 Later', selected: !_now, onTap: () => setState(() => _now = false))),
+          Expanded(
+            child: ChoiceTile(
+              leading: const Icon(Icons.schedule, size: 18),
+              label: 'Later',
+              selected: !_now,
+              onTap: () => setState(() => _now = false),
+            ),
+          ),
         ]),
         if (!_now)
           TextButton.icon(onPressed: _pickTime, icon: const Icon(Icons.schedule), label: Text(gameTimeFor(_start))),

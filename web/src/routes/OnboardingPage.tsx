@@ -5,6 +5,7 @@ import { useAuth } from '../lib/auth'
 import { skillLabels } from '../lib/format'
 import { useSports, useUpdateMe } from '../lib/queries'
 import type { SkillLevel } from '../lib/types'
+import { SportIcon, SportName } from '../components/icons'
 import { Button, ErrorText, Spinner } from '../components/ui'
 
 export function OnboardingPage() {
@@ -47,15 +48,18 @@ export function OnboardingPage() {
               chosen === s.id ? 'border-brand bg-brand/10' : 'border-line bg-surface'
             }`}
           >
-            <span className="text-4xl" aria-hidden>
-              {s.icon}
-            </span>
+            <SportIcon slug={s.slug} className="size-10 text-brand" />
             <span className="display text-3xl font-bold">{s.name}</span>
           </button>
         ))}
         {sports?.some((s) => !s.active) && (
           <p className="text-sm text-ink-2">
-            Coming soon: {sports.filter((s) => !s.active).map((s) => `${s.icon} ${s.name}`).join(' · ')}
+            <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+              Coming soon:
+              {sports
+                .filter((s) => !s.active)
+                .map((s) => <SportName key={s.id} sport={s} />)}
+            </span>
           </p>
         )}
       </div>

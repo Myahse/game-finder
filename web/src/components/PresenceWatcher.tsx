@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { errorMessage } from '../lib/api'
 import { qk, useMyPresence, usePresenceAction } from '../lib/queries'
+import { BasketballIcon } from './icons'
 import { Button, ErrorText } from './ui'
 
 /**
@@ -35,9 +36,7 @@ export function PresenceWatcher() {
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 p-4 md:items-center" role="dialog" aria-modal="true" aria-labelledby="still-title">
       <div className="w-full max-w-sm rounded-3xl bg-surface p-6 shadow-2xl">
-        <p className="text-4xl" aria-hidden>
-          🏀
-        </p>
+        <BasketballIcon className="size-12 text-brand" />
         <h2 id="still-title" className="display mt-2 text-4xl font-extrabold">
           Are you still playing?
         </h2>

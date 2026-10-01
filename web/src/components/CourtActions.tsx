@@ -5,6 +5,7 @@ import { directionsUrl, distanceM } from '../lib/format'
 import type { Coords } from '../lib/location'
 import { useGameAction, useMyPresence, usePresenceAction } from '../lib/queries'
 import type { Court, Game } from '../lib/types'
+import { Check, Circle, MapPin, Navigation } from 'lucide-react'
 import { Button, ErrorText } from './ui'
 
 /** JOIN GAME · I'M HERE · GET DIRECTIONS — shared by the sheet and the details page. */
@@ -42,7 +43,10 @@ export function CourtActions({ court, games, me }: { court: Court; games: Game[]
       <ErrorText>{error}</ErrorText>
       {myGame ? (
         <Button variant="live" onClick={() => navigate(`/games/${myGame.id}`)}>
-          ✅ You're in · {myGame.player_count}/{myGame.max_players}
+          <span className="inline-flex items-center gap-2">
+            <Check className="size-5 shrink-0" aria-hidden />
+            You're in · {myGame.player_count}/{myGame.max_players}
+          </span>
         </Button>
       ) : (
         <Button variant={joinable ? 'live' : 'primary'} onClick={join} loading={gameAction.isPending}>
@@ -56,7 +60,10 @@ export function CourtActions({ court, games, me }: { court: Court; games: Game[]
           loading={presenceAction.isPending}
           title={far && !hereNow ? 'You need to be at the court to check in' : undefined}
         >
-          {hereNow ? "I've left" : "📍 I'm here"}
+          <span className="inline-flex items-center gap-2">
+            {!hereNow && <MapPin className="size-4 shrink-0" aria-hidden />}
+            {hereNow ? "I've left" : "I'm here"}
+          </span>
         </Button>
         <a
           href={directionsUrl(court.latitude, court.longitude)}
@@ -64,12 +71,14 @@ export function CourtActions({ court, games, me }: { court: Court; games: Game[]
           rel="noreferrer"
           className="display inline-flex min-h-12 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-surface-2 px-4 text-lg font-bold text-ink hover:bg-line"
         >
-          🧭 Directions
+          <Navigation className="size-5 shrink-0" aria-hidden />
+          Directions
         </a>
       </div>
       {hereNow && presence && (
-        <p className="text-center text-sm text-live">
-          🟢 You're checked in since {new Date(presence.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        <p className="flex items-center justify-center gap-2 text-center text-sm text-live">
+          <Circle className="size-3 fill-live text-live" aria-hidden />
+          You're checked in since {new Date(presence.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </p>
       )}
       {far && !hereNow && <p className="text-center text-xs text-ink-2">Check-in works when you're at the court.</p>}

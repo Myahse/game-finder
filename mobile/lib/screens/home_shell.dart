@@ -44,7 +44,9 @@ class _HomeShellState extends State<HomeShell> {
       // Plain taps on a push/local notification open the related screen.
       final p = r.payload;
       if (r.actionId == null && p != null && !p.startsWith('presence:') && mounted) {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => GameScreen(gameId: p)));
+        final nav = Navigator.of(context);
+        if (nav.canPop()) return; // already on a detail screen
+        nav.push(MaterialPageRoute(builder: (_) => GameScreen(gameId: p)));
       }
     }));
     _loadUnread();
@@ -93,29 +95,104 @@ class _HomeShellState extends State<HomeShell> {
       if (mounted) _maybePrompt(presence);
     });
     final pages = [
-      MapScreen(onOpenPlay: () => setState(() => _tab = 1)),
+      const MapScreen(),
       const PlayScreen(),
       const MyGamesScreen(),
       NotificationsScreen(onChanged: _loadUnread),
       const ProfileScreen(),
     ];
     return Scaffold(
+      extendBody: true,
       body: IndexedStack(index: _tab, children: pages),
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: _FloatingNavBar(
         selectedIndex: _tab,
-        onDestinationSelected: (i) => setState(() => _tab = i),
-        indicatorColor: Palette.brand.withValues(alpha: 0.18),
-        destinations: [
-          const NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map), label: 'Map'),
-          const NavigationDestination(icon: Icon(Icons.sports_basketball_outlined), selectedIcon: Icon(Icons.sports_basketball), label: 'Play'),
-          const NavigationDestination(icon: Icon(Icons.event_outlined), selectedIcon: Icon(Icons.event), label: 'My games'),
-          NavigationDestination(
-            icon: Badge(isLabelVisible: _unread > 0, label: Text('$_unread'), child: const Icon(Icons.notifications_outlined)),
-            selectedIcon: const Icon(Icons.notifications),
-            label: 'Alerts',
+        unread: _unread,
+        onSelected: (i) => setState(() => _tab = i),
+      ),
+    );
+  }
+}
+
+/// Material 3 bar inset from the screen edge — same behavior as [Scaffold.bottomNavigationBar].
+class _FloatingNavBar extends StatelessWidget {
+  const _FloatingNavBar({
+    required this.selectedIndex,
+    required this.unread,
+    required this.onSelected,
+  });
+
+  final int selectedIndex;
+  final int unread;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final border = dark ? const Color(0xFF2A323D) : const Color(0xFFE8E4DC);
+
+    return Material(
+      color: Colors.transparent,
+      elevation: 16,
+      shadowColor: Colors.black.withValues(alpha: 0.2),
+      child: SafeArea(
+        minimum: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: scheme.shadow.withValues(alpha: dark ? 0.35 : 0.12),
+                blurRadius: 20,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
-          const NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
-        ],
+          child: Material(
+            color: scheme.surface,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(color: border),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: NavigationBar(
+              selectedIndex: selectedIndex,
+              onDestinationSelected: onSelected,
+              destinations: [
+                const NavigationDestination(
+                  icon: Icon(Icons.map_outlined),
+                  selectedIcon: Icon(Icons.map),
+                  label: 'Map',
+                ),
+                const NavigationDestination(
+                  icon: Icon(Icons.sports_basketball_outlined),
+                  selectedIcon: Icon(Icons.sports_basketball),
+                  label: 'Play',
+                ),
+                const NavigationDestination(
+                  icon: Icon(Icons.event_outlined),
+                  selectedIcon: Icon(Icons.event),
+                  label: 'Games',
+                ),
+                NavigationDestination(
+                  icon: Badge(
+                    isLabelVisible: unread > 0,
+                    label: Text(unread > 99 ? '99+' : '$unread'),
+                    child: const Icon(Icons.notifications_outlined),
+                  ),
+                  selectedIcon: const Icon(Icons.notifications),
+                  label: 'Alerts',
+                ),
+                const NavigationDestination(
+                  icon: Icon(Icons.person_outline),
+                  selectedIcon: Icon(Icons.person),
+                  label: 'Profile',
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -152,7 +229,7 @@ class _StillPlayingSheetState extends State<_StillPlayingSheet> {
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('🏀', style: TextStyle(fontSize: 40)),
+          const Icon(Icons.sports_basketball, size: 48, color: Palette.brand),
           Text('ARE YOU STILL PLAYING?', style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 4),
           Text('Your check-in at ${p?.courtName ?? 'the court'} ends in $mins min.'),
