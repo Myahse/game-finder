@@ -50,7 +50,7 @@ Set at minimum:
 |----------|---------|
 | `DATABASE_URL` | Neon pooled URL |
 | `JWT_SECRET` | 32+ random chars |
-| `PUBLIC_BASE_URL` | `https://game-finder-api.onrender.com` |
+| `PUBLIC_BASE_URL` | `https://game-finder-ddcm.onrender.com` |
 | `CORS_ORIGINS` | `http://localhost:5173,https://game-finder-swart.vercel.app` |
 | `ADMIN_EMAILS` | `you@example.com` |
 | `SEED_DEMO` | `false` |
