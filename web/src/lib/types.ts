@@ -57,6 +57,7 @@ export interface Court {
   last_activity_at: string | null
   distance_m: number | null
   created_at: string
+  created_by: string | null
 }
 
 export interface CourtDetail extends Court {

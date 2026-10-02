@@ -7,6 +7,7 @@ import { useSports } from '../lib/queries'
 import type { Court } from '../lib/types'
 import { Hourglass, Plus, SportName } from '../components/icons'
 import { LocationPicker } from '../components/LocationPicker'
+import { formatOpeningHours } from '../lib/openingHours'
 import { Button, ErrorText, Field, Input, PageHeader, Textarea } from '../components/ui'
 
 export function AddCourtPage() {
@@ -17,6 +18,8 @@ export function AddCourtPage() {
   const [where, setWhere] = useState<Coords | null>(null)
   const [sportIds, setSportIds] = useState<string[]>([])
   const [description, setDescription] = useState('')
+  const [opensAt, setOpensAt] = useState('')
+  const [closesAt, setClosesAt] = useState('')
   const [photos, setPhotos] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
@@ -49,7 +52,16 @@ export function AddCourtPage() {
     try {
       const court = await api<Court & { reused_nearby?: boolean }>('/api/courts', {
         method: 'POST',
-        json: { name, latitude: where.latitude, longitude: where.longitude, sport_ids: sportIds, description: description || null, photos },
+        json: {
+          name,
+          latitude: where.latitude,
+          longitude: where.longitude,
+          sport_ids: sportIds,
+          description: description || null,
+          photos,
+          opening_hours:
+            opensAt.trim() && closesAt.trim() ? formatOpeningHours(opensAt.trim(), closesAt.trim()) : null,
+        },
       })
       setDoneCourt(court)
       setDone(true)
@@ -122,6 +134,12 @@ export function AddCourtPage() {
                 <input type="file" multiple accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => addPhotos(e.target.files)} />
               </label>
             )}
+          </div>
+        </Field>
+        <Field label="Opening hours (optional)" hint="24-hour format">
+          <div className="grid grid-cols-2 gap-3">
+            <Input type="time" aria-label="Opens" value={opensAt} onChange={(e) => setOpensAt(e.target.value)} />
+            <Input type="time" aria-label="Closes" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} />
           </div>
         </Field>
         <Field label="Description (optional)">

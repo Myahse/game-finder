@@ -20,7 +20,13 @@ Vercel does **not** run this Go API or Postgres. Do not put the backend on Verce
 
 ```bash
 cd backend
-fly launch --no-deploy   # name e.g. game-finder-api, region cdg or iad
+fly deploy --app game-finder-api
+```
+
+From repo root (after **saving** `.env` to disk):
+
+```powershell
+.\scripts\fly-secrets.ps1 -App game-finder-api -VercelOrigin https://your-app.vercel.app
 ```
 
 Set secrets (Fly dashboard or `fly secrets set`):
@@ -39,6 +45,21 @@ Set secrets (Fly dashboard or `fly secrets set`):
 **Court photos & avatars:** use **Cloudflare R2** (see `.env.example`). Enable public access on the bucket or map a custom domain to `R2_PUBLIC_URL`. If R2 vars are unset, uploads use a Fly **volume** at `/data/uploads` instead.
 
 **WebSockets:** Fly supports HTTP upgrade on the same app; clients use `wss://your-api.fly.dev/api/ws` (with ws-ticket flow).
+
+## Production config cheat sheet
+
+| Where | Variable | Value |
+|-------|----------|--------|
+| **Fly** (secrets) | `PUBLIC_BASE_URL` | `https://game-finder-api.fly.dev` |
+| **Fly** | `DATABASE_URL`, `JWT_SECRET`, `R2_*`, `SEED_DEMO=false` | from root `.env` via `.\scripts\fly-secrets.ps1` |
+| **Fly** | `CORS_ORIGINS` | localhost dev origins **+** `https://<your-project>.vercel.app` |
+| **Vercel** | `VITE_API_URL` | `https://game-finder-api.fly.dev` |
+| **Vercel** | `VITE_MAPBOX_ACCESS_TOKEN` | same as root `.env` |
+| **Vercel** | `VITE_MEDIA_PUBLIC_ORIGIN` | public R2 URL (`*.r2.dev`), if not using default allowlist |
+| **Root `.env`** | `VITE_API_URL`, `API_URL`, `PUBLIC_BASE_URL` | same Fly URL for web build + mobile sync |
+| **Mobile** | run `mobile\sync-env.ps1` | writes `mobile/assets/.env` from root `.env` |
+
+After changing `CORS_ORIGINS` or API secrets locally, run `.\scripts\fly-secrets.ps1` again (one at a time; wait for it to finish).
 
 ## 3. Web on Vercel
 

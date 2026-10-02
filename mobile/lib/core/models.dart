@@ -66,6 +66,7 @@ class Court {
   Activity activity;
   DateTime? lastActivityAt;
   final double? distanceM;
+  final String? createdBy;
 
   Court.fromJson(Map<String, dynamic> j)
       : id = j['id'],
@@ -84,7 +85,8 @@ class Court {
         activeGameCount = (j['active_game_count'] as num?)?.toInt() ?? 0,
         activity = activityFrom(j['activity']),
         lastActivityAt = _date(j['last_activity_at']),
-        distanceM = _num(j['distance_m']);
+        distanceM = _num(j['distance_m']),
+        createdBy = j['created_by'] as String?;
 
   /// Apply a realtime `court_stats` event.
   void applyStats(Map<String, dynamic> ev) {

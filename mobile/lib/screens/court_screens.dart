@@ -7,11 +7,13 @@ import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 
 import '../core/api.dart';
+import '../core/auth.dart';
 import '../core/format.dart';
 import '../core/media_url.dart';
 import '../core/location.dart';
 import '../core/map_tiles.dart';
 import '../core/models.dart';
+import '../core/opening_hours.dart';
 import '../core/presence.dart';
 import '../core/realtime.dart';
 import '../ui/app_icons.dart';
@@ -353,6 +355,13 @@ class CourtDetailsScreen extends StatefulWidget {
 }
 
 class _CourtDetailsScreenState extends State<CourtDetailsScreen> with _CourtLoader {
+  bool _uploadingPhotos = false;
+  String? _photoError;
+  TimeOfDay? _opens;
+  TimeOfDay? _closes;
+  bool _savingHours = false;
+  String? _hoursError;
+
   @override
   String get courtId => widget.courtId;
 
@@ -362,9 +371,71 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> with _CourtLoad
     startLoading();
   }
 
+  void _syncHoursFromCourt(Court c) {
+    final p = parseOpeningHours(c.openingHours);
+    if (p != null) {
+      _opens = hmToTimeOfDay(p.opens);
+      _closes = hmToTimeOfDay(p.closes);
+    }
+  }
+
+  Future<void> _saveHours() async {
+    final c = court;
+    if (c == null) return;
+    setState(() {
+      _savingHours = true;
+      _hoursError = null;
+    });
+    try {
+      final Map<String, dynamic> body;
+      if (_opens != null && _closes != null) {
+        body = {
+          'opens_at': timeOfDayToHm(_opens!),
+          'closes_at': timeOfDayToHm(_closes!),
+        };
+      } else {
+        body = {'opens_at': null, 'closes_at': null};
+      }
+      await context.read<Api>().patch('/api/courts/${c.id}/hours', body);
+      await load();
+    } catch (e) {
+      setState(() => _hoursError = errorText(e));
+    } finally {
+      if (mounted) setState(() => _savingHours = false);
+    }
+  }
+
+  Future<void> _addCourtPhotos() async {
+    final c = court;
+    if (c == null || c.photos.length >= 6) return;
+    final api = context.read<Api>();
+    final f = await pickImageFile(context, maxWidth: 1600, imageQuality: 85);
+    if (f == null) return;
+    setState(() {
+      _uploadingPhotos = true;
+      _photoError = null;
+    });
+    try {
+      final url = await api.upload(await f.readAsBytes(), f.name, 'court');
+      await api.post('/api/courts/${c.id}/photos', {'photos': [url]});
+      await load();
+    } catch (e) {
+      setState(() => _photoError = errorText(e));
+    } finally {
+      if (mounted) setState(() => _uploadingPhotos = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = court;
+    final me = context.watch<AuthState>().user;
+    final canAddPhotos =
+        c != null && me != null && (c.createdBy == me.id || me.isAdmin) && c.photos.length < 6;
+    final canEditCourt = c != null && me != null && (c.createdBy == me.id || me.isAdmin);
+    if (c != null && _opens == null && _closes == null && c.openingHours != null) {
+      _syncHoursFromCourt(c);
+    }
     return Scaffold(
       appBar: AppBar(title: Text(c?.name.toUpperCase() ?? '')),
       body: c == null
@@ -374,7 +445,79 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> with _CourtLoad
               child: ListView(padding: const EdgeInsets.all(16), children: [
                 if (c.photos.isNotEmpty) ...[
                   CourtPhotoStrip(photos: c.photos),
+                  const SizedBox(height: 8),
+                ],
+                if (canAddPhotos) ...[
+                  OutlinedButton.icon(
+                    onPressed: _uploadingPhotos ? null : _addCourtPhotos,
+                    icon: _uploadingPhotos
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.add_a_photo_outlined),
+                    label: Text(c.photos.isEmpty ? 'Add court photos' : 'Add more photos'),
+                  ),
+                  Text(
+                    '${c.photos.length}/6 photos',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  ),
+                  if (_photoError != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(_photoError!, style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 13)),
+                    ),
                   const SizedBox(height: 16),
+                ] else if (c.photos.isNotEmpty)
+                  const SizedBox(height: 8),
+                if (canEditCourt) ...[
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                        Text('OPENING HOURS', style: Theme.of(context).textTheme.titleMedium),
+                        const SizedBox(height: 8),
+                        Row(children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () async {
+                                final t = await showTimePicker(
+                                  context: context,
+                                  initialTime: _opens ?? const TimeOfDay(hour: 6, minute: 0),
+                                );
+                                if (t != null) setState(() => _opens = t);
+                              },
+                              child: Text(_opens == null ? 'Opens' : 'Opens ${timeOfDayToHm(_opens!)}'),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () async {
+                                final t = await showTimePicker(
+                                  context: context,
+                                  initialTime: _closes ?? const TimeOfDay(hour: 22, minute: 0),
+                                );
+                                if (t != null) setState(() => _closes = t);
+                              },
+                              child: Text(_closes == null ? 'Closes' : 'Closes ${timeOfDayToHm(_closes!)}'),
+                            ),
+                          ),
+                        ]),
+                        const SizedBox(height: 8),
+                        PrimaryButton(
+                          onPressed: _savingHours ? null : _saveHours,
+                          child: _savingHours
+                              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                              : const Text('SAVE HOURS'),
+                        ),
+                        if (_hoursError != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(_hoursError!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                          ),
+                      ]),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                 ],
                 if (c.status == 'pending')
                   Card(
@@ -468,6 +611,8 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
   Court? _doneCourt;
   bool _reusedNearby = false;
   String? _error;
+  TimeOfDay? _opensAt;
+  TimeOfDay? _closesAt;
   LocationState? _loc;
 
   @override
@@ -545,6 +690,10 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
       _error = null;
     });
     try {
+      String? openingHours;
+      if (_opensAt != null && _closesAt != null) {
+        openingHours = formatOpeningHours(timeOfDayToHm(_opensAt!), timeOfDayToHm(_closesAt!));
+      }
       final j = await context.read<Api>().post('/api/courts', {
         'name': _name.text.trim(),
         'latitude': _where!.latitude,
@@ -552,6 +701,7 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
         'sport_ids': _sportIds.toList(),
         'description': _description.text.trim().isEmpty ? null : _description.text.trim(),
         'photos': _photos,
+        if (openingHours != null) 'opening_hours': openingHours,
       });
       final court = Court.fromJson(j as Map<String, dynamic>);
       setState(() {
@@ -816,6 +966,36 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
                 child: Center(child: _uploading ? const CircularProgressIndicator() : const Icon(Icons.add_a_photo_outlined)),
               ),
             ),
+        ]),
+        const SizedBox(height: 16),
+        const Text('Opening hours (optional)', style: TextStyle(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        Row(children: [
+          Expanded(
+            child: OutlinedButton(
+              onPressed: () async {
+                final t = await showTimePicker(
+                  context: context,
+                  initialTime: _opensAt ?? const TimeOfDay(hour: 6, minute: 0),
+                );
+                if (t != null) setState(() => _opensAt = t);
+              },
+              child: Text(_opensAt == null ? 'Opens' : timeOfDayToHm(_opensAt!)),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: OutlinedButton(
+              onPressed: () async {
+                final t = await showTimePicker(
+                  context: context,
+                  initialTime: _closesAt ?? const TimeOfDay(hour: 22, minute: 0),
+                );
+                if (t != null) setState(() => _closesAt = t);
+              },
+              child: Text(_closesAt == null ? 'Closes' : timeOfDayToHm(_closesAt!)),
+            ),
+          ),
         ]),
         const SizedBox(height: 16),
         TextField(controller: _description, maxLines: 3, decoration: const InputDecoration(labelText: 'Description (optional)')),

@@ -1,7 +1,10 @@
 import type { ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
 import { formatDistance, timeAgo } from '../lib/format'
+import { CourtAddPhotos } from '../components/CourtAddPhotos'
+import { CourtHoursEditor } from '../components/CourtHoursEditor'
 import { CourtPhotoStrip } from '../components/CourtPhotoStrip'
+import { useAuth } from '../lib/auth'
 import { useLocation } from '../lib/location'
 import { useCourt } from '../lib/queries'
 import { CourtActions } from '../components/CourtActions'
@@ -11,8 +14,11 @@ import { Card, Empty, PageHeader, Spinner, StatusPill } from '../components/ui'
 
 export function CourtPage() {
   const { id } = useParams()
+  const { user } = useAuth()
   const { coords } = useLocation()
   const { data: court, isLoading } = useCourt(id, coords)
+  const canAddPhotos =
+    !!user && !!court && (court.created_by === user.id || user.role === 'admin')
 
   if (isLoading) return <Loading />
   if (!court) return <Empty icon={<SearchX className="size-14" strokeWidth={1.5} />} title="Court not found" />
@@ -21,8 +27,12 @@ export function CourtPage() {
     <div className="pb-10">
       <PageHeader title={court.name} back={`/?court=${court.id}`} />
       <CourtPhotoStrip photos={court.photos} />
+      {id && <CourtAddPhotos courtId={id} photos={court.photos} canAdd={canAddPhotos} />}
 
       <div className="mx-auto grid max-w-2xl gap-4 p-4">
+        {id && (
+          <CourtHoursEditor courtId={id} openingHours={court.opening_hours} canEdit={canAddPhotos} />
+        )}
         {court.status !== 'approved' && (
           <p className="rounded-xl bg-players/20 p-3 text-sm font-medium">
             {court.status === 'pending' ? (

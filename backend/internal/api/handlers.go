@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"strings"
@@ -105,6 +106,74 @@ func (s *Server) getCourt(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeRaw(w, http.StatusOK, b)
+}
+
+func (s *Server) addCourtPhotos(w http.ResponseWriter, r *http.Request) {
+	courtID := chi.URLParam(r, "id")
+	var in struct {
+		Photos []string `json:"photos"`
+	}
+	if !readJSON(w, r, &in) {
+		return
+	}
+	if len(in.Photos) == 0 {
+		writeError(w, http.StatusUnprocessableEntity, "photos_required", "Choose at least one photo.")
+		return
+	}
+	if !s.validateUploadURLs(w, in.Photos) {
+		return
+	}
+	status, code, msg, err := s.appendCourtPhotos(r.Context(), courtID, uid(r), in.Photos)
+	if err != nil {
+		writeDBError(w, r, err)
+		return
+	}
+	if status != 0 {
+		writeError(w, status, code, msg)
+		return
+	}
+	var photos []string
+	if err := s.db.Pool.QueryRow(r.Context(), `select photos from courts where id = $1`, courtID).Scan(&photos); err != nil {
+		writeDBError(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"photos": photos})
+}
+
+// appendCourtPhotos merges upload URLs onto a court (proposer or admin only, max 6 total).
+func (s *Server) appendCourtPhotos(ctx context.Context, courtID, userID string, newPhotos []string) (status int, code, msg string, err error) {
+	if len(newPhotos) == 0 {
+		return 0, "", "", nil
+	}
+	if len(newPhotos) > 6 {
+		return http.StatusUnprocessableEntity, "too_many_photos", "Up to 6 photos per request.", nil
+	}
+	status, code, msg, err = s.courtProposerMayEdit(ctx, courtID, userID)
+	if err != nil {
+		return 0, "", "", err
+	}
+	if status != 0 {
+		return status, code, msg, nil
+	}
+	var have int
+	if err := s.db.Pool.QueryRow(ctx, `
+		select coalesce(array_length(c.photos, 1), 0)
+		from courts c where c.id = $1`, courtID).Scan(&have); err != nil {
+		return 0, "", "", err
+	}
+	if have+len(newPhotos) > 6 {
+		return http.StatusUnprocessableEntity, "too_many_photos", "This court already has the maximum of 6 photos.", nil
+	}
+	_, err = s.db.Pool.Exec(ctx, `
+		update courts set photos = (
+			select coalesce(array_agg(x), '{}')
+			from (select unnest(array_cat(photos, $2::text[])) as x limit 6) q
+		)
+		where id = $1 and (created_by = $3 or public.is_admin())`, courtID, newPhotos, userID)
+	if err != nil {
+		return 0, "", "", err
+	}
+	return 0, "", "", nil
 }
 
 type courtInput struct {
@@ -358,30 +427,19 @@ func (s *Server) createGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(in.CourtPhotos) > 0 {
-		var allowed bool
-		if err := s.db.Pool.QueryRow(r.Context(), `
-			select (c.created_by = $2 or exists (
-				select 1 from users u where u.id = $2 and u.role = 'admin' and u.suspended_at is null
-			))
-			from courts c where c.id = $1`, in.CourtID, uid(r)).Scan(&allowed); err != nil || !allowed {
-			writeError(w, http.StatusForbidden, "not_allowed", "You can only add photos to courts you proposed.")
+		status, code, msg, err := s.appendCourtPhotos(r.Context(), in.CourtID, uid(r), in.CourtPhotos)
+		if err != nil {
+			writeDBError(w, r, err)
+			return
+		}
+		if status != 0 {
+			writeError(w, status, code, msg)
 			return
 		}
 	}
 
 	var gameID string
 	err := s.db.Tx(r.Context(), uid(r), func(tx pgx.Tx) error {
-		if len(in.CourtPhotos) > 0 {
-			_, err := tx.Exec(r.Context(), `
-				update courts set photos = (
-					select coalesce(array_agg(x), '{}')
-					from (select unnest(array_cat(photos, $2::text[])) as x limit 6) q
-				)
-				where id = $1 and (created_by = app_uid() or public.is_admin())`, in.CourtID, in.CourtPhotos)
-			if err != nil {
-				return err
-			}
-		}
 		return tx.QueryRow(r.Context(), `
 			insert into games (court_id, sport_id, creator_id, start_time, max_players, skill_level, game_type, duration_minutes)
 			values ($1, $2, app_uid(), $3, $4, $5::skill_level, $6::game_type, $7)

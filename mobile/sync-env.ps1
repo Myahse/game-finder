@@ -8,7 +8,7 @@ if (-not (Test-Path $assets)) {
   New-Item -ItemType Directory -Path $assets | Out-Null
 }
 
-$wanted = @('API_URL', 'PUBLIC_BASE_URL', 'MAPBOX_ACCESS_TOKEN', 'VITE_MAPBOX_ACCESS_TOKEN', 'R2_PUBLIC_URL')
+$wanted = @('API_URL', 'VITE_API_URL', 'PUBLIC_BASE_URL', 'MAPBOX_ACCESS_TOKEN', 'VITE_MAPBOX_ACCESS_TOKEN', 'R2_PUBLIC_URL')
 $found = @{}
 
 if (Test-Path $rootEnv) {
@@ -40,6 +40,13 @@ if (( -not $found['API_URL']) -and (Test-Path $out)) {
   }
 }
 
+if (-not $found['API_URL']) {
+  if ($found['VITE_API_URL']) {
+    $found['API_URL'] = $found['VITE_API_URL']
+  } elseif ($found['PUBLIC_BASE_URL']) {
+    $found['API_URL'] = $found['PUBLIC_BASE_URL']
+  }
+}
 if (-not $found['API_URL']) {
   $lan = & (Join-Path $PSScriptRoot 'scripts\lan-ipv4.ps1')
   if ($lan) {
