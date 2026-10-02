@@ -1,9 +1,9 @@
 # Print Render environment variables from repo-root .env (paste into Render dashboard).
-# Usage: .\scripts\render-env.ps1 [-VercelOrigin https://game-finder-swart.vercel.app] [-ApiHost https://game-finder-api.onrender.com]
+# Usage: .\scripts\render-env.ps1 [-VercelOrigin https://game-finder-swart.vercel.app] [-ApiHost https://game-finder-ddcm.onrender.com]
 
 param(
   [string]$VercelOrigin = '',
-  [string]$ApiHost = 'https://game-finder-api.onrender.com'
+  [string]$ApiHost = 'https://game-finder-ddcm.onrender.com'
 )
 
 $envFile = Join-Path (Split-Path $PSScriptRoot -Parent) '.env'

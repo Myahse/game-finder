@@ -1,9 +1,12 @@
 import type { Session } from './types'
 
 /** Production API fallback when VITE_API_URL was not set at build time (set VITE_API_URL on Vercel). */
-export const DEFAULT_REMOTE_API = 'https://game-finder-api.onrender.com'
+export const DEFAULT_REMOTE_API = 'https://game-finder-ddcm.onrender.com'
 
-const LEGACY_API_HOSTS = new Set(['game-finder-api.fly.dev'])
+const LEGACY_API_HOSTS = new Set([
+  'game-finder-api.fly.dev',
+  'game-finder-api.onrender.com', // old/wrong Render service (Express placeholder)
+])
 
 /** Vite bakes VITE_API_URL at build time; rewrite retired Fly hosts to Render. */
 function viteApiUrl(): string | undefined {

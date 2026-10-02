@@ -57,7 +57,7 @@ Set at minimum:
 | `R2_*` | Cloudflare R2 credentials + public `*.r2.dev` URL |
 
 5. **Deploy** (auto on git push if connected).
-6. Health check: `https://game-finder-api.onrender.com/healthz` → `ok`.
+6. Health check: `https://game-finder-ddcm.onrender.com/healthz` → `{"ok":true}`.
 
 ### Option B — Manual web service
 
@@ -71,7 +71,7 @@ Set at minimum:
 5. **Health check path:** `/healthz`  
 6. Add the same env vars as above.
 
-**WebSockets:** Supported on Render web services (`wss://game-finder-api.onrender.com/api/ws`).
+**WebSockets:** Supported on Render web services (`wss://game-finder-ddcm.onrender.com/api/ws`).
 
 ---
 
@@ -80,7 +80,7 @@ Set at minimum:
 - **Root directory:** `web`
 - **Build:** `npm run build` → output `dist`
 - **Environment (build time):**
-  - `VITE_API_URL` = `https://game-finder-api.onrender.com` (no trailing slash)
+  - `VITE_API_URL` = `https://game-finder-ddcm.onrender.com` (no trailing slash)
   - `VITE_MAPBOX_ACCESS_TOKEN`
   - `VITE_MEDIA_PUBLIC_ORIGIN` = your public R2 URL (optional if using default allowlist)
 
@@ -91,9 +91,9 @@ Redeploy Vercel after changing `VITE_API_URL`.
 ## 4. Root `.env` + mobile
 
 ```env
-PUBLIC_BASE_URL=https://game-finder-api.onrender.com
-VITE_API_URL=https://game-finder-api.onrender.com
-API_URL=https://game-finder-api.onrender.com
+PUBLIC_BASE_URL=https://game-finder-ddcm.onrender.com
+VITE_API_URL=https://game-finder-ddcm.onrender.com
+API_URL=https://game-finder-ddcm.onrender.com
 ```
 
 ```powershell
@@ -106,7 +106,7 @@ API_URL=https://game-finder-api.onrender.com
 
 | Where | Variable | Value |
 |-------|----------|--------|
-| **Render** | `PUBLIC_BASE_URL` | `https://game-finder-api.onrender.com` |
+| **Render** | `PUBLIC_BASE_URL` | `https://game-finder-ddcm.onrender.com` |
 | **Render** | `DATABASE_URL`, `JWT_SECRET`, `R2_*`, `CORS_ORIGINS` | from `.env` via `render-env.ps1` |
 | **Vercel** | `VITE_API_URL` | same Render URL |
 | **Vercel** | `VITE_MAPBOX_ACCESS_TOKEN` | Mapbox public token |
