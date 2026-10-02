@@ -120,7 +120,7 @@ type courtInput struct {
 	SportIDs     []string `json:"sport_ids"`
 }
 
-func (in *courtInput) validate(w http.ResponseWriter) bool {
+func (in *courtInput) validate(s *Server, w http.ResponseWriter) bool {
 	in.Name = strings.TrimSpace(in.Name)
 	switch {
 	case len(in.Name) < 2 || len(in.Name) > 80:
@@ -135,7 +135,7 @@ func (in *courtInput) validate(w http.ResponseWriter) bool {
 		if in.Photos == nil {
 			in.Photos = []string{}
 		}
-		if !validateUploadURLs(w, in.Photos) {
+		if !s.validateUploadURLs(w, in.Photos) {
 			return false
 		}
 		return true
@@ -173,7 +173,7 @@ func (s *Server) insertCourt(w http.ResponseWriter, r *http.Request, in courtInp
 
 func (s *Server) proposeCourt(w http.ResponseWriter, r *http.Request) {
 	var in courtInput
-	if !readJSON(w, r, &in) || !in.validate(w) {
+	if !readJSON(w, r, &in) || !in.validate(s, w) {
 		return
 	}
 	// Reuse a quiet court pin nearby instead of duplicating the same spot.
@@ -342,7 +342,7 @@ func (s *Server) createGame(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnprocessableEntity, "too_many_photos", "Up to 6 photos for the court.")
 		return
 	}
-	if !validateUploadURLs(w, in.CourtPhotos) {
+	if !s.validateUploadURLs(w, in.CourtPhotos) {
 		return
 	}
 	var have int
@@ -592,7 +592,7 @@ func (s *Server) updateMe(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnprocessableEntity, "invalid_option", "Invalid skill level.")
 		return
 	}
-	if in.AvatarURL != nil && !allowedUploadURL(*in.AvatarURL) {
+	if in.AvatarURL != nil && !s.allowedUploadURL(*in.AvatarURL) {
 		writeError(w, http.StatusUnprocessableEntity, "invalid_photo_url", "Avatar must be uploaded through the app.")
 		return
 	}

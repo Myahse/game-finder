@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
 import { formatDistance, timeAgo } from '../lib/format'
-import { resolveMediaUrl } from '../lib/mediaUrl'
+import { CourtPhotoStrip } from '../components/CourtPhotoStrip'
 import { useLocation } from '../lib/location'
 import { useCourt } from '../lib/queries'
 import { CourtActions } from '../components/CourtActions'
@@ -20,19 +20,7 @@ export function CourtPage() {
   return (
     <div className="pb-10">
       <PageHeader title={court.name} back={`/?court=${court.id}`} />
-      {court.photos.length > 0 ? (
-        <div className="flex snap-x gap-2 overflow-x-auto px-4 pt-4">
-          {court.photos.map((src) => (
-            <img
-              key={src}
-              src={resolveMediaUrl(src)}
-              alt=""
-              className="h-48 w-72 shrink-0 snap-start rounded-2xl object-cover"
-              loading="lazy"
-            />
-          ))}
-        </div>
-      ) : null}
+      <CourtPhotoStrip photos={court.photos} />
 
       <div className="mx-auto grid max-w-2xl gap-4 p-4">
         {court.status !== 'approved' && (

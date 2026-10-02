@@ -13,6 +13,19 @@ function uploadsPath(url: string): string | null {
   return null
 }
 
+function isTrustedMediaHost(hostname: string): boolean {
+  const h = hostname.toLowerCase()
+  const configured = import.meta.env.VITE_MEDIA_PUBLIC_ORIGIN?.trim()
+  if (configured) {
+    try {
+      if (new URL(configured).hostname.toLowerCase() === h) return true
+    } catch {
+      // ignore
+    }
+  }
+  return h.endsWith('.r2.dev') || h.endsWith('.r2.cloudflarestorage.com')
+}
+
 function rewritableHost(hostname: string): boolean {
   const h = hostname.toLowerCase()
   if (!h || h === 'localhost' || h.startsWith('127.')) return true
@@ -36,6 +49,9 @@ export function resolveMediaUrl(url: string): string {
     const uri = new URL(trimmed, base)
     if (uri.pathname.startsWith('/uploads/')) {
       return `${base}${uri.pathname}${uri.search}`
+    }
+    if (uri.protocol === 'https:' && isTrustedMediaHost(uri.hostname)) {
+      return trimmed
     }
     if (!uri.host || rewritableHost(uri.hostname)) {
       return `${base}${uri.pathname}${uri.search}`

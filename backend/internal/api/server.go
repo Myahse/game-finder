@@ -21,6 +21,7 @@ import (
 	"findthegame/backend/internal/config"
 	"findthegame/backend/internal/db"
 	"findthegame/backend/internal/realtime"
+	"findthegame/backend/internal/storage"
 )
 
 type Server struct {
@@ -34,9 +35,10 @@ type Server struct {
 	userGameLimit   *rateLimiter
 	userNotifyLimit *rateLimiter
 	trustedProxies  []*net.IPNet
+	media           *storage.Media
 }
 
-func New(cfg config.Config, d *db.DB, hub *realtime.Hub) *Server {
+func New(cfg config.Config, d *db.DB, hub *realtime.Hub, media *storage.Media) *Server {
 	return &Server{
 		cfg:            cfg,
 		db:             d,
@@ -48,6 +50,7 @@ func New(cfg config.Config, d *db.DB, hub *realtime.Hub) *Server {
 		userGameLimit:   newRateLimiter(40, time.Hour),
 		userNotifyLimit: newRateLimiter(6, time.Hour),
 		trustedProxies: parseTrustedCIDRs(cfg.TrustedProxyCIDRs),
+		media:          media,
 	}
 }
 

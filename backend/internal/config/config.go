@@ -27,6 +27,16 @@ type Config struct {
 	FCMServiceAccountJSON string
 	// Comma-separated CIDRs; X-Real-IP is trusted only from these peers (e.g. nginx in Docker).
 	TrustedProxyCIDRs string
+	// Cloudflare R2 (S3-compatible). When set, uploads go to the bucket instead of UPLOAD_DIR.
+	R2AccountID       string
+	R2AccessKeyID     string
+	R2SecretAccessKey string
+	R2BucketName      string
+	R2PublicURL       string // public bucket URL or custom domain (no trailing slash)
+}
+
+func (c Config) R2Enabled() bool {
+	return c.R2AccountID != "" && c.R2AccessKeyID != "" && c.R2SecretAccessKey != "" && c.R2BucketName != ""
 }
 
 func Load() (Config, error) {
@@ -46,6 +56,11 @@ func Load() (Config, error) {
 		FCMProjectID:          env("FCM_PROJECT_ID", ""),
 		FCMServiceAccountJSON: env("FCM_SERVICE_ACCOUNT_JSON", ""),
 		TrustedProxyCIDRs:     env("TRUSTED_PROXY_CIDRS", "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"),
+		R2AccountID:           env("R2_ACCOUNT_ID", ""),
+		R2AccessKeyID:         env("R2_ACCESS_KEY_ID", ""),
+		R2SecretAccessKey:     env("R2_SECRET_ACCESS_KEY", ""),
+		R2BucketName:          env("R2_BUCKET_NAME", ""),
+		R2PublicURL:           strings.TrimRight(env("R2_PUBLIC_URL", ""), "/"),
 	}
 	if c.DatabaseURL == "" {
 		return c, errors.New("DATABASE_URL is required")

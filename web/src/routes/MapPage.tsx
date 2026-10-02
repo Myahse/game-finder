@@ -11,6 +11,7 @@ import { MapGamesRail } from '../components/MapGamesRail'
 import type { Court } from '../lib/types'
 import { CourtMap } from '../components/CourtMap'
 import { CourtActions } from '../components/CourtActions'
+import { CourtPhotoStrip } from '../components/CourtPhotoStrip'
 import { GameCard } from '../components/GameCard'
 import { DistanceText, LiveText, SportName } from '../components/icons'
 import { Chip, Spinner, StatusPill } from '../components/ui'
@@ -131,6 +132,7 @@ function CourtSheet({ id, coords, onClose }: { id: string; coords: Coords | null
 
       {court && (
         <div className="relative p-5 pt-3 md:pt-5">
+          <CourtPhotoStrip photos={court.photos} compact />
           <h2 className="display pr-10 text-4xl font-extrabold">{court.name}</h2>
           <p className="mt-1 flex flex-wrap gap-x-3 text-sm text-ink-2">
             <span className="inline-flex flex-wrap gap-x-2 gap-y-1">

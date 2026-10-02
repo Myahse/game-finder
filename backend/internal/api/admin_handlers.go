@@ -1,13 +1,9 @@
 package api
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"io"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -44,7 +40,7 @@ func (s *Server) adminCourts(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) adminCreateCourt(w http.ResponseWriter, r *http.Request) {
 	var in courtInput
-	if !readJSON(w, r, &in) || !in.validate(w) {
+	if !readJSON(w, r, &in) || !in.validate(s, w) {
 		return
 	}
 	s.insertCourt(w, r, in, "approved")
@@ -52,7 +48,7 @@ func (s *Server) adminCreateCourt(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) adminUpdateCourt(w http.ResponseWriter, r *http.Request) {
 	var in courtInput
-	if !readJSON(w, r, &in) || !in.validate(w) {
+	if !readJSON(w, r, &in) || !in.validate(s, w) {
 		return
 	}
 	id := chi.URLParam(r, "id")
@@ -297,31 +293,15 @@ func (s *Server) upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rnd := make([]byte, 16)
-	_, _ = rand.Read(rnd)
-	rel := filepath.Join(kind, uid(r), hex.EncodeToString(rnd)+ext)
-	dst := filepath.Join(s.cfg.UploadDir, rel)
-	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
-		if os.IsPermission(err) {
-			writeError(w, http.StatusInternalServerError, "upload_storage", "Upload storage is not writable. Restart the API container.")
+	ct := http.DetectContentType(head[:n])
+	stored, err := s.media.Save(r.Context(), kind, uid(r), ext, ct, f)
+	if err != nil {
+		if strings.Contains(err.Error(), "writable") || strings.Contains(err.Error(), "permission") {
+			writeError(w, http.StatusInternalServerError, "upload_storage", "Upload storage is not available.")
 			return
 		}
 		writeDBError(w, r, err)
 		return
 	}
-	out, err := os.Create(dst)
-	if err != nil {
-		writeDBError(w, r, err)
-		return
-	}
-	if _, err := io.Copy(out, f); err != nil {
-		out.Close()
-		os.Remove(dst)
-		writeDBError(w, r, err)
-		return
-	}
-	out.Close()
-	writeJSON(w, http.StatusCreated, map[string]string{
-		"url": "/uploads/" + strings.ReplaceAll(rel, string(filepath.Separator), "/"),
-	})
+	writeJSON(w, http.StatusCreated, map[string]string{"url": stored})
 }

@@ -18,6 +18,7 @@ import (
 	"findthegame/backend/internal/jobs"
 	"findthegame/backend/internal/push"
 	"findthegame/backend/internal/realtime"
+	"findthegame/backend/internal/storage"
 	"findthegame/backend/migrations"
 	"findthegame/backend/seed"
 )
@@ -52,8 +53,17 @@ func run() error {
 		}
 		slog.Info("demo courts seeded")
 	}
-	if err := os.MkdirAll(cfg.UploadDir, 0o755); err != nil {
+	media, err := storage.NewMedia(cfg)
+	if err != nil {
 		return err
+	}
+	if media.UsesR2() {
+		slog.Info("uploads enabled", "backend", "cloudflare_r2", "public", cfg.R2PublicURL)
+	} else {
+		if err := os.MkdirAll(cfg.UploadDir, 0o755); err != nil {
+			return err
+		}
+		slog.Info("uploads enabled", "backend", "local_disk", "dir", cfg.UploadDir)
 	}
 
 	hub := realtime.NewHub()
@@ -74,7 +84,7 @@ func run() error {
 
 	srv := &http.Server{
 		Addr:              cfg.Addr,
-		Handler:           api.New(cfg, d, hub).Routes(),
+		Handler:           api.New(cfg, d, hub, media).Routes(),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	errCh := make(chan error, 1)

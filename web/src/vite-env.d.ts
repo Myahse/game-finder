@@ -6,4 +6,5 @@ interface ImportMetaEnv {
   readonly VITE_MAPBOX_ACCESS_TOKEN?: string
   readonly VITE_MAP_STYLE_LIGHT?: string
   readonly VITE_MAP_STYLE_DARK?: string
+  readonly VITE_MEDIA_PUBLIC_ORIGIN?: string
 }

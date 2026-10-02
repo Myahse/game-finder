@@ -66,7 +66,7 @@ func (s *Server) register(w http.ResponseWriter, r *http.Request) {
 	case len(in.Password) < 8 || len(in.Password) > 72:
 		writeError(w, http.StatusUnprocessableEntity, "weak_password", "Password must be 8–72 characters.")
 		return
-	case in.AvatarURL != "" && !allowedUploadURL(in.AvatarURL):
+	case in.AvatarURL != "" && !s.allowedUploadURL(in.AvatarURL):
 		writeError(w, http.StatusUnprocessableEntity, "invalid_photo_url", "Avatar must be uploaded through the app.")
 		return
 	}

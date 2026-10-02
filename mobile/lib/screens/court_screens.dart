@@ -17,6 +17,7 @@ import '../core/realtime.dart';
 import '../ui/app_icons.dart';
 import '../ui/court_map_pin.dart';
 import '../ui/theme.dart';
+import '../ui/court_photo_viewer.dart';
 import '../ui/widgets.dart';
 import 'game_screens.dart';
 
@@ -371,20 +372,10 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> with _CourtLoad
           : RefreshIndicator(
               onRefresh: load,
               child: ListView(padding: const EdgeInsets.all(16), children: [
-                if (c.photos.isNotEmpty)
-                  SizedBox(
-                    height: 190,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: c.photos.length,
-                      separatorBuilder: (_, _) => const SizedBox(width: 8),
-                      itemBuilder: (_, i) => ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Image.network(c.photos[i], width: 280, fit: BoxFit.cover),
-                      ),
-                    ),
-                  ),
-                if (c.photos.isNotEmpty) const SizedBox(height: 16),
+                if (c.photos.isNotEmpty) ...[
+                  CourtPhotoStrip(photos: c.photos),
+                  const SizedBox(height: 16),
+                ],
                 if (c.status == 'pending')
                   Card(
                     child: Padding(

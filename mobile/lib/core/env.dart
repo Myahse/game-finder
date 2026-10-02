@@ -4,6 +4,7 @@ const _defaultApi = 'http://10.0.2.2:8080';
 
 String _apiUrl = _defaultApi;
 String _mapboxToken = '';
+String _mediaPublicOrigin = '';
 
 /// Load `assets/.env` (sync from repo `.env` via `sync-env.ps1` or `run-device.ps1`).
 /// `--dart-define` values override the file when non-empty.
@@ -22,6 +23,7 @@ Future<void> loadAppEnv() async {
 
   _apiUrl = defineApi.isNotEmpty ? defineApi : (fileApi.isNotEmpty ? fileApi : _defaultApi);
   _mapboxToken = defineMapbox.isNotEmpty ? defineMapbox : fileMapbox;
+  _mediaPublicOrigin = (dotenv.env['MEDIA_PUBLIC_ORIGIN'] ?? dotenv.env['R2_PUBLIC_URL'] ?? '').trim();
 }
 
 void setApiUrl(String url) {
@@ -31,3 +33,4 @@ void setApiUrl(String url) {
 
 String get apiUrl => _apiUrl;
 String get mapboxAccessToken => _mapboxToken;
+String get mediaPublicOrigin => _mediaPublicOrigin;

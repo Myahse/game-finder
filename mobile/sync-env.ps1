@@ -8,7 +8,7 @@ if (-not (Test-Path $assets)) {
   New-Item -ItemType Directory -Path $assets | Out-Null
 }
 
-$wanted = @('API_URL', 'PUBLIC_BASE_URL', 'MAPBOX_ACCESS_TOKEN', 'VITE_MAPBOX_ACCESS_TOKEN')
+$wanted = @('API_URL', 'PUBLIC_BASE_URL', 'MAPBOX_ACCESS_TOKEN', 'VITE_MAPBOX_ACCESS_TOKEN', 'R2_PUBLIC_URL')
 $found = @{}
 
 if (Test-Path $rootEnv) {
@@ -57,6 +57,9 @@ foreach ($key in $wanted) {
   if ($found.ContainsKey($key) -and $found[$key]) {
     $lines.Add("$key=$($found[$key])")
   }
+}
+if ($found['R2_PUBLIC_URL']) {
+  $lines.Add("MEDIA_PUBLIC_ORIGIN=$($found['R2_PUBLIC_URL'])")
 }
 
 if ($lines.Count -eq 0) {

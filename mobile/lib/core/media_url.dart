@@ -1,5 +1,15 @@
 import 'env.dart';
 
+bool _trustedMediaHost(String host) {
+  final h = host.toLowerCase();
+  final o = mediaPublicOrigin.trim();
+  if (o.isNotEmpty) {
+    final u = Uri.tryParse(o);
+    if (u != null && u.host.toLowerCase() == h) return true;
+  }
+  return h.endsWith('.r2.dev');
+}
+
 bool _rewritableHost(String host) {
   final h = host.toLowerCase();
   if (h.isEmpty || h == 'localhost' || h.startsWith('127.')) return true;
@@ -33,11 +43,12 @@ String resolveMediaUrl(String url) {
   if (trimmed.startsWith('/')) return '$base$trimmed';
   if (uri.host.isEmpty) return '$base/${trimmed.replaceFirst(RegExp(r'^/+'), '')}';
 
+  if (uri.scheme == 'https' && _trustedMediaHost(uri.host)) return trimmed;
+
   if (_rewritableHost(uri.host)) {
     return '$base${uri.path}${uri.hasQuery ? '?${uri.query}' : ''}';
   }
 
-  // Unknown external host — only allow if path is clearly not our uploads store.
   if (!uri.path.startsWith('/uploads/')) return '';
   return '$base${uri.path}${uri.hasQuery ? '?${uri.query}' : ''}';
 }

@@ -23,6 +23,7 @@ import (
 	"findthegame/backend/internal/db"
 	"findthegame/backend/internal/jobs"
 	"findthegame/backend/internal/realtime"
+	"findthegame/backend/internal/storage"
 	"findthegame/backend/migrations"
 	"findthegame/backend/seed"
 )
@@ -75,7 +76,11 @@ func setup(t *testing.T) *env {
 	}
 	hub := realtime.NewHub()
 	go hub.Listen(ctx, d.Pool)
-	srv := httptest.NewServer(api.New(cfg, d, hub).Routes())
+	media, err := storage.NewMedia(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(api.New(cfg, d, hub, media).Routes())
 	t.Cleanup(srv.Close)
 	time.Sleep(100 * time.Millisecond) // let LISTEN attach
 	return &env{t: t, srv: srv, db: d}
