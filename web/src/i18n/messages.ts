@@ -1,0 +1,105 @@
+export type Locale = 'en' | 'fr'
+
+const en = {
+  nav: {
+    map: 'Map',
+    play: 'Play',
+    myGames: 'My games',
+    alerts: 'Alerts',
+    profile: 'Profile',
+    admin: 'Admin',
+  },
+  common: {
+    open: 'Open',
+    close: 'Close',
+    edit: 'Edit',
+    save: 'Save',
+    logOut: 'Log out',
+    player: 'Player',
+    playerNotFound: 'Player not found.',
+    uploading: 'Uploading…',
+    changePhoto: 'Change photo',
+  },
+  welcome: {
+    live: 'Games happening near you right now',
+    titleLine1: 'Find the',
+    titleLine2: 'Game',
+    tagline1: "Don't search for a court.",
+    tagline2: 'Find the game.',
+    createAccount: 'Create account',
+    logIn: 'Log in',
+  },
+  profile: {
+    title: 'Profile',
+    gamesPlayed: 'games played',
+    gamesCreated: 'games created',
+    joined: 'Joined',
+    adminDashboard: 'Admin dashboard',
+    firstName: 'First name',
+    lastName: 'Last name',
+    username: 'Username',
+    sport: 'Sport',
+    sportLockedHint: 'Set at signup and locked to keep the map focused.',
+    skillLevel: 'Skill level',
+  },
+  skill: {
+    beginner: 'Beginner',
+    intermediate: 'Intermediate',
+    advanced: 'Advanced',
+    all_levels: 'All levels',
+  },
+}
+
+export type MessageTree = typeof en
+
+const fr: MessageTree = {
+  nav: {
+    map: 'Carte',
+    play: 'Jouer',
+    myGames: 'Mes matchs',
+    alerts: 'Alertes',
+    profile: 'Profil',
+    admin: 'Admin',
+  },
+  common: {
+    open: 'Ouvrir',
+    close: 'Fermer',
+    edit: 'Modifier',
+    save: 'Enregistrer',
+    logOut: 'Se déconnecter',
+    player: 'Joueur',
+    playerNotFound: 'Joueur introuvable.',
+    uploading: 'Envoi…',
+    changePhoto: 'Changer la photo',
+  },
+  welcome: {
+    live: 'Des matchs près de vous en ce moment',
+    titleLine1: 'Find the',
+    titleLine2: 'Game',
+    tagline1: 'Ne cherchez pas un terrain.',
+    tagline2: 'Trouvez le match.',
+    createAccount: 'Créer un compte',
+    logIn: 'Se connecter',
+  },
+  profile: {
+    title: 'Profil',
+    gamesPlayed: 'matchs joués',
+    gamesCreated: 'matchs créés',
+    joined: 'Inscrit en',
+    adminDashboard: 'Tableau admin',
+    firstName: 'Prénom',
+    lastName: 'Nom',
+    username: "Nom d'utilisateur",
+    sport: 'Sport',
+    sportLockedHint: "Choisi à l'inscription — verrouillé pour garder la carte ciblée.",
+    skillLevel: 'Niveau',
+  },
+  skill: {
+    beginner: 'Débutant',
+    intermediate: 'Intermédiaire',
+    advanced: 'Avancé',
+    all_levels: 'Tous niveaux',
+  },
+}
+
+export const messages: Record<Locale, MessageTree> = { en, fr }

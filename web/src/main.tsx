@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { RouterProvider } from 'react-router-dom'
 import { AuthProvider } from './lib/auth'
+import { LocaleProvider } from './i18n/LocaleProvider'
 import { router } from './router'
 import './index.css'
 import { Toaster } from 'sonner'
@@ -25,7 +26,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <RouterProvider router={router} />
+        <LocaleProvider>
+          <RouterProvider router={router} />
+        </LocaleProvider>
         <Toaster
           position="top-center"
           closeButton

@@ -8,18 +8,19 @@ import { useNotifications } from '../lib/queries'
 import { EngagementPrompts } from './EngagementPrompts'
 import { PresenceWatcher } from './PresenceWatcher'
 import type { RealtimeEvent } from '../lib/types'
-
-type Tab = { to: string; label: string; end?: boolean; navIcon: ReactNode }
+import { useLocale } from '../i18n/LocaleProvider'
+type Tab = { to: string; labelKey: 'map' | 'play' | 'myGames' | 'alerts' | 'profile'; end?: boolean; navIcon: ReactNode }
 
 const tabs: Tab[] = [
-  { to: '/', label: 'Map', end: true, navIcon: <MapPin className="size-6 md:size-5" aria-hidden /> },
-  { to: '/play', label: 'Play', navIcon: <BasketballIcon className="size-6 md:size-5" /> },
-  { to: '/my-games', label: 'My games', navIcon: <CalendarDays className="size-6 md:size-5" aria-hidden /> },
-  { to: '/notifications', label: 'Alerts', navIcon: <Bell className="size-6 md:size-5" aria-hidden /> },
-  { to: '/profile', label: 'Profile', navIcon: <User className="size-6 md:size-5" aria-hidden /> },
+  { to: '/', labelKey: 'map', end: true, navIcon: <MapPin className="size-6 md:size-5" aria-hidden /> },
+  { to: '/play', labelKey: 'play', navIcon: <BasketballIcon className="size-6 md:size-5" /> },
+  { to: '/my-games', labelKey: 'myGames', navIcon: <CalendarDays className="size-6 md:size-5" aria-hidden /> },
+  { to: '/notifications', labelKey: 'alerts', navIcon: <Bell className="size-6 md:size-5" aria-hidden /> },
+  { to: '/profile', labelKey: 'profile', navIcon: <User className="size-6 md:size-5" aria-hidden /> },
 ]
 
 export function AppShell() {
+  const { t } = useLocale()
   const { user } = useAuth()
   const navigate = useNavigate()
   const { pathname } = useLocation()
@@ -39,7 +40,7 @@ export function AppShell() {
         duration: 6000,
         action: link
           ? {
-              label: 'Open',
+              label: t.common.open,
               onClick: () => navigate(link),
             }
           : undefined,
@@ -52,7 +53,7 @@ export function AppShell() {
         }
       }
     },
-    [navigate],
+    [navigate, t.common.open],
   )
   useRealtime(user?.id ?? null, onNotification)
 
@@ -64,11 +65,11 @@ export function AppShell() {
         <div className="display hidden px-3 pb-6 pt-2 text-3xl font-extrabold md:block">
           Find the <span className="text-brand">Game</span>
         </div>
-        {tabs.map((t) => (
+        {tabs.map((tab) => (
           <NavLink
-            key={t.to}
-            to={t.to}
-            end={t.end}
+            key={tab.to}
+            to={tab.to}
+            end={tab.end}
             className={({ isActive }) =>
               `relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-semibold md:flex-none md:flex-row md:gap-3 md:rounded-xl md:px-3 md:py-2.5 md:text-sm ${
                 isActive ? 'text-brand md:bg-brand/10' : 'text-ink-2 hover:text-ink'
@@ -76,10 +77,10 @@ export function AppShell() {
             }
           >
             <span className="text-xl md:text-lg" aria-hidden>
-              {t.navIcon}
+              {tab.navIcon}
             </span>
-            {t.label}
-            {t.to === '/notifications' && !!notes?.unread && (
+            {t.nav[tab.labelKey]}
+            {tab.to === '/notifications' && !!notes?.unread && (
               <span className="absolute right-[calc(50%-22px)] top-1 rounded-full bg-brand px-1.5 text-[10px] font-bold text-white md:static md:ml-auto">
                 {notes.unread}
               </span>
@@ -95,7 +96,7 @@ export function AppShell() {
               }`
             }
           >
-            <Wrench className="size-5 shrink-0" aria-hidden /> Admin
+            <Wrench className="size-5 shrink-0" aria-hidden /> {t.nav.admin}
           </NavLink>
         )}
       </nav>

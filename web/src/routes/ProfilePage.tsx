@@ -3,17 +3,20 @@ import { Link, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api, errorMessage, uploadImage } from '../lib/api'
 import { useAuth } from '../lib/auth'
-import { skillLabels } from '../lib/format'
+import { useLocale } from '../i18n/LocaleProvider'
+import type { SkillLevel } from '../lib/types'
 import { useSports, useUpdateMe, useUser } from '../lib/queries'
-import type { Me, PublicUser, SkillLevel } from '../lib/types'
+import type { Me, PublicUser } from '../lib/types'
 import { Star } from 'lucide-react'
 import { SportName, Wrench } from '../components/icons'
 import { Avatar, Button, Card, ErrorText, Field, Input, PageHeader, Select } from '../components/ui'
 import { Loading } from './CourtPage'
 
 function ProfileCard({ user }: { user: PublicUser }) {
+  const { t } = useLocale()
   const { data: sports } = useSports()
   const sport = sports?.find((s) => s.id === user.preferred_sport_id)
+  const skillLabels: Record<SkillLevel, string> = t.skill
   return (
     <Card className="text-center">
       <div className="flex justify-center">
@@ -33,11 +36,12 @@ function ProfileCard({ user }: { user: PublicUser }) {
         )}
       </p>
       <div className="mt-5 grid grid-cols-2 gap-2">
-        <Stat value={user.stats?.games_played ?? 0} label="games played" />
-        <Stat value={user.stats?.games_created ?? 0} label="games created" />
+        <Stat value={user.stats?.games_played ?? 0} label={t.profile.gamesPlayed} />
+        <Stat value={user.stats?.games_created ?? 0} label={t.profile.gamesCreated} />
       </div>
       <p className="mt-4 text-xs text-ink-2">
-        Joined {new Date(user.created_at).toLocaleDateString([], { month: 'long', year: 'numeric' })}
+        {t.profile.joined}{' '}
+        {new Date(user.created_at).toLocaleDateString([], { month: 'long', year: 'numeric' })}
       </p>
     </Card>
   )
@@ -53,6 +57,7 @@ function Stat({ value, label }: { value: number; label: string }) {
 }
 
 export function ProfilePage() {
+  const { t } = useLocale()
   const { user, logout, updateUser } = useAuth()
   const { data: me } = useQuery({ queryKey: ['me'], queryFn: () => api<Me>('/api/me') })
   const [editing, setEditing] = useState(false)
@@ -62,10 +67,10 @@ export function ProfilePage() {
   return (
     <div className="pb-10">
       <PageHeader
-        title="Profile"
+        title={t.profile.title}
         right={
           <Button variant="ghost" className="min-h-9 px-3 text-base" onClick={() => setEditing((e) => !e)}>
-            {editing ? 'Close' : 'Edit'}
+            {editing ? t.common.close : t.common.edit}
           </Button>
         }
       />
@@ -84,11 +89,11 @@ export function ProfilePage() {
         {user.role === 'admin' && (
           <Link to="/admin" className="flex items-center gap-2 rounded-xl bg-surface p-4 font-semibold">
             <Wrench className="size-5 shrink-0" aria-hidden />
-            Admin dashboard
+            {t.profile.adminDashboard}
           </Link>
         )}
         <Button variant="secondary" onClick={logout}>
-          Log out
+          {t.common.logOut}
         </Button>
       </div>
     </div>
@@ -96,7 +101,9 @@ export function ProfilePage() {
 }
 
 function EditProfile({ me, onSaved }: { me: Me; onSaved: (u: Me) => void }) {
+  const { t } = useLocale()
   const update = useUpdateMe()
+  const skillLabels: Record<SkillLevel, string> = t.skill
   const { data: sports } = useSports()
   const sportLocked = me.role !== 'admin' && !!me.preferred_sport_id
   const lockedSport = sports?.find((s) => s.id === me.preferred_sport_id)
@@ -142,21 +149,21 @@ function EditProfile({ me, onSaved }: { me: Me; onSaved: (u: Me) => void }) {
     >
       <label className="flex cursor-pointer items-center gap-4">
         <Avatar user={{ ...me, avatar_url: form.avatar_url || null }} size={72} />
-        <span className="font-semibold text-brand">{uploading ? 'Uploading…' : 'Change photo'}</span>
+        <span className="font-semibold text-brand">{uploading ? t.common.uploading : t.common.changePhoto}</span>
         <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => onPhoto(e.target.files?.[0])} />
       </label>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="First name">
+        <Field label={t.profile.firstName}>
           <Input value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} required />
         </Field>
-        <Field label="Last name">
+        <Field label={t.profile.lastName}>
           <Input value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} required />
         </Field>
       </div>
-      <Field label="Username">
+      <Field label={t.profile.username}>
         <Input value={form.username} pattern="[A-Za-z0-9_.]{3,24}" onChange={(e) => setForm({ ...form, username: e.target.value })} required />
       </Field>
-      <Field label="Sport" hint={sportLocked ? 'Set at signup and locked to keep the map focused.' : undefined}>
+      <Field label={t.profile.sport} hint={sportLocked ? t.profile.sportLockedHint : undefined}>
         {sportLocked && lockedSport ? (
           <p className="rounded-xl border border-line bg-surface-2 px-3 py-2.5 text-sm font-semibold">{lockedSport.name}</p>
         ) : (
@@ -171,7 +178,7 @@ function EditProfile({ me, onSaved }: { me: Me; onSaved: (u: Me) => void }) {
           </Select>
         )}
       </Field>
-      <Field label="Skill level">
+      <Field label={t.profile.skillLevel}>
         <Select value={form.skill_level} onChange={(e) => setForm({ ...form, skill_level: e.target.value as SkillLevel })}>
           {(Object.keys(skillLabels) as SkillLevel[]).map((k) => (
             <option key={k} value={k}>
@@ -182,20 +189,21 @@ function EditProfile({ me, onSaved }: { me: Me; onSaved: (u: Me) => void }) {
       </Field>
       <ErrorText>{error}</ErrorText>
       <Button type="submit" loading={update.isPending} disabled={uploading}>
-        Save
+        {t.common.save}
       </Button>
     </form>
   )
 }
 
 export function UserPage() {
+  const { t } = useLocale()
   const { id } = useParams()
   const { data: user, isLoading } = useUser(id!)
   if (isLoading) return <Loading />
   return (
     <div className="pb-10">
-      <PageHeader title="Player" back="/" />
-      <div className="mx-auto max-w-md p-4">{user ? <ProfileCard user={user} /> : <p>Player not found.</p>}</div>
+      <PageHeader title={t.common.player} back="/" />
+      <div className="mx-auto max-w-md p-4">{user ? <ProfileCard user={user} /> : <p>{t.common.playerNotFound}</p>}</div>
     </div>
   )
 }

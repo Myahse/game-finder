@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { LoginBottomSheet } from '../components/LoginBottomSheet'
+import { useLocale } from '../i18n/LocaleProvider'
 import { LegalFooter } from './LegalPage'
 
 export function WelcomePage() {
+  const { t } = useLocale()
   const [params, setParams] = useSearchParams()
   const [loginOpen, setLoginOpen] = useState(() => params.get('login') === '1')
 
@@ -36,29 +38,29 @@ export function WelcomePage() {
             <span className="relative inline-flex size-2.5 text-[#22c55e]">
               <span className="pulse relative size-2.5 rounded-full bg-current" />
             </span>
-            Games happening near you right now
+            {t.welcome.live}
           </div>
           <h1 className="display text-7xl font-extrabold sm:text-8xl">
-            Find the
+            {t.welcome.titleLine1}
             <br />
-            <span className="text-brand">Game</span>
+            <span className="text-brand">{t.welcome.titleLine2}</span>
           </h1>
           <p className="mt-5 text-xl text-[#c9ced6]">
-            Don't search for a court.
+            {t.welcome.tagline1}
             <br />
-            <b className="text-white">Find the game.</b>
+            <b className="text-white">{t.welcome.tagline2}</b>
           </p>
 
           <div className="mt-10 grid gap-3">
             <Link to="/register" className="display flex min-h-14 items-center justify-center rounded-2xl bg-brand text-2xl font-bold text-white">
-              Create account
+              {t.welcome.createAccount}
             </Link>
             <button
               type="button"
               onClick={openLogin}
               className="display flex min-h-14 items-center justify-center rounded-2xl border border-white/20 text-2xl font-bold"
             >
-              Log in
+              {t.welcome.logIn}
             </button>
             <LegalFooter className="mt-4 text-[#9aa3ae] [&_a]:text-brand" />
           </div>
