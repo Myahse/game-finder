@@ -5,3 +5,6 @@ import _ "embed"
 
 //go:embed demo.sql
 var Demo string
+
+//go:embed test_fixtures.sql
+var TestFixtures string

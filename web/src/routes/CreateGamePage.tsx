@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { api, errorMessage, uploadImage } from '../lib/api'
 import { formatDistance, gameTypeLabels, skillLabels } from '../lib/format'
 import { useLocation } from '../lib/location'
+import { LIST_NEARBY_RADIUS_KM } from '../lib/nearby'
 import { useCourtsNearby, useSports } from '../lib/queries'
 import type { Game, GameType, SkillLevel } from '../lib/types'
 import { Clock, Flame, SportIcon, SportName } from '../components/icons'
@@ -21,7 +22,7 @@ export function CreateGamePage() {
   const qc = useQueryClient()
   const { center } = useLocation()
   const { data: sports } = useSports()
-  const { data: courts } = useCourtsNearby(center, null)
+  const { data: courts } = useCourtsNearby(center, null, LIST_NEARBY_RADIUS_KM)
   const active = sports?.filter((s) => s.active) ?? []
 
   const [courtId, setCourtId] = useState(params.get('court') ?? '')

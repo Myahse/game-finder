@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"regexp"
 	"slices"
@@ -65,6 +66,9 @@ func (s *Server) register(w http.ResponseWriter, r *http.Request) {
 	case len(in.Password) < 8 || len(in.Password) > 72:
 		writeError(w, http.StatusUnprocessableEntity, "weak_password", "Password must be 8–72 characters.")
 		return
+	case in.AvatarURL != "" && !allowedUploadURL(in.AvatarURL):
+		writeError(w, http.StatusUnprocessableEntity, "invalid_photo_url", "Avatar must be uploaded through the app.")
+		return
 	}
 	hash, err := auth.HashPassword(in.Password)
 	if err != nil {
@@ -93,24 +97,35 @@ func (s *Server) register(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	var in struct {
-		Email    string `json:"email"`
+		Login    string `json:"login"`
+		Email    string `json:"email"` // legacy clients
 		Password string `json:"password"`
 	}
 	if !readJSON(w, r, &in) {
 		return
 	}
+	ident := strings.TrimSpace(in.Login)
+	if ident == "" {
+		ident = strings.TrimSpace(in.Email)
+	}
+	if ident == "" || in.Password == "" {
+		writeError(w, http.StatusUnprocessableEntity, "invalid_credentials", "Enter your username or email and password.")
+		return
+	}
 	var id, hash, role string
 	var suspended bool
-	err := s.db.Pool.QueryRow(r.Context(),
-		"select id, password_hash, role::text, suspended_at is not null from users where email = $1",
-		strings.ToLower(strings.TrimSpace(in.Email))).Scan(&id, &hash, &role, &suspended)
+	err := s.db.Pool.QueryRow(r.Context(), `
+		select id, password_hash, role::text, suspended_at is not null
+		from users
+		where email = lower($1) or username = $1::citext`,
+		ident).Scan(&id, &hash, &role, &suspended)
 	if err != nil {
 		auth.BurnPasswordCheck(in.Password)
-		writeError(w, http.StatusUnauthorized, "invalid_credentials", "Wrong email or password.")
+		writeError(w, http.StatusUnauthorized, "invalid_credentials", "Wrong username, email, or password.")
 		return
 	}
 	if !auth.CheckPassword(hash, in.Password) {
-		writeError(w, http.StatusUnauthorized, "invalid_credentials", "Wrong email or password.")
+		writeError(w, http.StatusUnauthorized, "invalid_credentials", "Wrong username, email, or password.")
 		return
 	}
 	if suspended {
@@ -130,13 +145,22 @@ func (s *Server) refresh(w http.ResponseWriter, r *http.Request) {
 	}
 	var userID, role string
 	var suspended bool
+	hash := auth.HashToken(in.RefreshToken)
 	err := s.db.Pool.QueryRow(r.Context(), `
 		update refresh_tokens t set revoked_at = now()
 		from users u
 		where t.token_hash = $1 and t.revoked_at is null and t.expires_at > now() and u.id = t.user_id
 		returning u.id, u.role::text, u.suspended_at is not null`,
-		auth.HashToken(in.RefreshToken)).Scan(&userID, &role, &suspended)
+		hash).Scan(&userID, &role, &suspended)
 	if err != nil {
+		var reuseUser string
+		_ = s.db.Pool.QueryRow(r.Context(),
+			`select user_id from refresh_tokens where token_hash = $1 and revoked_at is not null limit 1`, hash).Scan(&reuseUser)
+		if reuseUser != "" {
+			_, _ = s.db.Pool.Exec(r.Context(),
+				`update refresh_tokens set revoked_at = now() where user_id = $1 and revoked_at is null`, reuseUser)
+			slog.Warn("refresh token reuse detected; revoked active sessions", "user_id", reuseUser)
+		}
 		writeError(w, http.StatusUnauthorized, "invalid_refresh_token", "Session expired. Please sign in again.")
 		return
 	}

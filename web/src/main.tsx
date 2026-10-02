@@ -5,6 +5,15 @@ import { RouterProvider } from 'react-router-dom'
 import { AuthProvider } from './lib/auth'
 import { router } from './router'
 import './index.css'
+import { Toaster } from 'sonner'
+import { registerSW } from 'virtual:pwa-register'
+import { initMonitoring } from './lib/monitoring'
+
+initMonitoring()
+
+if (import.meta.env.PROD) {
+  registerSW({ immediate: true })
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -17,6 +26,18 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <RouterProvider router={router} />
+        <Toaster
+          position="top-center"
+          closeButton
+          richColors
+          toastOptions={{
+            classNames: {
+              toast: 'ftg-sonner-toast',
+              title: 'font-semibold',
+              description: 'text-ink-2',
+            },
+          }}
+        />
       </AuthProvider>
     </QueryClientProvider>
   </StrictMode>,

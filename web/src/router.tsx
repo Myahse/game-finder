@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate, Outlet, useLocation } from 'react-router
 import { useAuth } from './lib/auth'
 import { AppShell } from './components/AppShell'
 import { WelcomePage } from './routes/WelcomePage'
+import { PrivacyPage, TermsPage } from './routes/LegalPage'
 import { LoginPage, RegisterPage } from './routes/AuthPages'
 import { OnboardingPage } from './routes/OnboardingPage'
 import { MapPage } from './routes/MapPage'
@@ -45,6 +46,8 @@ export const router = createBrowserRouter([
     element: <GuestOnly />,
     children: [
       { path: '/welcome', element: <WelcomePage /> },
+      { path: '/terms', element: <TermsPage /> },
+      { path: '/privacy', element: <PrivacyPage /> },
       { path: '/login', element: <LoginPage /> },
       { path: '/register', element: <RegisterPage /> },
     ],

@@ -28,7 +28,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env (32+ chars)}
       ADMIN_EMAILS: ${ADMIN_EMAILS:-}
       CORS_ORIGINS: http://localhost:9099
-      PUBLIC_BASE_URL: http://localhost:8080
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
       SEED_DEMO: ${SEED_DEMO:-true}
       FCM_PROJECT_ID: ${FCM_PROJECT_ID:-}
       FCM_SERVICE_ACCOUNT_JSON: ${FCM_SERVICE_ACCOUNT_JSON:-}
@@ -41,7 +41,7 @@ services:
     build:
       context: ./web
       args:
-        VITE_API_URL: http://localhost:8080
+        VITE_API_URL: ""
         VITE_MAPBOX_ACCESS_TOKEN: ${VITE_MAPBOX_ACCESS_TOKEN:-}
     depends_on: [api]
     ports:

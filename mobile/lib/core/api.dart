@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 import 'env.dart';
 
@@ -15,8 +16,25 @@ class ApiException implements Exception {
   String toString() => message;
 }
 
+String apiUserMessage(ApiException e) {
+  switch (e.code) {
+    case 'browse_location_mismatch':
+      return 'This map area is outside your alert zone. Open the map where you play, or check in at a court when you travel.';
+    case 'notify_jump_too_far':
+      return 'Move your alert zone gradually, or check in at a court first.';
+    case 'notify_rate_limited':
+      return 'You can change your alert zone again in a few minutes.';
+    case 'rate_limited':
+      return 'Too many requests. Wait a minute and try again.';
+    case 'too_many_pending_courts':
+      return 'You already have pending court proposals waiting for review.';
+    default:
+      return e.message;
+  }
+}
+
 String errorText(Object e) {
-  if (e is ApiException) return e.message;
+  if (e is ApiException) return apiUserMessage(e);
   if (e is TimeoutException || e is http.ClientException) return "Can't reach the server. Check your connection.";
   return 'Something went wrong.';
 }
@@ -129,12 +147,58 @@ class Api extends ChangeNotifier {
 
   /// Uploads an avatar or court photo; returns its public URL.
   Future<String> upload(List<int> bytes, String filename, String kind) async {
-    final req = http.MultipartRequest('POST', Uri.parse('$apiUrl/api/uploads'))
-      ..fields['kind'] = kind
-      ..files.add(http.MultipartFile.fromBytes('file', bytes, filename: filename));
-    final token = await accessToken();
-    if (token != null) req.headers['Authorization'] = 'Bearer $token';
-    final res = await http.Response.fromStream(await req.send().timeout(const Duration(seconds: 60)));
-    return (_decode(res) as Map)['url'] as String;
+    Future<String> send({bool retry = true}) async {
+      final req = http.MultipartRequest('POST', Uri.parse('$apiUrl/api/uploads'))
+        ..fields['kind'] = kind
+        ..files.add(_multipartImage(bytes, filename));
+      final token = await accessToken();
+      if (token != null) req.headers['Authorization'] = 'Bearer $token';
+      final res = await http.Response.fromStream(await _http.send(req).timeout(const Duration(seconds: 90)));
+      if (res.statusCode == 401 && retry && session != null && await _refresh()) {
+        return send(retry: false);
+      }
+      final data = _decode(res);
+      if (data is! Map || data['url'] is! String) {
+        throw ApiException(res.statusCode, 'invalid_response', 'Upload failed — try again.');
+      }
+      // Store the server URL in the DB; resolve to [apiUrl] only when displaying.
+      return data['url'] as String;
+    }
+
+    return send();
   }
+}
+
+http.MultipartFile _multipartImage(List<int> bytes, String filename) {
+  final name = filename.trim().isEmpty ? 'photo.jpg' : filename;
+  return http.MultipartFile.fromBytes(
+    'file',
+    bytes,
+    filename: name,
+    contentType: _imageMediaType(bytes, name),
+  );
+}
+
+MediaType _imageMediaType(List<int> bytes, String filename) {
+  if (bytes.length >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF) {
+    return MediaType('image', 'jpeg');
+  }
+  if (bytes.length >= 8 &&
+      bytes[0] == 0x89 &&
+      bytes[1] == 0x50 &&
+      bytes[2] == 0x4E &&
+      bytes[3] == 0x47) {
+    return MediaType('image', 'png');
+  }
+  if (bytes.length >= 12 &&
+      bytes[0] == 0x52 &&
+      bytes[1] == 0x49 &&
+      bytes[2] == 0x46 &&
+      bytes[3] == 0x46) {
+    return MediaType('image', 'webp');
+  }
+  final lower = filename.toLowerCase();
+  if (lower.endsWith('.png')) return MediaType('image', 'png');
+  if (lower.endsWith('.webp')) return MediaType('image', 'webp');
+  return MediaType('image', 'jpeg');
 }

@@ -24,26 +24,54 @@ import (
 )
 
 type Server struct {
-	cfg    config.Config
-	db     *db.DB
-	tokens *auth.Issuer
-	hub    *realtime.Hub
-	limit  *rateLimiter
+	cfg             config.Config
+	db              *db.DB
+	tokens          *auth.Issuer
+	hub             *realtime.Hub
+	limit           *rateLimiter
+	browseLimit     *rateLimiter
+	userCourtLimit  *rateLimiter
+	userGameLimit   *rateLimiter
+	userNotifyLimit *rateLimiter
+	trustedProxies  []*net.IPNet
 }
 
 func New(cfg config.Config, d *db.DB, hub *realtime.Hub) *Server {
 	return &Server{
-		cfg:    cfg,
-		db:     d,
-		tokens: auth.NewIssuer(cfg.JWTSecret, cfg.AccessTokenTTL),
-		hub:    hub,
-		limit:  newRateLimiter(20, time.Minute),
+		cfg:            cfg,
+		db:             d,
+		tokens:         auth.NewIssuer(cfg.JWTSecret, cfg.AccessTokenTTL),
+		hub:            hub,
+		limit:           newRateLimiter(20, time.Minute),
+		browseLimit:     newRateLimiter(120, time.Minute),
+		userCourtLimit:  newRateLimiter(10, time.Hour),
+		userGameLimit:   newRateLimiter(40, time.Hour),
+		userNotifyLimit: newRateLimiter(6, time.Hour),
+		trustedProxies: parseTrustedCIDRs(cfg.TrustedProxyCIDRs),
 	}
+}
+
+func parseTrustedCIDRs(raw string) []*net.IPNet {
+	var out []*net.IPNet
+	for _, part := range strings.Split(raw, ",") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		if !strings.Contains(part, "/") {
+			part += "/32"
+		}
+		_, n, err := net.ParseCIDR(part)
+		if err == nil {
+			out = append(out, n)
+		}
+	}
+	return out
 }
 
 func (s *Server) Routes() http.Handler {
 	r := chi.NewRouter()
-	r.Use(middleware.RequestID, middleware.RealIP, middleware.Recoverer)
+	r.Use(middleware.RequestID, middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   s.cfg.CORSOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"},
@@ -73,19 +101,20 @@ func (s *Server) Routes() http.Handler {
 			r.With(s.rateLimited).Post("/login", s.login)
 			r.With(s.rateLimited).Post("/refresh", s.refresh)
 			r.Post("/logout", s.logout)
-			r.Get("/username-available", s.usernameAvailable)
+			r.With(s.rateLimitedPublic).Get("/username-available", s.usernameAvailable)
 		})
 
 		// Public browsing (the map works before sign-in).
-		r.Get("/sports", s.listSports)
-		r.Get("/courts/nearby", s.courtsNearby)
+		r.With(s.rateLimitedPublic).Get("/sports", s.listSports)
+		r.With(s.rateLimitedPublic).Get("/courts/nearby", s.courtsNearby)
 
 		r.Group(func(r chi.Router) {
 			r.Use(s.requireActiveUser)
 
 			r.Get("/me", s.getMe)
 			r.Patch("/me", s.updateMe)
-			r.Post("/me/notify-area", s.setNotifyArea)
+			r.With(s.rateLimitedUser("notify")).Post("/me/notify-area", s.setNotifyArea)
+			r.Post("/me/ws-ticket", s.issueWsTicket)
 			r.Post("/me/push-tokens", s.registerPushToken)
 			r.Delete("/me/push-tokens", s.deletePushToken)
 			r.Get("/me/games", s.myGames)
@@ -94,11 +123,11 @@ func (s *Server) Routes() http.Handler {
 			r.Get("/users/{id}", s.getUser)
 
 			r.Get("/courts/{id}", s.getCourt)
-			r.Post("/courts", s.proposeCourt)
+			r.With(s.rateLimitedUser("court")).Post("/courts", s.proposeCourt)
 			r.Post("/courts/{id}/reports", s.reportCourt)
 
 			r.Get("/games/nearby", s.gamesNearby)
-			r.Post("/games", s.createGame)
+			r.With(s.rateLimitedUser("game")).Post("/games", s.createGame)
 			r.Get("/games/{id}", s.getGame)
 			r.Patch("/games/{id}", s.updateGame)
 			r.Post("/games/{id}/join", s.joinGame)
@@ -155,14 +184,30 @@ type principal struct {
 
 func (s *Server) authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tok := ""
-		if h := r.Header.Get("Authorization"); strings.HasPrefix(h, "Bearer ") {
-			tok = strings.TrimPrefix(h, "Bearer ")
-		} else if r.URL.Path == "/api/ws" {
-			// Browsers can't set headers on WebSocket upgrades.
-			tok = r.URL.Query().Get("token")
+		if r.URL.Path == "/api/ws" {
+			if ticket := strings.TrimSpace(r.URL.Query().Get("ticket")); ticket != "" {
+				var userID, role string
+				err := s.db.Pool.QueryRow(r.Context(),
+					`with u as (select public.consume_ws_ticket($1) as id)
+					 select u.id, usr.role::text from u join public.users usr on usr.id = u.id where u.id is not null`,
+					ticket).Scan(&userID, &role)
+				if err == nil && userID != "" {
+					r = r.WithContext(context.WithValue(r.Context(), userKey, principal{ID: userID, Role: role}))
+					next.ServeHTTP(w, r)
+					return
+				}
+			}
+			// Legacy clients may still pass ?token= (prefer /api/me/ws-ticket).
+			if tok := strings.TrimSpace(r.URL.Query().Get("token")); tok != "" {
+				if claims, err := s.tokens.Verify(tok); err == nil {
+					r = r.WithContext(context.WithValue(r.Context(), userKey, principal{ID: claims.Subject, Role: claims.Role}))
+				}
+			}
+			next.ServeHTTP(w, r)
+			return
 		}
-		if tok != "" {
+		if h := r.Header.Get("Authorization"); strings.HasPrefix(h, "Bearer ") {
+			tok := strings.TrimPrefix(h, "Bearer ")
 			claims, err := s.tokens.Verify(tok)
 			if err != nil {
 				writeError(w, http.StatusUnauthorized, "invalid_token", "Session expired. Please sign in again.")
@@ -310,6 +355,12 @@ var appErrors = map[string]struct {
 	"cannot_suspend_self":        {http.StatusUnprocessableEntity, "You can't suspend yourself."},
 	"invalid_input":              {http.StatusUnprocessableEntity, "Invalid input."},
 	"invalid_reference":          {http.StatusUnprocessableEntity, "Something referenced doesn't exist."},
+	"token_in_use":               {http.StatusConflict, "This device is registered to another account."},
+	"notify_jump_too_far":        {http.StatusUnprocessableEntity, "Move your alert area gradually or check in at a court first."},
+	"notify_rate_limited":        {http.StatusTooManyRequests, "You can change your alert area again in a few minutes."},
+	"browse_location_mismatch":   {http.StatusUnprocessableEntity, "Map center is too far from your alert area. Update alerts or check in nearby."},
+	"too_many_pending_courts":    {http.StatusUnprocessableEntity, "You already have pending court proposals. Wait for review."},
+	"invalid_location":           {http.StatusUnprocessableEntity, "Invalid coordinates."},
 }
 
 // writeDBError maps errors from the SQL layer to HTTP responses.
@@ -399,14 +450,40 @@ func (l *rateLimiter) allow(key string) bool {
 
 func (s *Server) rateLimited(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			ip = r.RemoteAddr
-		}
-		if !s.limit.allow(ip) {
+		if !s.limit.allow(s.clientIP(r)) {
 			writeError(w, http.StatusTooManyRequests, "rate_limited", "Too many attempts. Try again in a minute.")
 			return
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (s *Server) rateLimitedPublic(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !s.browseLimit.allow(s.clientIP(r)) {
+			writeError(w, http.StatusTooManyRequests, "rate_limited", "Too many requests. Try again in a minute.")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (s *Server) rateLimitedUser(bucket string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			id := uid(r)
+			lim := s.userGameLimit
+			switch bucket {
+			case "court":
+				lim = s.userCourtLimit
+			case "notify":
+				lim = s.userNotifyLimit
+			}
+			if id != "" && !lim.allow(id) {
+				writeError(w, http.StatusTooManyRequests, "rate_limited", "Too many requests. Try again later.")
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }

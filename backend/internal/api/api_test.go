@@ -54,7 +54,7 @@ func setup(t *testing.T) *env {
 	if err := d.Migrate(ctx, migrations.FS); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := d.Pool.Exec(ctx, seed.Demo); err != nil {
+	if _, err := d.Pool.Exec(ctx, seed.TestFixtures); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := d.Pool.Exec(ctx, `
@@ -160,6 +160,7 @@ func TestCoreFlow(t *testing.T) {
 	})
 	// Login + refresh rotation.
 	login, _ := e.must(200, "", "POST", "/api/auth/login", map[string]string{"email": "bea@example.com", "password": "password123"})
+	e.must(200, "", "POST", "/api/auth/login", map[string]string{"login": "bea", "password": "password123"})
 	e.must(401, "", "POST", "/api/auth/login", map[string]string{"email": "bea@example.com", "password": "nope-nope"})
 	rt := login["refresh_token"].(string)
 	e.must(200, "", "POST", "/api/auth/refresh", map[string]string{"refresh_token": rt})

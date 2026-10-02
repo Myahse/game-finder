@@ -4,6 +4,8 @@ import '../core/format.dart';
 import '../core/models.dart';
 import '../screens/game_screens.dart';
 import '../screens/lists_screens.dart';
+import 'app_icons.dart';
+import 'live_enter.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -15,11 +17,15 @@ class MapGamesRail extends StatelessWidget {
     required this.loading,
     required this.navOverlap,
     required this.onGameTap,
+    this.onSeeAll,
+    this.pulseGameIds = const {},
   });
 
   final List<Game> games;
   final bool loading;
   final ValueChanged<Game> onGameTap;
+  final VoidCallback? onSeeAll;
+  final Set<String> pulseGameIds;
   /// Space under the card rail reserved for the floating bottom nav (sheet extends behind it).
   final double navOverlap;
 
@@ -76,7 +82,7 @@ class MapGamesRail extends StatelessWidget {
                 ),
                 if (sorted.isNotEmpty)
                   TextButton(
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PlayScreen())),
+                    onPressed: onSeeAll ?? () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PlayScreen())),
                     child: const Text('See all'),
                   ),
               ],
@@ -136,10 +142,9 @@ class MapGamesRail extends StatelessWidget {
                           final g = sorted[i];
                           return SizedBox(
                             width: cardW,
-                            child: GameCard(
-                              game: g,
-                              dense: true,
-                              onTap: () => onGameTap(g),
+                            child: LiveEnterHighlight(
+                              active: pulseGameIds.contains(g.id),
+                              child: _RailGameCard(game: g, onTap: () => onGameTap(g)),
                             ),
                           );
                         },
@@ -147,6 +152,64 @@ class MapGamesRail extends StatelessWidget {
           ),
           SizedBox(height: navOverlap),
         ],
+      ),
+    );
+  }
+}
+
+/// Compact card for the horizontal rail — column-only layout (no flex-in-row issues).
+class _RailGameCard extends StatelessWidget {
+  const _RailGameCard({required this.game, required this.onTap});
+
+  final Game game;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final muted = scheme.onSurfaceVariant;
+    return Card(
+      margin: EdgeInsets.zero,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Row(
+                children: [
+                  SportIcon(game.sport.slug, size: 20, color: game.isLive ? Palette.live : muted),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${game.playerCount}/${game.maxPlayers}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 17,
+                      color: game.isLive ? Palette.live : muted,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${gameTypeLabels[game.gameType]} ${game.sport.name}',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                game.courtName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 12, color: muted),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

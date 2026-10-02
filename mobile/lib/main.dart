@@ -5,8 +5,11 @@ import 'package:provider/provider.dart';
 import 'core/api.dart';
 import 'core/api_bootstrap.dart';
 import 'core/env.dart';
+import 'core/mapbox_init.dart';
+import 'core/monitoring.dart';
 import 'core/auth.dart';
 import 'core/location.dart';
+import 'core/map_pause.dart';
 import 'core/notifications.dart';
 import 'core/presence.dart';
 import 'core/realtime.dart';
@@ -16,7 +19,9 @@ import 'ui/theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  initMonitoring();
   await loadAppEnv();
+  initMapboxAccessToken();
   if (kDebugMode) {
     debugPrint('Find the Game API_URL=$apiUrl mapbox=${mapboxAccessToken.isNotEmpty}');
   }
@@ -33,6 +38,7 @@ Future<void> main() async {
       ChangeNotifierProvider(create: (_) => Realtime(api)),
       ChangeNotifierProvider(create: (_) => LocationState()),
       ChangeNotifierProvider(create: (_) => PresenceState(api, notifications)),
+      ChangeNotifierProvider(create: (_) => MapPause()),
     ],
     child: const FindTheGameApp(),
   ));
@@ -101,6 +107,7 @@ class _RootGateState extends State<RootGate> {
       setState(() => _booting = false);
       return;
     }
+    context.read<Realtime>().start();
     setState(() => _bootStatus = 'Loading…');
     final auth = context.read<AuthState>();
     if (auth.user != null) await auth.refreshMe();

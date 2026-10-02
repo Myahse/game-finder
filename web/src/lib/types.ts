@@ -99,7 +99,15 @@ export interface Presence {
 
 export interface AppNotification {
   id: string
-  type: 'game_reminder' | 'game_invite' | 'game_activity' | 'presence_check' | 'game_cancelled' | 'system'
+  type:
+    | 'game_reminder'
+    | 'game_invite'
+    | 'game_activity'
+    | 'presence_check'
+    | 'game_cancelled'
+    | 'game_created'
+    | 'court_added'
+    | 'system'
   title: string
   body: string
   data: { game_id?: string; court_id?: string; presence_id?: string }

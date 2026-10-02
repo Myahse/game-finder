@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Game } from '../lib/types'
+import { subscribeLiveGamePulse } from '../lib/liveGames'
 import { sortPlayable } from '../lib/sort'
 import { GameCard } from './GameCard'
 import { MapBottomSheet } from './MapBottomSheet'
@@ -23,6 +25,9 @@ function SkeletonCard({ className = '' }: { className?: string }) {
 }
 
 export function MapGamesRail({ games, isLoading, sport }: Props) {
+  const [pulseIds, setPulseIds] = useState<Set<string>>(() => new Set())
+  useEffect(() => subscribeLiveGamePulse(setPulseIds), [])
+
   const sorted = sortPlayable(games ?? []).slice(0, 12)
   const showSkeletons = isLoading && sorted.length === 0
   const createHref = sport ? `/games/new?sport=${sport}` : '/games/new'
@@ -81,7 +86,10 @@ export function MapGamesRail({ games, isLoading, sport }: Props) {
         ) : (
           <div className="flex gap-3">
             {sorted.map((g) => (
-              <div key={g.id} className="shrink-0 snap-center">
+              <div
+                key={g.id}
+                className={`shrink-0 snap-center ${pulseIds.has(g.id) ? 'ftg-game-enter' : ''}`}
+              >
                 <GameCard game={g} variant="map" className="w-[min(72vw,280px)]" />
               </div>
             ))}

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
 import { formatDistance, timeAgo } from '../lib/format'
+import { resolveMediaUrl } from '../lib/mediaUrl'
 import { useLocation } from '../lib/location'
 import { useCourt } from '../lib/queries'
 import { CourtActions } from '../components/CourtActions'
@@ -22,7 +23,13 @@ export function CourtPage() {
       {court.photos.length > 0 ? (
         <div className="flex snap-x gap-2 overflow-x-auto px-4 pt-4">
           {court.photos.map((src) => (
-            <img key={src} src={src} alt="" className="h-48 w-72 shrink-0 snap-start rounded-2xl object-cover" loading="lazy" />
+            <img
+              key={src}
+              src={resolveMediaUrl(src)}
+              alt=""
+              className="h-48 w-72 shrink-0 snap-start rounded-2xl object-cover"
+              loading="lazy"
+            />
           ))}
         </div>
       ) : null}

@@ -8,7 +8,7 @@ if (-not (Test-Path $assets)) {
   New-Item -ItemType Directory -Path $assets | Out-Null
 }
 
-$wanted = @('API_URL', 'MAPBOX_ACCESS_TOKEN', 'VITE_MAPBOX_ACCESS_TOKEN')
+$wanted = @('API_URL', 'PUBLIC_BASE_URL', 'MAPBOX_ACCESS_TOKEN', 'VITE_MAPBOX_ACCESS_TOKEN')
 $found = @{}
 
 if (Test-Path $rootEnv) {
@@ -46,6 +46,10 @@ if (-not $found['API_URL']) {
     $found['API_URL'] = "http://${lan}:8080"
     Write-Host "Detected LAN API_URL=$($found['API_URL'])"
   }
+}
+
+if (-not $found['PUBLIC_BASE_URL'] -and $found['API_URL']) {
+  $found['PUBLIC_BASE_URL'] = $found['API_URL']
 }
 
 $lines = New-Object System.Collections.Generic.List[string]

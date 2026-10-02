@@ -68,6 +68,9 @@ func (s *Server) courtsNearby(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "location_required", "lat and lng are required.")
 		return
 	}
+	if !s.assertBrowseLocation(w, r, lat, lng) {
+		return
+	}
 	b, err := s.db.JSON(r.Context(), uid(r), `
 		select coalesce(jsonb_agg(court_json(c, $1, $2) order by n.distance_m), '[]')
 		from courts_near($1, $2, $3, $4) n join courts c on c.id = n.id`,
@@ -131,6 +134,9 @@ func (in *courtInput) validate(w http.ResponseWriter) bool {
 	default:
 		if in.Photos == nil {
 			in.Photos = []string{}
+		}
+		if !validateUploadURLs(w, in.Photos) {
+			return false
 		}
 		return true
 	}
@@ -269,6 +275,9 @@ func (s *Server) gamesNearby(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "location_required", "lat and lng are required.")
 		return
 	}
+	if !s.assertBrowseLocation(w, r, lat, lng) {
+		return
+	}
 	b, err := s.db.JSON(r.Context(), uid(r), "select games_nearby($1, $2, $3, $4)",
 		lat, lng, radius(r), optString(r, "sport"))
 	if err != nil {
@@ -333,6 +342,9 @@ func (s *Server) createGame(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnprocessableEntity, "too_many_photos", "Up to 6 photos for the court.")
 		return
 	}
+	if !validateUploadURLs(w, in.CourtPhotos) {
+		return
+	}
 	var have int
 	if err := s.db.Pool.QueryRow(r.Context(), `
 		select coalesce(array_length(c.photos, 1), 0)
@@ -345,6 +357,17 @@ func (s *Server) createGame(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnprocessableEntity, "photo_required", "Add a photo of the court so others can find it.")
 		return
 	}
+	if len(in.CourtPhotos) > 0 {
+		var allowed bool
+		if err := s.db.Pool.QueryRow(r.Context(), `
+			select (c.created_by = $2 or exists (
+				select 1 from users u where u.id = $2 and u.role = 'admin' and u.suspended_at is null
+			))
+			from courts c where c.id = $1`, in.CourtID, uid(r)).Scan(&allowed); err != nil || !allowed {
+			writeError(w, http.StatusForbidden, "not_allowed", "You can only add photos to courts you proposed.")
+			return
+		}
+	}
 
 	var gameID string
 	err := s.db.Tx(r.Context(), uid(r), func(tx pgx.Tx) error {
@@ -354,7 +377,7 @@ func (s *Server) createGame(w http.ResponseWriter, r *http.Request) {
 					select coalesce(array_agg(x), '{}')
 					from (select unnest(array_cat(photos, $2::text[])) as x limit 6) q
 				)
-				where id = $1`, in.CourtID, in.CourtPhotos)
+				where id = $1 and (created_by = app_uid() or public.is_admin())`, in.CourtID, in.CourtPhotos)
 			if err != nil {
 				return err
 			}
@@ -567,6 +590,10 @@ func (s *Server) updateMe(w http.ResponseWriter, r *http.Request) {
 	}
 	if in.SkillLevel != nil && !skillLevels[*in.SkillLevel] {
 		writeError(w, http.StatusUnprocessableEntity, "invalid_option", "Invalid skill level.")
+		return
+	}
+	if in.AvatarURL != nil && !allowedUploadURL(*in.AvatarURL) {
+		writeError(w, http.StatusUnprocessableEntity, "invalid_photo_url", "Avatar must be uploaded through the app.")
 		return
 	}
 	err := s.db.Exec(r.Context(), uid(r), `

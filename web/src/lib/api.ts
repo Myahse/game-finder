@@ -1,6 +1,39 @@
 import type { Session } from './types'
 
-export const API_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:8080').replace(/\/$/, '')
+/** API + upload host. Prefer same-origin (nginx/vite proxy); LAN-safe when env points at localhost. */
+export function apiOrigin(): string {
+  const env = import.meta.env.VITE_API_URL?.trim().replace(/\/$/, '')
+  if (typeof window !== 'undefined') {
+    const pageHost = window.location.hostname
+    const onLan = pageHost !== 'localhost' && pageHost !== '127.0.0.1'
+    if (env && onLan && (env.includes('localhost') || env.includes('127.0.0.1'))) {
+      try {
+        const u = new URL(env)
+        const port = u.port || '8080'
+        return `${window.location.protocol}//${pageHost}:${port}`
+      } catch {
+        return `${window.location.protocol}//${pageHost}:8080`
+      }
+    }
+    if (!env) return window.location.origin
+
+    // Vite/nginx serve /api and /uploads on the app port; avoid broken :8080 image URLs in dev.
+    try {
+      const api = new URL(env)
+      const page = new URL(window.location.origin)
+      const localApi = api.hostname === 'localhost' || api.hostname === '127.0.0.1'
+      if (localApi && api.port === '8080' && page.port !== '8080' && page.hostname === api.hostname) {
+        return window.location.origin
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return env || 'http://localhost:8080'
+}
+
+/** @deprecated use apiOrigin() — kept for imports that expect a string at load time */
+export const API_URL = typeof window !== 'undefined' ? apiOrigin() : (import.meta.env.VITE_API_URL?.trim() || 'http://localhost:8080').replace(/\/$/, '')
 
 const STORAGE_KEY = 'ftg.session'
 
@@ -56,7 +89,7 @@ async function refreshSession(): Promise<boolean> {
   if (!session) return false
   refreshing ??= (async () => {
     try {
-      const res = await fetch(`${API_URL}/api/auth/refresh`, {
+      const res = await fetch(`${apiOrigin()}/api/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh_token: session!.refresh_token }),
@@ -94,7 +127,7 @@ export async function api<T>(path: string, init: RequestInit & { json?: unknown 
     headers.set('Content-Type', 'application/json')
     body = JSON.stringify(init.json)
   }
-  const res = await fetch(`${API_URL}${path}`, { ...init, headers, body })
+  const res = await fetch(`${apiOrigin()}${path}`, { ...init, headers, body })
   if (res.status === 401 && retry && session && (await refreshSession())) {
     return api<T>(path, init, false)
   }

@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import Map, { AttributionControl, Marker, type MapRef } from 'react-map-gl/mapbox'
 import Supercluster, { type ClusterProperties } from 'supercluster'
 import type { Coords } from '../lib/location'
+import { UserLocationPulse } from './UserLocationPulse'
+import { configureEarthMap } from '../lib/mapboxEarth'
 import { MAPBOX_ACCESS_TOKEN, MAP_STYLE_DARK, MAP_STYLE_LIGHT, mapboxConfigured } from '../lib/mapbox'
 import { SportIcon, Users } from './icons'
+import { courtPhotoUrl } from '../lib/mediaUrl'
 import type { Activity, Court } from '../lib/types'
 
 function useDark() {
@@ -68,9 +71,34 @@ export function CourtMap({ courts, center, me, sportSlug, selectedId, onSelect }
     [index, view],
   )
 
+  const lockMapRotation = () => {
+    const map = mapRef.current?.getMap()
+    if (!map) return
+    map.dragRotate.disable()
+    map.touchZoomRotate.disableRotation()
+    if (map.getBearing() !== 0) map.setBearing(0)
+    if (map.getPitch() !== 0) map.setPitch(0)
+  }
+
+  const onMapReady = () => {
+    const map = mapRef.current?.getMap()
+    if (map) configureEarthMap(map)
+    lockMapRotation()
+    sync()
+  }
+
+  useEffect(() => {
+    const map = mapRef.current?.getMap()
+    if (!map) return
+    const apply = () => configureEarthMap(map)
+    if (map.isStyleLoaded()) apply()
+    else map.once('style.load', apply)
+  }, [dark])
+
   const sync = () => {
     const m = mapRef.current
     if (!m) return
+    lockMapRotation()
     const b = m.getBounds()
     if (!b) return
     setView({ zoom: m.getZoom(), bounds: [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()] })
@@ -102,10 +130,15 @@ export function CourtMap({ courts, center, me, sportSlug, selectedId, onSelect }
       <Map
         ref={mapRef}
         mapboxAccessToken={MAPBOX_ACCESS_TOKEN}
-        initialViewState={{ longitude: center.longitude, latitude: center.latitude, zoom: 13 }}
+        initialViewState={{ longitude: center.longitude, latitude: center.latitude, zoom: 13, bearing: 0, pitch: 0 }}
+        minZoom={2}
+        maxZoom={18}
         mapStyle={dark ? MAP_STYLE_DARK : MAP_STYLE_LIGHT}
-        onLoad={sync}
+        onLoad={onMapReady}
         onMoveEnd={sync}
+        dragRotate={false}
+        pitchWithRotate={false}
+        maxPitch={0}
         attributionControl={false}
         logoPosition="bottom-right"
         style={{ width: '100%', height: '100%' }}
@@ -113,9 +146,7 @@ export function CourtMap({ courts, center, me, sportSlug, selectedId, onSelect }
         <AttributionControl compact position="bottom-left" />
         {me && (
           <Marker longitude={me.longitude} latitude={me.latitude} anchor="center">
-            <span className="relative block size-5 text-[#3b82f6]" aria-label="You are here">
-              <span className="pulse relative block size-5 rounded-full border-[3px] border-white bg-current shadow-lg" />
-            </span>
+            <UserLocationPulse />
           </Marker>
         )}
 
@@ -174,10 +205,82 @@ export function CourtMap({ courts, center, me, sportSlug, selectedId, onSelect }
   )
 }
 
-const pinStyle: Record<Activity, string> = {
-  active: 'bg-live text-white',
-  players: 'bg-players text-[#1a1a1a]',
-  inactive: 'bg-surface text-ink-2',
+/** Match mobile [CourtMapPin] ring + stick colors. */
+const ringClass: Record<Activity, string> = {
+  active: 'border-live',
+  players: 'border-players',
+  inactive: 'border-idle',
+}
+
+const ringShadow: Record<Activity, string> = {
+  active: 'shadow-[0_0_12px_rgba(22,163,74,0.55)]',
+  players: 'shadow-[0_0_6px_rgba(234,179,8,0.35)]',
+  inactive: 'shadow-lg',
+}
+
+const thumbBg: Record<Activity, string> = {
+  active: 'bg-live/12',
+  players: 'bg-players/25',
+  inactive: 'bg-[#f0ede6]',
+}
+
+function PinStick({ activity }: { activity: Activity }) {
+  const fill =
+    activity === 'active' ? 'var(--live)' : activity === 'players' ? 'var(--players)' : 'var(--idle)'
+  return (
+    <svg width="14" height="12" viewBox="0 0 14 12" className="-mt-px shrink-0" aria-hidden>
+      <path
+        d="M7 12 0 0h14L7 12Z"
+        fill={fill}
+        stroke="#fff"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function PinFallback({
+  activity,
+  slug,
+}: {
+  activity: Activity
+  slug: string
+}): ReactNode {
+  if (activity === 'players') {
+    return <Users className="size-[22px] text-[#8a6a00]" strokeWidth={2.2} />
+  }
+  return (
+    <SportIcon
+      slug={slug}
+      className={`size-[26px] ${activity === 'active' ? 'text-live' : 'text-[#6b7280]'}`}
+    />
+  )
+}
+
+/** Court photo in the pin circle (mobile: Image.network + errorBuilder). */
+function PinPicture({
+  src,
+  activity,
+  slug,
+}: {
+  src: string
+  activity: Activity
+  slug: string
+}) {
+  const [broken, setBroken] = useState(false)
+  if (broken) return <PinFallback activity={activity} slug={slug} />
+  return (
+    <img
+      src={src}
+      alt=""
+      className="absolute inset-0 size-full object-cover"
+      decoding="async"
+      draggable={false}
+      referrerPolicy="no-referrer"
+      onError={() => setBroken(true)}
+    />
+  )
 }
 
 export function CourtPin({
@@ -192,10 +295,15 @@ export function CourtPin({
   onClick?: () => void
 }) {
   const sport = court.sports.find((s) => s.slug === sportSlug) ?? court.sports[0]
+  const photo = courtPhotoUrl(court.photos ?? [])
   const label =
     court.activity === 'inactive'
       ? `${court.name}: inactive`
       : `${court.name}: ${court.player_count} players${court.activity === 'active' ? ', game active' : ''}`
+  const showCount = court.activity !== 'inactive' && court.player_count > 0
+  const activity = court.activity
+  const slug = sport?.slug ?? 'basketball'
+
   return (
     <button
       type="button"
@@ -205,25 +313,37 @@ export function CourtPin({
       }}
       aria-label={label}
       className={`group relative flex flex-col items-center transition ${selected ? 'z-10 scale-110' : 'hover:scale-105'}`}
+      style={{ width: 54, height: 62 }}
     >
-      <span
-        className={`relative flex h-9 items-center gap-1 rounded-full border-2 px-2.5 text-base font-bold shadow-lg ${
-          selected ? 'border-ink' : 'border-white dark:border-[#0b0e12]'
-        } ${pinStyle[court.activity]} ${court.activity === 'active' ? 'pulse text-white' : ''}`}
-        style={court.activity === 'active' ? { color: 'white' } : undefined}
-      >
-        <span aria-hidden className="inline-flex">
-          {court.activity === 'players' ? (
-            <Users className="size-4" />
-          ) : (
-            <SportIcon slug={sport?.slug ?? 'basketball'} className="size-4" />
-          )}
+      <div className="relative flex flex-col items-center">
+        <span
+          className={`relative size-[46px] overflow-hidden rounded-full border-[2.5px] border-white ${ringShadow[activity]} ${
+            selected ? 'ring-2 ring-ink ring-offset-1 ring-offset-transparent' : ''
+          }`}
+        >
+          <span
+            className={`relative flex size-full items-center justify-center overflow-hidden rounded-full border-[3px] ${ringClass[activity]} ${
+              photo ? 'bg-ink/5' : thumbBg[activity]
+            }`}
+          >
+            {photo ? (
+              <PinPicture src={photo} activity={activity} slug={slug} />
+            ) : (
+              <PinFallback activity={activity} slug={slug} />
+            )}
+          </span>
         </span>
-        {court.activity !== 'inactive' && <span className="display text-xl leading-none">{court.player_count}</span>}
-      </span>
-      <span
-        className={`-mt-1 size-3 rotate-45 border-b-2 border-r-2 ${selected ? 'border-ink' : 'border-white dark:border-[#0b0e12]'} ${pinStyle[court.activity]}`}
-      />
+        <PinStick activity={activity} />
+        {showCount && (
+          <span
+            className={`absolute top-[32px] left-1/2 -translate-x-1/2 rounded-full border-[1.5px] border-white px-1.5 py-0.5 text-[11px] font-black leading-none text-white ${
+              activity === 'active' ? 'bg-live' : 'bg-players'
+            }`}
+          >
+            {court.player_count}
+          </span>
+        )}
+      </div>
     </button>
   )
 }

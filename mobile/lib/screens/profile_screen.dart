@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import '../core/pick_image.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -38,7 +38,7 @@ class _ProfileCard extends StatelessWidget {
                 Row(mainAxisSize: MainAxisSize.min, children: [
                   Icon(Icons.star, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 4),
-                  Text(skillLabels[user.skillLevel]!, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  Text(skillLabels[user.skillLevel] ?? user.skillLevel ?? '', style: const TextStyle(fontWeight: FontWeight.w700)),
                 ]),
             ],
           ),
@@ -145,30 +145,44 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _photo() async {
     final api = context.read<Api>();
-    final f = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 1024, imageQuality: 85);
+    final auth = context.read<AuthState>();
+    final f = await pickImageFile(context, maxWidth: 1024, imageQuality: 85);
     if (f == null) return;
-    setState(() => _busy = true);
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
     try {
-      final url = await api.upload(await f.readAsBytes(), f.name, 'avatar');
-      setState(() => _avatar = url);
+      final bytes = await f.readAsBytes();
+      if (bytes.isEmpty) {
+        setState(() => _error = 'Could not read that image. Try another photo.');
+        return;
+      }
+      final url = await api.upload(bytes, f.name, 'avatar');
+      await auth.updateMe({'avatar_url': url});
+      if (mounted) setState(() => _avatar = url);
     } catch (e) {
-      setState(() => _error = errorText(e));
+      if (mounted) setState(() => _error = errorText(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
   Future<void> _save() async {
-    setState(() => _busy = true);
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
     try {
-      await context.read<AuthState>().updateMe({
-        'first_name': _first.text,
-        'last_name': _last.text,
-        'username': _username.text.trim(),
-        'preferred_sport_id': _sportId,
+      final patch = <String, dynamic>{
+        'first_name': _first.text.trim(),
+        'last_name': _last.text.trim(),
+        'username': _username.text.trim().replaceFirst(RegExp(r'^@+'), ''),
         'skill_level': _skill,
-        'avatar_url': _avatar ?? '',
-      });
+      };
+      if (_sportId != null) patch['preferred_sport_id'] = _sportId;
+      if (_avatar != null) patch['avatar_url'] = _avatar;
+      await context.read<AuthState>().updateMe(patch);
       if (mounted) Navigator.pop(context);
     } catch (e) {
       setState(() => _error = errorText(e));
@@ -182,7 +196,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         appBar: AppBar(title: const Text('EDIT PROFILE')),
         body: ListView(padding: const EdgeInsets.all(20), children: [
           Center(
-            child: GestureDetector(onTap: _busy ? null : _photo, child: UserAvatar(_me, size: 88, overrideUrl: _avatar)),
+            child: SizedBox(
+              width: 88,
+              height: 88,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  GestureDetector(
+                    onTap: _busy ? null : _photo,
+                    child: UserAvatar(context.watch<AuthState>().user ?? _me, size: 88, overrideUrl: _avatar),
+                  ),
+                  if (_busy)
+                    ClipOval(
+                      child: ColoredBox(
+                        color: const Color(0x99FFFFFF),
+                        child: const Center(child: SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 2))),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
           TextButton(onPressed: _busy ? null : _photo, child: const Text('Change photo')),
           TextField(controller: _first, decoration: const InputDecoration(labelText: 'First name')),
@@ -207,10 +240,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             items: [for (final e in skillLabels.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
             onChanged: (v) => setState(() => _skill = v!),
           ),
-          const SizedBox(height: 20),
-          ErrorBanner(_error),
-          FilledButton(onPressed: _busy ? null : _save, child: const Text('SAVE')),
+          const SizedBox(height: 24),
         ]),
+        bottomNavigationBar: StickyScreenActions(
+          children: [
+            ErrorBanner(_error),
+            PrimaryButton(onPressed: _busy ? null : _save, child: Text(_busy ? '…' : 'SAVE')),
+          ],
+        ),
       );
 }
 

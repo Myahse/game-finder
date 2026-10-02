@@ -22,6 +22,14 @@ export function useLocation() {
 
   useEffect(() => {
     if (!('geolocation' in navigator)) return
+    navigator.geolocation.getCurrentPosition(
+      (p) => {
+        setStatus('granted')
+        setCoords({ latitude: p.coords.latitude, longitude: p.coords.longitude })
+      },
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 15_000, timeout: 12_000 },
+    )
     const id = navigator.geolocation.watchPosition(
       (p) => {
         setStatus('granted')
@@ -39,7 +47,10 @@ export function useLocation() {
     return () => navigator.geolocation.clearWatch(id)
   }, [])
 
-  return { coords, status, center: coords ?? DEFAULT_CENTER }
+  const center = coords ?? DEFAULT_CENTER
+  const waitingGps = status === 'pending' && coords === null
+
+  return { coords, status, center, waitingGps, hasFix: coords !== null }
 }
 
 /** Rounded to ~1 km for cache keys and "near you" alerts. */

@@ -34,7 +34,10 @@ export function OnboardingPage() {
   return (
     <div className="mx-auto flex min-h-full max-w-md flex-col px-6 py-10">
       <p className="text-sm font-semibold text-ink-2">Welcome, {user?.first_name}</p>
-      <h1 className="display mt-1 text-5xl font-extrabold">What do you play?</h1>
+      <h1 className="display mt-1 text-5xl font-extrabold">Set up your court radar</h1>
+      <p className="mt-3 text-ink-2">
+        Pick your main sport and how you usually play. We use this to sort games on the map — change anytime in Profile.
+      </p>
 
       <div className="mt-6 grid gap-3">
         {!sports && <Spinner />}
@@ -82,8 +85,9 @@ export function OnboardingPage() {
       <div className="mt-auto grid gap-2 pt-10">
         <ErrorText>{error}</ErrorText>
         <Button onClick={done} loading={update.isPending} disabled={!chosen}>
-          Let's play
+          Open the map
         </Button>
+        <p className="text-center text-xs text-ink-2">Turn on location on the map for distances and nearby alerts.</p>
       </div>
     </div>
   )

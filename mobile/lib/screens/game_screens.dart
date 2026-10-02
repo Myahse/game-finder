@@ -1,18 +1,52 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../core/pick_image.dart';
 import 'package:provider/provider.dart';
 
 import '../core/api.dart';
+import '../core/media_url.dart';
 import '../core/auth.dart';
 import '../core/format.dart';
 import '../core/location.dart';
 import '../core/models.dart';
+import '../core/map_pause.dart';
+import '../core/nearby.dart';
 import '../core/realtime.dart';
 import '../ui/theme.dart';
 import '../ui/app_icons.dart';
 import '../ui/widgets.dart';
 import 'profile_screen.dart';
+
+/// Push game detail after routes settle (avoids semantics asserts when closing sheets).
+void openGameScreen(BuildContext context, String gameId, {VoidCallback? onReturn}) {
+  openGameOnNavigator(
+    Navigator.of(context, rootNavigator: true),
+    context.read<MapPause>(),
+    gameId,
+    onReturn: onReturn,
+  );
+}
+
+void openGameOnNavigator(NavigatorState nav, MapPause pause, String gameId, {VoidCallback? onReturn}) {
+  pause.pushOverlay();
+
+  void push() {
+    if (!nav.mounted) {
+      pause.popOverlay();
+      return;
+    }
+    nav.push<void>(MaterialPageRoute(builder: (_) => GameScreen(gameId: gameId))).whenComplete(() {
+      pause.popOverlay();
+      if (onReturn != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => onReturn());
+      }
+    });
+  }
+
+  // One frame lets modal routes (court sheet) finish popping before we push.
+  WidgetsBinding.instance.addPostFrameCallback((_) => push());
+}
 
 class GameScreen extends StatefulWidget {
   final String gameId;
@@ -36,8 +70,11 @@ class _GameScreenState extends State<GameScreen> {
     // Player count updates live: someone joins → 7/10 becomes 8/10.
     _rt = context.read<Realtime>().events.listen((ev) {
       if (ev['game_id'] != widget.gameId && ev['type'] != 'reconnected') return;
+      if (!mounted) return;
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isCurrent) return;
       _loadDebounce?.cancel();
-      _loadDebounce = Timer(const Duration(milliseconds: 350), _load);
+      _loadDebounce = Timer(const Duration(milliseconds: 500), _load);
     });
   }
 
@@ -45,15 +82,34 @@ class _GameScreenState extends State<GameScreen> {
   void dispose() {
     _loadDebounce?.cancel();
     _rt?.cancel();
+    _invite.dispose();
     super.dispose();
+  }
+
+  void _applyGame(Game? game, {String? error}) {
+    if (game != null) {
+      _game = game;
+      _error = null;
+    }
+    if (error != null) _error = error;
+    _scheduleRebuild();
+  }
+
+  void _scheduleRebuild() {
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   Future<void> _load() async {
     try {
       final j = await context.read<Api>().get('/api/games/${widget.gameId}?${context.read<LocationState>().query}');
-      if (mounted) setState(() => _game = Game.fromJson(j));
+      if (!mounted) return;
+      _applyGame(Game.fromJson(j), error: null);
     } catch (e) {
-      if (mounted) setState(() => _error = errorText(e));
+      if (!mounted) return;
+      _applyGame(null, error: errorText(e));
     }
   }
 
@@ -80,7 +136,12 @@ class _GameScreenState extends State<GameScreen> {
       _invite.clear();
       if (mounted) showSnack(context, 'Invited @$name');
     } catch (e) {
-      if (mounted) showSnack(context, errorText(e));
+      if (!mounted) return;
+      if (e is ApiException && e.code == 'user_not_found') {
+        await showAppAlert(context, title: 'Player not found', message: e.message);
+      } else {
+        showSnack(context, errorText(e));
+      }
     }
   }
 
@@ -143,10 +204,10 @@ class _GameScreenState extends State<GameScreen> {
                 const SizedBox(height: 8),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: TweenAnimationBuilder<double>(
-                    tween: Tween(end: g.playerCount / g.maxPlayers),
-                    duration: const Duration(milliseconds: 400),
-                    builder: (_, v, _) => LinearProgressIndicator(value: v, minHeight: 12, color: Palette.live),
+                  child: LinearProgressIndicator(
+                    value: g.playerCount / g.maxPlayers,
+                    minHeight: 12,
+                    color: Palette.live,
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -154,7 +215,7 @@ class _GameScreenState extends State<GameScreen> {
                   Row(mainAxisSize: MainAxisSize.min, children: [
                     Icon(Icons.star, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     const SizedBox(width: 4),
-                    Text(skillLabels[g.skillLevel]!),
+                    Text(skillLabels[g.skillLevel] ?? g.skillLevel),
                   ]),
                   Row(mainAxisSize: MainAxisSize.min, children: [
                     Icon(Icons.schedule, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
@@ -207,7 +268,15 @@ class _GameScreenState extends State<GameScreen> {
             Row(children: [
               Expanded(child: TextField(controller: _invite, decoration: const InputDecoration(hintText: 'Invite by @username', isDense: true))),
               const SizedBox(width: 8),
-              FilledButton.tonal(onPressed: _sendInvite, child: const Text('INVITE')),
+              FilledButton.tonal(
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 48),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                onPressed: _sendInvite,
+                child: const Text('INVITE'),
+              ),
             ]),
           ],
           const SizedBox(height: 20),
@@ -260,17 +329,53 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
   String _skill = 'all_levels';
   String _type = 'pickup';
   bool _busy = false;
+  bool _uploading = false;
   String? _error;
   Game? _created;
+  final List<String> _placePhotos = [];
 
   @override
   void initState() {
     super.initState();
     _courtId = widget.courtId;
     final c = context.read<LocationState>().center;
-    context.read<Api>().get('/api/courts/nearby?lat=${c.latitude}&lng=${c.longitude}&radius_km=30').then((j) {
-      if (mounted) setState(() => _courts = [for (final x in j) Court.fromJson(x)]);
+    context.read<Api>().get('/api/courts/nearby?lat=${c.latitude}&lng=${c.longitude}&radius_km=$listNearbyRadiusKm').then((j) {
+      if (!mounted) return;
+      final courts = [for (final x in j) Court.fromJson(x)];
+      setState(() {
+        _courts = courts;
+        if (_courtId != null && _sportId == null) {
+          final court = courts.where((c) => c.id == _courtId).firstOrNull;
+          final active = court?.sports.where((s) => s.active).toList() ?? const <Sport>[];
+          if (active.length == 1) _sportId = active.first.id;
+        }
+      });
     }).catchError((_) {});
+  }
+
+  Future<void> _addPlacePhoto() async {
+    final api = context.read<Api>();
+    final f = await pickImageFile(context, maxWidth: 1600, imageQuality: 85);
+    if (f == null) return;
+    setState(() {
+      _uploading = true;
+      _error = null;
+    });
+    try {
+      final bytes = await f.readAsBytes();
+      if (bytes.isEmpty) {
+        setState(() => _error = 'Could not read that image. Try another photo.');
+        return;
+      }
+      final url = await api.upload(bytes, f.name, 'court');
+      setState(() {
+        if (_placePhotos.isEmpty) _placePhotos.add(url);
+      });
+    } catch (e) {
+      setState(() => _error = errorText(e));
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
   }
 
   Future<void> _pickTime() async {
@@ -283,6 +388,11 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
   }
 
   Future<void> _submit(String sportId) async {
+    final court = _courts.where((c) => c.id == _courtId).firstOrNull;
+    if (court != null && court.photos.isEmpty && _placePhotos.isEmpty) {
+      setState(() => _error = 'Add a photo of the court so others can find the place.');
+      return;
+    }
     setState(() {
       _busy = true;
       _error = null;
@@ -295,6 +405,7 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
         'max_players': _max,
         'skill_level': _skill,
         'game_type': _type,
+        'court_photos': _placePhotos,
       });
       setState(() => _created = Game.fromJson(j));
     } catch (e) {
@@ -307,27 +418,51 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
   @override
   Widget build(BuildContext context) {
     if (_created != null) {
+      final created = _created!;
       return Scaffold(
         appBar: AppBar(),
-        body: EmptyState(
-          icon: sportIconData(_created!.sport.slug),
-          title: 'Game created successfully.',
-          body: "You're in. Players near ${_created!.courtName} can see it now.",
-          action: FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Palette.live),
-            onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => GameScreen(gameId: _created!.id))),
-            child: const Text('VIEW GAME'),
+        body: Center(
+          child: EmptyState(
+            icon: sportIconData(created.sport.slug),
+            title: 'Game created successfully.',
+            body: "You're in. Players near ${created.courtName} can see it now.",
           ),
+        ),
+        bottomNavigationBar: StickyScreenActions(
+          children: [
+            PrimaryButton(
+              style: FilledButton.styleFrom(backgroundColor: Palette.live),
+              onPressed: () {
+                final id = created.id;
+                final nav = Navigator.of(context, rootNavigator: true);
+                final pause = context.read<MapPause>();
+                Navigator.pop(context);
+                openGameOnNavigator(nav, pause, id);
+              },
+              child: const Text('VIEW GAME'),
+            ),
+          ],
         ),
       );
     }
     final court = _courts.where((c) => c.id == _courtId).firstOrNull;
     final sports = court?.sports.where((s) => s.active).toList() ?? const <Sport>[];
     final sport = sports.where((s) => s.id == _sportId).firstOrNull ?? sports.firstOrNull;
+    final needsPlacePhoto = court != null && court.photos.isEmpty && _placePhotos.isEmpty;
 
     return Scaffold(
       appBar: AppBar(title: const Text('CREATE GAME')),
-      body: ListView(padding: const EdgeInsets.all(20), children: [
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+        children: [
+        if (_courts.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Text(
+              'No courts nearby. Add a court from the Map tab (+), then come back to create a game.',
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
+          ),
         DropdownButtonFormField<String>(
           initialValue: _courts.any((c) => c.id == _courtId) ? _courtId : null,
           isExpanded: true,
@@ -339,8 +474,69 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
           onChanged: (v) => setState(() {
             _courtId = v;
             _sportId = null;
+            _placePhotos.clear();
           }),
         ),
+        if (court != null) ...[
+          const SizedBox(height: 16),
+          Text(
+            court.photos.isEmpty ? 'Photo of the place (required)' : 'Photo of the place (optional)',
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            court.photos.isEmpty
+                ? 'Show players what the court looks like.'
+                : 'This court already has photos. You can add another.',
+            style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final p in court.photos)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    resolveMediaUrl(p),
+                    width: 72,
+                    height: 72,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_outlined),
+                  ),
+                ),
+              for (final p in _placePhotos)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    resolveMediaUrl(p),
+                    width: 72,
+                    height: 72,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_outlined),
+                  ),
+                ),
+              if (court.photos.length + _placePhotos.length < 6)
+                InkWell(
+                  onTap: _uploading ? null : _addPlacePhoto,
+                  child: Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Theme.of(context).dividerColor, width: 2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: _uploading
+                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.add_a_photo_outlined),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
         const SizedBox(height: 16),
         const Text('Sport', style: TextStyle(fontWeight: FontWeight.w700)),
         const SizedBox(height: 6),
@@ -393,13 +589,16 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
           items: [for (final e in gameTypeLabels.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
           onChanged: (v) => setState(() => _type = v!),
         ),
-        const SizedBox(height: 20),
-        ErrorBanner(_error),
-        FilledButton(
-          onPressed: _busy || _courtId == null || sport == null ? null : () => _submit(sport.id),
-          child: const Text('CREATE GAME'),
-        ),
       ]),
+      bottomNavigationBar: StickyScreenActions(
+        children: [
+          ErrorBanner(_error),
+          PrimaryButton(
+            onPressed: _busy || _uploading || _courtId == null || sport == null || needsPlacePhoto ? null : () => _submit(sport.id),
+            child: Text(_busy ? '…' : 'CREATE GAME'),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -16,6 +16,7 @@ export function RegisterPage() {
   const [usernameTaken, setUsernameTaken] = useState(false)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [agreed, setAgreed] = useState(false)
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [k]: e.target.value })
 
   const checkUsername = async () => {
@@ -82,8 +83,28 @@ export function RegisterPage() {
         <Field label="Password" hint="At least 8 characters.">
           <PasswordInput required minLength={8} autoComplete="new-password" value={form.password} onChange={set('password')} />
         </Field>
+        <label className="flex cursor-pointer items-start gap-3 text-sm text-ink-2">
+          <input
+            type="checkbox"
+            className="mt-1 size-4 shrink-0 accent-brand"
+            checked={agreed}
+            onChange={(e) => setAgreed(e.target.checked)}
+            required
+          />
+          <span>
+            I agree to the{' '}
+            <Link to="/terms" className="font-semibold text-brand hover:underline" target="_blank" rel="noreferrer">
+              Terms
+            </Link>{' '}
+            and{' '}
+            <Link to="/privacy" className="font-semibold text-brand hover:underline" target="_blank" rel="noreferrer">
+              Privacy Policy
+            </Link>
+            .
+          </span>
+        </label>
         <ErrorText>{error}</ErrorText>
-        <Button type="submit" loading={busy} disabled={usernameTaken}>
+        <Button type="submit" loading={busy} disabled={usernameTaken || !agreed}>
           Create account
         </Button>
         <p className="text-center text-sm text-ink-2">

@@ -1,9 +1,11 @@
 import { useEffect, useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { api } from '../lib/api'
+import { syncNotifyArea, type NotifyAreaState } from '../lib/notifyArea'
 import { formatDistance, timeAgo } from '../lib/format'
 import { useLocation, type Coords } from '../lib/location'
+import { MAP_NEARBY_RADIUS_KM } from '../lib/nearby'
 import { useCourt, useCourtsNearby, useGamesNearby, useSports } from '../lib/queries'
+import { useQueryErrorToast } from '../lib/toastErrors'
 import { MapBottomSheet } from '../components/MapBottomSheet'
 import { MapGamesRail } from '../components/MapGamesRail'
 import type { Court } from '../lib/types'
@@ -20,16 +22,23 @@ export function MapPage() {
   const selectedId = params.get('court')
   const { coords, status, center } = useLocation()
   const { data: sports } = useSports()
-  const { data: courts } = useCourtsNearby(center, sport)
-  const { data: nearbyGames, isLoading: gamesLoading } = useGamesNearby(center, sport)
+  const courtsQ = useCourtsNearby(center, sport)
+  const gamesQ = useGamesNearby(center, sport, MAP_NEARBY_RADIUS_KM)
+  const courts = courtsQ.data
+  const nearbyGames = gamesQ.data
+  const gamesLoading = gamesQ.isLoading
+  useQueryErrorToast(courtsQ.error)
+  useQueryErrorToast(gamesQ.error)
 
-  // Share a coarse (~1 km) area once so we can alert about games nearby.
-  const sentArea = useRef(false)
+  // Keep alert/browse zone aligned when traveling (rate-limited server-side).
+  const notifyState = useRef<NotifyAreaState>({ lastSent: null, lastAttemptMs: 0 })
   useEffect(() => {
-    if (coords && !sentArea.current) {
-      sentArea.current = true
-      api('/api/me/notify-area', { method: 'POST', json: coords }).catch(() => {})
-    }
+    if (!coords) return
+    syncNotifyArea(coords, notifyState.current)
+      .then((s) => {
+        notifyState.current = s
+      })
+      .catch(() => {})
   }, [coords])
 
   const update = (k: string, v: string | null) => {

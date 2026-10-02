@@ -2,3 +2,6 @@
 .DS_Store
 backend/uploads/
 node_modules/
+web/dist/
+mobile/android/build/
+mobile/build/

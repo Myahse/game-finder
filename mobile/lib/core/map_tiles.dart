@@ -1,4 +1,9 @@
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+
 import 'env.dart';
+
+String mapboxStyleUri({required bool dark}) =>
+    dark ? MapboxStyles.DARK : MapboxStyles.MAPBOX_STREETS;
 
 String mapboxTileUrl({required bool dark}) {
   final style = dark ? 'dark-v11' : 'streets-v12';

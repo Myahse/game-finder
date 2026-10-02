@@ -37,9 +37,19 @@ class Realtime extends ChangeNotifier {
 
   Future<void> _connect() async {
     if (_stopped) return;
-    final token = await api.accessToken();
     final base = apiUrl.replaceFirst(RegExp(r'^http'), 'ws');
-    final uri = Uri.parse('$base/api/ws${token != null ? '?token=${Uri.encodeQueryComponent(token)}' : ''}');
+    String qs = '';
+    try {
+      final t = await api.post('/api/me/ws-ticket', {});
+      final ticket = t['ticket'] as String?;
+      if (ticket != null && ticket.isNotEmpty) {
+        qs = '?ticket=${Uri.encodeQueryComponent(ticket)}';
+      }
+    } catch (_) {
+      final token = await api.accessToken();
+      if (token != null) qs = '?token=${Uri.encodeQueryComponent(token)}';
+    }
+    final uri = Uri.parse('$base/api/ws$qs');
     try {
       final ch = WebSocketChannel.connect(uri);
       _channel = ch;

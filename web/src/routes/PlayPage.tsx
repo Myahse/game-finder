@@ -1,6 +1,9 @@
+import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { subscribeLiveGamePulse } from '../lib/liveGames'
 import { useLocation } from '../lib/location'
 import { useGamesNearby, useSports } from '../lib/queries'
+import { useQueryErrorToast } from '../lib/toastErrors'
 import { sortPlayable } from '../lib/sort'
 import { GameCard } from '../components/GameCard'
 import { BasketballIcon, LiveText, SportName } from '../components/icons'
@@ -9,11 +12,16 @@ import { Loading } from './CourtPage'
 
 /** Live games nearby, closest → liveliest → most room. */
 export function PlayPage() {
+  const [pulseIds, setPulseIds] = useState<Set<string>>(() => new Set())
+  useEffect(() => subscribeLiveGamePulse(setPulseIds), [])
+
   const [params, setParams] = useSearchParams()
   const sport = params.get('sport')
-  const { center, status } = useLocation()
+  const { center, status, waitingGps, hasFix } = useLocation()
   const { data: sports } = useSports()
-  const { data: games, isLoading } = useGamesNearby(center, sport)
+  const { data: games, isLoading, isError, error } = useGamesNearby(center, sport)
+  useQueryErrorToast(error)
+  useQueryErrorToast(error)
   const sorted = sortPlayable(games ?? [])
   const live = sorted.filter((g) => g.status === 'active')
   const soon = sorted.filter((g) => g.status === 'scheduled')
@@ -34,7 +42,20 @@ export function PlayPage() {
               </Chip>
             ))}
         </div>
-        {status === 'denied' && <p className="mb-3 text-sm text-ink-2">Distances are from Grand-Bassam — allow location for yours.</p>}
+        {waitingGps && (
+          <p className="mb-3 text-sm text-ink-2">
+            Finding your location… Showing games near Grand-Bassam until GPS is ready.
+          </p>
+        )}
+        {!hasFix && status === 'denied' && (
+          <p className="mb-3 text-sm text-ink-2">Distances are from Grand-Bassam — allow location for yours.</p>
+        )}
+
+        {isError && (
+          <p className="mb-3 rounded-xl bg-danger/10 px-3 py-2 text-sm font-medium text-danger">
+            {error instanceof Error ? error.message : 'Could not load games.'}
+          </p>
+        )}
 
         {isLoading ? (
           <Loading />
@@ -54,7 +75,9 @@ export function PlayPage() {
                 </h2>
                 <div className="grid gap-2">
                   {live.map((g) => (
-                    <GameCard key={g.id} game={g} />
+                    <div key={g.id} className={pulseIds.has(g.id) ? 'ftg-game-enter' : undefined}>
+                      <GameCard game={g} />
+                    </div>
                   ))}
                 </div>
               </section>
@@ -64,7 +87,9 @@ export function PlayPage() {
                 <h2 className="display mb-2 text-2xl font-bold">Starting soon</h2>
                 <div className="grid gap-2">
                   {soon.map((g) => (
-                    <GameCard key={g.id} game={g} />
+                    <div key={g.id} className={pulseIds.has(g.id) ? 'ftg-game-enter' : undefined}>
+                      <GameCard game={g} />
+                    </div>
                   ))}
                 </div>
               </section>

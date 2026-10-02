@@ -1,7 +1,17 @@
+// mapbox_maps_flutter_mobile skips kotlin-android on AGP 9+ but still uses kotlin { }.
+gradle.beforeProject {
+    if (name == "mapbox_maps_flutter_mobile") {
+        pluginManager.apply("org.jetbrains.kotlin.android")
+    }
+}
+
 allprojects {
     repositories {
         google()
         mavenCentral()
+        maven {
+            url = uri("https://api.mapbox.com/downloads/v2/releases/maven")
+        }
     }
 }
 

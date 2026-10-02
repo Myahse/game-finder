@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, errorMessage, uploadImage } from '../lib/api'
+import { resolveMediaUrl } from '../lib/mediaUrl'
 import { useLocation, type Coords } from '../lib/location'
 import { useSports } from '../lib/queries'
 import type { Court } from '../lib/types'
@@ -113,7 +114,7 @@ export function AddCourtPage() {
         <Field label="Photos (optional)">
           <div className="flex flex-wrap gap-2">
             {photos.map((p) => (
-              <img key={p} src={p} alt="" className="size-20 rounded-xl object-cover" />
+              <img key={p} src={resolveMediaUrl(p)} alt="" className="size-20 rounded-xl object-cover" />
             ))}
             {photos.length < 6 && (
               <label className="flex size-20 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-line text-2xl text-ink-2">

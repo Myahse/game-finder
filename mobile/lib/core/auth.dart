@@ -11,8 +11,8 @@ class AuthState extends ChangeNotifier {
 
   Me? get user => api.session == null ? null : Me.fromJson(api.session!.user);
 
-  Future<void> login(String email, String password) async {
-    final s = await api.post('/api/auth/login', {'email': email.trim(), 'password': password});
+  Future<void> login(String login, String password) async {
+    final s = await api.post('/api/auth/login', {'login': login.trim(), 'password': password});
     await api.setSession(Session.fromJson(s));
   }
 

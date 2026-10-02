@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../core/api.dart';
 import '../core/notifications.dart';
 import '../core/presence.dart';
+import '../core/map_pause.dart';
 import '../core/realtime.dart';
 import '../ui/theme.dart';
 import '../ui/widgets.dart';
@@ -29,6 +30,10 @@ class _HomeShellState extends State<HomeShell> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _maybePrompt(context.read<PresenceState>());
+    });
+    context.read<PresenceState>().addListener(_onPresence);
     final rt = context.read<Realtime>();
     _subs.add(rt.ofType('notification').listen((ev) {
       _loadUnread();
@@ -46,7 +51,7 @@ class _HomeShellState extends State<HomeShell> {
       if (r.actionId == null && p != null && !p.startsWith('presence:') && mounted) {
         final nav = Navigator.of(context);
         if (nav.canPop()) return; // already on a detail screen
-        nav.push(MaterialPageRoute(builder: (_) => GameScreen(gameId: p)));
+        openGameScreen(context, p);
       }
     }));
     _loadUnread();
@@ -57,7 +62,7 @@ class _HomeShellState extends State<HomeShell> {
     if (gameId == null) return null;
     return SnackBarAction(
       label: 'OPEN',
-      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => GameScreen(gameId: gameId))),
+      onPressed: () => openGameScreen(context, gameId),
     );
   }
 
@@ -70,10 +75,15 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   void dispose() {
+    context.read<PresenceState>().removeListener(_onPresence);
     for (final s in _subs) {
       s.cancel();
     }
     super.dispose();
+  }
+
+  void _onPresence() {
+    if (mounted) _maybePrompt(context.read<PresenceState>());
   }
 
   /// In-app "Are you still playing?" when the app is open near expiry.
@@ -90,20 +100,32 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
-    final presence = context.watch<PresenceState>();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _maybePrompt(presence);
-    });
-    final pages = [
-      const MapScreen(),
-      const PlayScreen(),
-      const MyGamesScreen(),
-      NotificationsScreen(onChanged: _loadUnread),
-      const ProfileScreen(),
-    ];
+    // Do not keep FlutterMap in the tree under full-screen routes — it triggers
+    // semantics.parentDataDirty loops. MapPause is toggled from [GameScreen].
+    final mapPaused = context.watch<MapPause>().paused;
+
+    final body = Stack(
+      fit: StackFit.expand,
+      children: [
+        // Keep map mounted so WebSocket → API refresh runs without hot reload.
+        Offstage(
+          offstage: _tab != 0,
+          child: MapScreen(
+            key: const PageStorageKey('home-map'),
+            onOpenPlayTab: () => setState(() => _tab = 1),
+            tabActive: _tab == 0,
+          ),
+        ),
+        if (_tab == 1) PlayScreen(key: const ValueKey('home-play'), tabActive: true),
+        if (_tab == 2) MyGamesScreen(key: const ValueKey('home-games'), tabActive: true),
+        if (_tab == 3) NotificationsScreen(key: const ValueKey('home-alerts'), onChanged: _loadUnread),
+        if (_tab == 4) const ProfileScreen(key: ValueKey('home-profile')),
+      ],
+    );
+
     return Scaffold(
       extendBody: true,
-      body: IndexedStack(index: _tab, children: pages),
+      body: ExcludeSemantics(excluding: mapPaused, child: body),
       bottomNavigationBar: _FloatingNavBar(
         selectedIndex: _tab,
         unread: _unread,
@@ -176,10 +198,26 @@ class _FloatingNavBar extends StatelessWidget {
                   label: 'Games',
                 ),
                 NavigationDestination(
-                  icon: Badge(
-                    isLabelVisible: unread > 0,
-                    label: Text(unread > 99 ? '99+' : '$unread'),
-                    child: const Icon(Icons.notifications_outlined),
+                  icon: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      const Icon(Icons.notifications_outlined),
+                      if (unread > 0)
+                        Positioned(
+                          right: -2,
+                          top: -2,
+                          child: Container(
+                            padding: const EdgeInsets.all(3),
+                            decoration: const BoxDecoration(color: Palette.live, shape: BoxShape.circle),
+                            constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
+                            child: Text(
+                              unread > 9 ? '9+' : '$unread',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900, height: 1),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                   selectedIcon: const Icon(Icons.notifications),
                   label: 'Alerts',
@@ -228,7 +266,7 @@ class _StillPlayingSheetState extends State<_StillPlayingSheet> {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           const Icon(Icons.sports_basketball, size: 48, color: Palette.brand),
           Text('ARE YOU STILL PLAYING?', style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 4),

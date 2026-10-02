@@ -1,6 +1,6 @@
 import 'package:find_the_game/core/format.dart';
 import 'package:find_the_game/core/models.dart';
-import 'package:find_the_game/screens/map_screen.dart';
+import 'package:find_the_game/ui/court_map_pin.dart';
 import 'package:find_the_game/ui/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

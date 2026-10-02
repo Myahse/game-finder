@@ -3,6 +3,7 @@ import { Eye, EyeOff } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { activityIcons } from './icons'
 import { activityMeta } from '../lib/format'
+import { resolveMediaUrl } from '../lib/mediaUrl'
 import type { Activity, PublicUser } from '../lib/types'
 
 type Variant = 'primary' | 'live' | 'secondary' | 'ghost' | 'danger'
@@ -136,14 +137,18 @@ export function StatusPill({ activity, className = '' }: { activity: Activity; c
 
 export function Avatar({ user, size = 40 }: { user: Pick<PublicUser, 'first_name' | 'last_name' | 'avatar_url'>; size?: number }) {
   const initials = `${user.first_name?.[0] ?? ''}${user.last_name?.[0] ?? ''}`.toUpperCase()
-  return user.avatar_url ? (
+  const src = user.avatar_url ? resolveMediaUrl(user.avatar_url) : ''
+  const [broken, setBroken] = useState(false)
+  const showImg = src && !broken
+  return showImg ? (
     <img
-      src={user.avatar_url}
+      src={src}
       alt=""
       width={size}
       height={size}
       className="shrink-0 rounded-full object-cover"
       style={{ width: size, height: size }}
+      onError={() => setBroken(true)}
     />
   ) : (
     <span
@@ -194,4 +199,36 @@ export function ErrorText({ children }: { children: ReactNode }) {
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <div className={`rounded-2xl border border-line bg-surface p-4 ${className}`}>{children}</div>
+}
+
+export function AppAlert({
+  open,
+  title,
+  message,
+  onClose,
+}: {
+  open: boolean
+  title: string
+  message: string
+  onClose: () => void
+}) {
+  if (!open) return null
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="app-alert-title"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-sm rounded-2xl border border-line bg-surface p-5 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 id="app-alert-title" className="display text-lg font-bold">{title}</h2>
+        <p className="mt-2 text-sm text-ink-2">{message}</p>
+        <Button type="button" className="mt-4 w-full" onClick={onClose}>OK</Button>
+      </div>
+    </div>
+  )
 }

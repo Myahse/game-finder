@@ -67,12 +67,19 @@ class PresenceLiveText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
-        mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: textAlign == TextAlign.center ? MainAxisAlignment.center : MainAxisAlignment.start,
         children: [
           const Icon(Icons.circle, size: 10, color: Palette.live),
           const SizedBox(width: 6),
-          Flexible(child: Text(text, textAlign: textAlign, style: const TextStyle(color: Palette.live, fontWeight: FontWeight.w700))),
+          Expanded(
+            child: Text(
+              text,
+              textAlign: textAlign,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Palette.live, fontWeight: FontWeight.w700),
+            ),
+          ),
         ],
       );
 }
@@ -85,6 +92,10 @@ IconData notificationIconData(String type) {
       return Icons.handshake_outlined;
     case 'game_activity':
       return Icons.local_fire_department;
+    case 'game_created':
+      return Icons.sports;
+    case 'court_added':
+      return Icons.add_location_alt_outlined;
     case 'presence_check':
       return Icons.place;
     case 'game_cancelled':

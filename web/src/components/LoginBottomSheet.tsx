@@ -12,7 +12,7 @@ type Props = {
 export function LoginBottomSheet({ open, onClose }: Props) {
   const { login } = useAuth()
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
+  const [loginId, setLoginId] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -55,8 +55,8 @@ export function LoginBottomSheet({ open, onClose }: Props) {
     setBusy(true)
     setError('')
     try {
-      await login(email, password)
-      setEmail('')
+      await login(loginId, password)
+      setLoginId('')
       setPassword('')
       onClose()
       navigate('/', { replace: true })
@@ -87,13 +87,13 @@ export function LoginBottomSheet({ open, onClose }: Props) {
         <p className="mt-1 text-sm text-ink-2">Pick up where you left off on the map.</p>
 
         <form onSubmit={submit} className="mt-5 grid gap-4">
-          <Field label="Email">
+          <Field label="Email or username">
             <Input
-              type="email"
-              autoComplete="email"
+              type="text"
+              autoComplete="username"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={loginId}
+              onChange={(e) => setLoginId(e.target.value)}
             />
           </Field>
           <Field label="Password">

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { LoginBottomSheet } from '../components/LoginBottomSheet'
+import { LegalFooter } from './LegalPage'
 
 export function WelcomePage() {
   const [params, setParams] = useSearchParams()
@@ -59,6 +60,7 @@ export function WelcomePage() {
             >
               Log in
             </button>
+            <LegalFooter className="mt-4 text-[#9aa3ae] [&_a]:text-brand" />
           </div>
         </div>
       </div>

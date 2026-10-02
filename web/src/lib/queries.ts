@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './api'
 import { coarse, type Coords } from './location'
+import { LIST_NEARBY_RADIUS_KM, MAP_NEARBY_RADIUS_KM } from './nearby'
 import type { AppNotification, Court, CourtDetail, Game, Me, Presence, PublicUser, Sport } from './types'
 
 export const qk = {
@@ -21,13 +22,13 @@ export function useSports() {
   return useQuery({ queryKey: qk.sports, queryFn: () => api<Sport[]>('/api/sports'), staleTime: 60 * 60_000 })
 }
 
-export function useCourtsNearby(center: Coords, sport: string | null) {
+export function useCourtsNearby(center: Coords, sport: string | null, radiusKm = MAP_NEARBY_RADIUS_KM) {
   const c = coarse(center)
   return useQuery({
-    queryKey: qk.courts(c.lat, c.lng, sport),
+    queryKey: [...qk.courts(c.lat, c.lng, sport), radiusKm],
     queryFn: () =>
       api<Court[]>(
-        `/api/courts/nearby?lat=${center.latitude}&lng=${center.longitude}&radius_km=30${sport ? `&sport=${sport}` : ''}`,
+        `/api/courts/nearby?lat=${center.latitude}&lng=${center.longitude}&radius_km=${radiusKm}${sport ? `&sport=${sport}` : ''}`,
       ),
     placeholderData: (prev) => prev,
   })
@@ -49,12 +50,14 @@ export function useGame(id: string | undefined, coords: Coords | null) {
   })
 }
 
-export function useGamesNearby(center: Coords, sport: string | null) {
+export function useGamesNearby(center: Coords, sport: string | null, radiusKm = LIST_NEARBY_RADIUS_KM) {
   const c = coarse(center)
   return useQuery({
-    queryKey: qk.gamesNearby(c.lat, c.lng, sport),
+    queryKey: [...qk.gamesNearby(c.lat, c.lng, sport), radiusKm],
     queryFn: () =>
-      api<Game[]>(`/api/games/nearby?lat=${center.latitude}&lng=${center.longitude}${sport ? `&sport=${sport}` : ''}`),
+      api<Game[]>(
+        `/api/games/nearby?lat=${center.latitude}&lng=${center.longitude}&radius_km=${radiusKm}${sport ? `&sport=${sport}` : ''}`,
+      ),
     placeholderData: (prev) => prev,
   })
 }

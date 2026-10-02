@@ -4,10 +4,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import 'package:flutter_map/flutter_map.dart';
-
-import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
-
 import 'package:latlong2/latlong.dart' hide Path;
 
 import 'package:provider/provider.dart';
@@ -15,6 +11,7 @@ import 'package:provider/provider.dart';
 
 
 import '../core/api.dart';
+import '../core/user_errors.dart';
 
 import '../core/format.dart';
 
@@ -24,10 +21,12 @@ import '../core/map_tiles.dart';
 
 import '../core/models.dart';
 
+import '../core/map_pause.dart';
 import '../core/realtime.dart';
 
-import '../ui/app_icons.dart';
-
+import '../core/nearby.dart';
+import '../core/notify_area_sync.dart';
+import '../ui/home_globe_map.dart';
 import '../ui/map_games_rail.dart';
 
 import '../ui/theme.dart';
@@ -39,7 +38,10 @@ import 'game_screens.dart';
 
 class MapScreen extends StatefulWidget {
 
-  const MapScreen({super.key});
+  final VoidCallback? onOpenPlayTab;
+  final bool tabActive;
+
+  const MapScreen({super.key, this.onOpenPlayTab, this.tabActive = true});
 
   @override
 
@@ -51,7 +53,7 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
 
-  final _map = MapController();
+  HomeGlobeMapController? _globe;
 
   List<Court> _courts = [];
 
@@ -67,15 +69,54 @@ class _MapScreenState extends State<MapScreen> {
 
   bool _centered = false;
 
-  bool _areaSent = false;
+  final _notifyArea = NotifyAreaSync();
+
+  bool _mapReady = false;
 
   StreamSubscription? _sub;
+  LocationState? _location;
+  final Set<String> _pulseGameIds = {};
+  Timer? _pulseClear;
 
-  bool _mapSurfaceActive() => mounted && ModalRoute.of(context)?.isCurrent == true;
+  bool _routeReady = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _routeReady = true;
+  }
+
+  /// Map tab is mounted and can hold refreshed court/game data (WebSocket → API).
+  bool _mapTabLive() {
+    if (!mounted || !widget.tabActive || !_routeReady) return false;
+    return true;
+  }
+
+  /// Map tiles accept touches (not covered by a route or full-screen game).
+  bool _mapSurfaceActive() {
+    if (!_mapTabLive()) return false;
+    if (context.read<MapPause>().paused) return false;
+    final route = ModalRoute.of(context);
+    return route == null || route.isCurrent;
+  }
+
+  void _schedulePulseClear() {
+    _pulseClear?.cancel();
+    _pulseClear = Timer(const Duration(seconds: 3), () {
+      if (!mounted) return;
+      setState(() => _pulseGameIds.clear());
+    });
+  }
 
   void _applyMapState(void Function() update) {
+    final before = _games.map((g) => g.id).toSet();
     update();
-    if (_mapSurfaceActive()) setState(() {});
+    final added = _games.where((g) => !before.contains(g.id)).map((g) => g.id);
+    if (added.isNotEmpty) {
+      _pulseGameIds.addAll(added);
+      _schedulePulseClear();
+    }
+    if (_mapTabLive()) setState(() {});
   }
 
   @override
@@ -86,39 +127,59 @@ class _MapScreenState extends State<MapScreen> {
 
     _loadSports();
 
-    _refreshMapData();
-
     _sub = context.read<Realtime>().events.listen((ev) {
-
-      if (!_mapSurfaceActive()) return;
-
       if (ev['type'] == 'court_stats') {
-
+        if (!_mapSurfaceActive()) return;
         final c = _courts.where((c) => c.id == ev['court_id']);
-
         if (c.isNotEmpty) _applyMapState(() => c.first.applyStats(ev));
-
-      } else if (ev['type'] == 'game' || ev['type'] == 'reconnected') {
-
+      } else if (ev['type'] == 'game') {
+        // Server event → refetch nearby games (not hot reload).
+        final id = ev['game_id'] as String?;
+        if (ev['kind'] == 'insert' && id != null) {
+          _pulseGameIds.add(id);
+          _schedulePulseClear();
+          if (_mapTabLive()) setState(() {});
+        }
         _refreshMapData(silent: true);
-
+      } else if (ev['type'] == 'reconnected') {
+        _refreshMapData(silent: true);
       }
-
     });
 
-    context.read<LocationState>().addListener(_onLocation);
-
+    _location = context.read<LocationState>();
+    _location!.addListener(_onLocation);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _refreshMapData();
+      _centerOnUserIfNeeded();
+    });
   }
 
+  void _centerOnUserIfNeeded() {
+    if (!mounted || !widget.tabActive || !_mapReady || _centered || context.read<MapPause>().paused) return;
+    final p = context.read<LocationState>().position;
+    if (p == null) return;
+    _centered = true;
+    _globe?.flyTo(p, 14);
+  }
 
+  @override
+  void didUpdateWidget(covariant MapScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.tabActive && !oldWidget.tabActive) {
+      _refreshMapData(silent: true);
+      WidgetsBinding.instance.addPostFrameCallback((_) => _centerOnUserIfNeeded());
+    }
+  }
 
   @override
 
   void dispose() {
 
     _sub?.cancel();
+    _pulseClear?.cancel();
 
-    context.read<LocationState>().removeListener(_onLocation);
+    _location?.removeListener(_onLocation);
 
     super.dispose();
 
@@ -134,21 +195,12 @@ class _MapScreenState extends State<MapScreen> {
 
     if (p == null) return;
 
-    if (!_centered) {
-
+    if (!_centered && _mapReady && !context.read<MapPause>().paused) {
       _centered = true;
-
-      _map.move(p, 14);
-
+      _globe?.flyTo(p, 14);
     }
 
-    if (!_areaSent) {
-
-      _areaSent = true;
-
-      context.read<Api>().post('/api/me/notify-area', {'latitude': p.latitude, 'longitude': p.longitude}).catchError((_) {});
-
-    }
+    _notifyArea.maybeUpdate(context.read<Api>(), p).catchError((_) {});
 
     if (_mapSurfaceActive() &&
         (_loadedAt == null || const Distance()(p, _loadedAt!) > 2000)) {
@@ -185,9 +237,9 @@ class _MapScreenState extends State<MapScreen> {
 
       final results = await Future.wait([
 
-        context.read<Api>().get('/api/courts/nearby?lat=${c.latitude}&lng=${c.longitude}&radius_km=30$sportQ'),
+        context.read<Api>().get('/api/courts/nearby?lat=${c.latitude}&lng=${c.longitude}&radius_km=$mapNearbyRadiusKm$sportQ'),
 
-        context.read<Api>().get('/api/games/nearby?lat=${c.latitude}&lng=${c.longitude}$sportQ'),
+        context.read<Api>().get('/api/games/nearby?lat=${c.latitude}&lng=${c.longitude}&radius_km=$mapNearbyRadiusKm$sportQ'),
 
       ]);
 
@@ -205,40 +257,33 @@ class _MapScreenState extends State<MapScreen> {
 
       });
 
-    } catch (_) {
-
-      if (mounted) _applyMapState(() => _gamesLoading = false);
-
+    } catch (e) {
+      if (!mounted) return;
+      _applyMapState(() => _gamesLoading = false);
+      if (_mapSurfaceActive()) showApiIssue(context, e);
     }
 
   }
 
-  void _openGame(Game g) {
-    Navigator.of(context)
-        .push<void>(MaterialPageRoute(builder: (_) => GameScreen(gameId: g.id)))
-        .then((_) {
-      if (mounted) _refreshMapData(silent: true);
-    });
-  }
+  void _openGameById(String gameId) => openGameScreen(context, gameId);
 
-
+  void _openGame(Game g) => _openGameById(g.id);
 
   void _openCourt(Court c) {
-
-    showModalBottomSheet<void>(
-
+    showModalBottomSheet<String>(
       context: context,
-
       isScrollControlled: true,
-
       showDragHandle: true,
-
       useSafeArea: true,
-
       builder: (_) => CourtSheet(courtId: c.id),
-
-    ).whenComplete(() => _refreshMapData(silent: true));
-
+    ).then((gameId) {
+      if (!mounted) return;
+      if (gameId != null) {
+        _openGameById(gameId);
+        return;
+      }
+      _refreshMapData(silent: true);
+    });
   }
 
 
@@ -248,6 +293,8 @@ class _MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
 
     final loc = context.watch<LocationState>();
+    final mapPaused = context.watch<MapPause>().paused;
+    final mapboxOk = mapboxConfigured();
 
     final dark = Theme.of(context).brightness == Brightness.dark;
 
@@ -255,159 +302,34 @@ class _MapScreenState extends State<MapScreen> {
 
     final navOverlap = kFloatingNavClearance + MediaQuery.paddingOf(context).bottom;
 
+    final mapLive = _mapSurfaceActive();
+    final surface = Theme.of(context).colorScheme.surfaceContainerHighest;
 
+    return IgnorePointer(
+      ignoring: !mapLive,
+      child: Stack(children: [
 
-    return Stack(children: [
-
-      FlutterMap(
-
-        mapController: _map,
-
-        options: MapOptions(
-
-          initialCenter: loc.center,
-
-          initialZoom: 13,
-
-          minZoom: 4,
-
-          maxZoom: 18,
-
-          cameraConstraint: CameraConstraint.containCenter(
-
-            bounds: LatLngBounds(const LatLng(-85, -180), const LatLng(85, 180)),
-
+      if (mapPaused)
+        ColoredBox(color: surface, child: const SizedBox.expand())
+      else if (mapboxOk)
+        ExcludeSemantics(
+          excluding: true,
+          child: HomeGlobeMap(
+            initialCenter: loc.center,
+            userPosition: loc.position,
+            courts: _courts,
+            sportSlug: _sport,
+            dark: dark,
+            onCourtTap: _openCourt,
+            onReady: (c) {
+              _globe = c;
+              _mapReady = true;
+              _centerOnUserIfNeeded();
+            },
           ),
-
-        ),
-
-        children: [
-
-          TileLayer(
-
-            urlTemplate: mapboxTileUrl(dark: dark),
-
-            userAgentPackageName: 'com.findthegame.find_the_game',
-
-            retinaMode: RetinaMode.isHighDensity(context),
-
-            panBuffer: 2,
-
-            keepBuffer: 8,
-
-          ),
-
-          if (loc.position != null)
-
-            MarkerLayer(markers: [
-
-              Marker(
-
-                point: loc.position!,
-
-                width: 22,
-
-                height: 22,
-
-                child: Container(
-
-                  decoration: BoxDecoration(
-
-                    color: const Color(0xFF3B82F6),
-
-                    shape: BoxShape.circle,
-
-                    border: Border.all(color: Colors.white, width: 3),
-
-                    boxShadow: const [BoxShadow(blurRadius: 6, color: Colors.black26)],
-
-                  ),
-
-                ),
-
-              ),
-
-            ]),
-
-          MarkerClusterLayerWidget(
-
-            options: MarkerClusterLayerOptions(
-
-              maxClusterRadius: 56,
-
-              size: const Size(52, 52),
-
-              markers: [
-
-                for (final c in _courts)
-
-                  Marker(
-
-                    key: ValueKey('${c.id}-${c.activity.name}-${c.playerCount}'),
-
-                    point: LatLng(c.latitude, c.longitude),
-
-                    width: 84,
-
-                    height: 52,
-
-                    alignment: Alignment.topCenter,
-
-                    child: CourtPin(court: c, sportSlug: _sport, onTap: () => _openCourt(c)),
-
-                  ),
-
-              ],
-
-              builder: (context, markers) {
-
-                final courts = markers
-
-                    .map((m) => _courts.where((c) => LatLng(c.latitude, c.longitude) == m.point).firstOrNull)
-
-                    .whereType<Court>();
-
-                final anyLive = courts.any((c) => c.activity == Activity.active);
-
-                final anyPlayers = courts.any((c) => c.activity == Activity.players);
-
-                return Container(
-
-                  decoration: BoxDecoration(
-
-                    color: anyLive ? Palette.live : anyPlayers ? Palette.players : Palette.idle,
-
-                    shape: BoxShape.circle,
-
-                    border: Border.all(color: Colors.white, width: 3),
-
-                    boxShadow: const [BoxShadow(blurRadius: 8, color: Colors.black26)],
-
-                  ),
-
-                  alignment: Alignment.center,
-
-                  child: Text('${markers.length}',
-
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18)),
-
-                );
-
-              },
-
-            ),
-
-          ),
-
-          RichAttributionWidget(attributions: [
-
-            TextSourceAttribution('© Mapbox'),
-
-          ]),
-
-        ],
-
-      ),
+        )
+      else
+        ColoredBox(color: surface, child: const SizedBox.expand()),
 
 
 
@@ -467,38 +389,16 @@ class _MapScreenState extends State<MapScreen> {
 
                 _filterChip('All', _sport == null, () => _setSport(null)),
 
-                for (final s in _sports)
+                for (final s in _sports) _filterChip(s.name, _sport == s.slug, () => _setSport(s.slug)),
 
-                  _filterChipWidget(
-
-                    Row(mainAxisSize: MainAxisSize.min, children: [
-
-                      SportIcon(s.slug, size: 18),
-
-                      const SizedBox(width: 6),
-
-                      Text(s.name),
-
-                    ]),
-
-                    _sport == s.slug,
-
-                    () => _setSport(s.slug),
-
-                  ),
-
-                _filterChipWidget(const Row(mainAxisSize: MainAxisSize.min, children: [
-
-                  Icon(Icons.add, size: 18),
-
-                  SizedBox(width: 4),
-
-                  Text('Add court'),
-
-                ]), false, () {
-
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const AddCourtScreen()));
-
+                _filterChip('Add court', false, () {
+                  Navigator.push<Court>(context, MaterialPageRoute(builder: (_) => const AddCourtScreen())).then((court) {
+                    if (!mounted) return;
+                    _refreshMapData(silent: true);
+                    if (court != null) {
+                      _globe?.flyTo(LatLng(court.latitude, court.longitude), 16);
+                    }
+                  });
                 }),
 
               ]),
@@ -539,7 +439,7 @@ class _MapScreenState extends State<MapScreen> {
 
           backgroundColor: Theme.of(context).colorScheme.surface,
 
-          onPressed: () => _map.move(loc.center, 14),
+          onPressed: () => _globe?.flyTo(loc.position ?? loc.center, 14),
 
           child: const Icon(Icons.my_location),
 
@@ -561,16 +461,34 @@ class _MapScreenState extends State<MapScreen> {
           games: _games,
           loading: _gamesLoading,
           navOverlap: navOverlap,
+          pulseGameIds: _pulseGameIds,
           onGameTap: _openGame,
+          onSeeAll: widget.onOpenPlayTab,
         ),
 
       ),
 
-    ]);
+      if (!mapboxOk)
+        Positioned.fill(
+          child: ColoredBox(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(28),
+                child: Text(
+                  'Map needs a Mapbox token.\nRun mobile\\sync-env.ps1 from the project root, then restart the app.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                ),
+              ),
+            ),
+          ),
+        ),
+
+    ]),
+    );
 
   }
-
-
 
   void _setSport(String? slug) {
 
@@ -613,143 +531,4 @@ class _MapScreenState extends State<MapScreen> {
       );
 
 }
-
-
-
-class CourtPin extends StatelessWidget {
-
-  final Court court;
-
-  final String? sportSlug;
-
-  final VoidCallback onTap;
-
-  const CourtPin({super.key, required this.court, required this.onTap, this.sportSlug});
-
-
-
-  @override
-
-  Widget build(BuildContext context) {
-
-    final sport = court.sports.where((s) => s.slug == sportSlug).firstOrNull ?? court.sports.firstOrNull;
-
-    final bg = switch (court.activity) {
-
-      Activity.active => Palette.live,
-
-      Activity.players => Palette.players,
-
-      Activity.inactive => Theme.of(context).colorScheme.surface,
-
-    };
-
-    final fg = court.activity == Activity.active ? Colors.white : const Color(0xFF1A1A1A);
-
-    return Semantics(
-
-      button: true,
-
-      label: court.activity == Activity.inactive ? '${court.name}, inactive' : '${court.name}, ${court.playerCount} players',
-
-      child: GestureDetector(
-
-        onTap: onTap,
-
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-
-          Container(
-
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-
-            decoration: BoxDecoration(
-
-              color: bg,
-
-              borderRadius: BorderRadius.circular(20),
-
-              border: Border.all(color: Colors.white, width: 2),
-
-              boxShadow: [
-
-                BoxShadow(
-
-                  blurRadius: court.activity == Activity.active ? 14 : 6,
-
-                  color: court.activity == Activity.active ? Palette.live.withValues(alpha: 0.6) : Colors.black26,
-
-                ),
-
-              ],
-
-            ),
-
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-
-              if (court.activity == Activity.players)
-
-                Icon(Icons.groups, size: 18, color: fg)
-
-              else
-
-                SportIcon(sport?.slug ?? 'basketball', size: 18, color: fg),
-
-              if (court.activity != Activity.inactive) ...[
-
-                const SizedBox(width: 4),
-
-                Text('${court.playerCount}', style: TextStyle(color: fg, fontWeight: FontWeight.w900, fontSize: 17)),
-
-              ],
-
-            ]),
-
-          ),
-
-          CustomPaint(size: const Size(12, 7), painter: _Tail(bg)),
-
-        ]),
-
-      ),
-
-    );
-
-  }
-
-}
-
-
-
-class _Tail extends CustomPainter {
-
-  final Color color;
-
-  _Tail(this.color);
-
-  @override
-
-  void paint(Canvas canvas, Size s) {
-
-    final path = Path()
-
-      ..moveTo(0, 0)
-
-      ..lineTo(s.width, 0)
-
-      ..lineTo(s.width / 2, s.height)
-
-      ..close();
-
-    canvas.drawPath(path, Paint()..color = color);
-
-  }
-
-
-
-  @override
-
-  bool shouldRepaint(_Tail old) => old.color != color;
-
-}
-
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/format.dart';
+import '../core/media_url.dart';
 import '../core/models.dart';
 import 'app_icons.dart';
 import 'theme.dart';
@@ -42,15 +43,34 @@ class UserAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final url = overrideUrl ?? user?.avatarUrl;
-    return CircleAvatar(
-      radius: size / 2,
-      backgroundColor: Palette.brand.withValues(alpha: 0.15),
-      backgroundImage: url != null ? NetworkImage(url) : null,
-      child: url == null
-          ? Text(user?.initials ?? '?',
-              style: TextStyle(color: Palette.brand, fontWeight: FontWeight.w900, fontSize: size * 0.38))
-          : null,
+    final raw = overrideUrl ?? user?.avatarUrl;
+    final resolved = raw != null && raw.isNotEmpty ? resolveMediaUrl(raw) : '';
+    final url = resolved.isNotEmpty ? resolved : null;
+    final initials = user?.initials ?? '?';
+    final fallback = Text(
+      initials,
+      style: TextStyle(color: Palette.brand, fontWeight: FontWeight.w900, fontSize: size * 0.38),
+    );
+    return SizedBox(
+      width: size,
+      height: size,
+      child: CircleAvatar(
+        backgroundColor: Palette.brand.withValues(alpha: 0.15),
+        child: url == null
+            ? fallback
+            : ClipOval(
+                child: Image.network(
+                  url,
+                  key: ValueKey(url),
+                  width: size,
+                  height: size,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => fallback,
+                  loadingBuilder: (context, child, progress) =>
+                      progress == null ? child : Center(child: SizedBox(width: size * 0.35, height: size * 0.35, child: CircularProgressIndicator(strokeWidth: 2))),
+                ),
+              ),
+      ),
     );
   }
 }
@@ -106,7 +126,7 @@ class GameCard extends StatelessWidget {
                         Text('LIVE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11)),
                       ]),
                     ),
-                  Flexible(
+                  Expanded(
                     child: Text('${gameTypeLabels[game.gameType]} ${game.sport.name.toLowerCase()}',
                         overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
                   ),
@@ -121,7 +141,7 @@ class GameCard extends StatelessWidget {
                 Row(children: [
                   Icon(Icons.schedule, size: 14, color: muted),
                   const SizedBox(width: 4),
-                  Flexible(
+                  Expanded(
                     child: Text(
                       gameTime(game),
                       maxLines: 1,
@@ -132,7 +152,7 @@ class GameCard extends StatelessWidget {
                   const SizedBox(width: 6),
                   Icon(Icons.star, size: 14, color: muted),
                   const SizedBox(width: 4),
-                  Flexible(
+                  Expanded(
                     child: Text(
                       skillLabels[game.skillLevel] ?? game.skillLevel,
                       maxLines: 1,
@@ -167,18 +187,28 @@ class EmptyState extends StatelessWidget {
   const EmptyState({super.key, required this.icon, required this.title, this.body, this.action});
 
   @override
-  Widget build(BuildContext context) => Padding(
+  Widget build(BuildContext context) => SizedBox(
+        width: double.infinity,
+        child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
-        child: Column(children: [
-          Icon(icon, size: 48, color: Theme.of(context).colorScheme.onSurfaceVariant),
-          const SizedBox(height: 8),
-          Text(title.toUpperCase(), style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
-          if (body != null) ...[
-            const SizedBox(height: 6),
-            Text(body!, textAlign: TextAlign.center, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Icon(icon, size: 48, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            const SizedBox(height: 8),
+            Text(
+              title.toUpperCase(),
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            if (body != null) ...[
+              const SizedBox(height: 6),
+              Text(body!, textAlign: TextAlign.center, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            ],
+            if (action != null) ...[const SizedBox(height: 16), action!],
           ],
-          if (action != null) ...[const SizedBox(height: 16), action!],
-        ]),
+        ),
+      ),
       );
 }
 
@@ -226,6 +256,47 @@ class _PasswordTextFieldState extends State<PasswordTextField> {
       );
 }
 
+/// Full-width primary button (safe inside [ListView] and [Row] siblings).
+class PrimaryButton extends StatelessWidget {
+  final VoidCallback? onPressed;
+  final Widget child;
+  final ButtonStyle? style;
+
+  const PrimaryButton({super.key, required this.onPressed, required this.child, this.style});
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: double.infinity,
+        child: FilledButton(style: style, onPressed: onPressed, child: child),
+      );
+}
+
+/// Primary actions fixed at the bottom of the screen (above system nav).
+class StickyScreenActions extends StatelessWidget {
+  final List<Widget> children;
+  const StickyScreenActions({super.key, required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      elevation: 6,
+      shadowColor: Colors.black26,
+      color: Theme.of(context).colorScheme.surface,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: children,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class ErrorBanner extends StatelessWidget {
   final String? message;
   const ErrorBanner(this.message, {super.key});
@@ -264,7 +335,7 @@ class ChoiceTile extends StatelessWidget {
           ),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
             if (leading != null) ...[leading!, const SizedBox(width: 8)],
-            Flexible(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700))),
+            Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
           ]),
         ),
       );
@@ -272,3 +343,14 @@ class ChoiceTile extends StatelessWidget {
 
 void showSnack(BuildContext context, String msg) =>
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating));
+
+Future<void> showAppAlert(BuildContext context, {required String title, required String message}) {
+  return showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(title),
+      content: Text(message),
+      actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
+    ),
+  );
+}

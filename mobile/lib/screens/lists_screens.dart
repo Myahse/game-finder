@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../core/api.dart';
+import '../core/user_errors.dart';
 import '../core/format.dart';
 import '../core/location.dart';
+import '../core/nearby.dart';
 import '../core/models.dart';
 import '../core/presence.dart';
 import '../core/realtime.dart';
@@ -15,8 +17,13 @@ import '../ui/widgets.dart';
 import 'court_screens.dart';
 import 'game_screens.dart';
 
-/// Base for lists that reload on realtime game events.
-abstract class _LiveListState<T extends StatefulWidget> extends State<T> {
+/// Base for tab lists that reload on realtime game events.
+abstract class LiveListScreen extends StatefulWidget {
+  final bool tabActive;
+  const LiveListScreen({super.key, this.tabActive = true});
+}
+
+abstract class _LiveListState<T extends LiveListScreen> extends State<T> {
   StreamSubscription? _rt;
   Timer? _debounce;
   bool loading = true;
@@ -24,26 +31,51 @@ abstract class _LiveListState<T extends StatefulWidget> extends State<T> {
 
   Future<void> fetch();
 
-  Future<void> reload() async {
+  bool _tabLive() {
+    if (!mounted || !widget.tabActive) return false;
+    return true;
+  }
+
+  void _commit(void Function() update) {
+    update();
+    if (_tabLive()) setState(() {});
+  }
+
+  Future<void> reload({bool showLoading = false}) async {
+    if (showLoading && _tabLive()) setState(() => loading = true);
     try {
       await fetch();
       error = null;
     } catch (e) {
       error = errorText(e);
+      if (mounted && e is ApiException && e.code == 'browse_location_mismatch') {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) showApiIssue(context, e);
+        });
+      }
     }
-    if (mounted) setState(() => loading = false);
+    if (!mounted) return;
+    _commit(() => loading = false);
   }
 
   @override
   void initState() {
     super.initState();
-    reload();
-    _rt = context.read<Realtime>().events.listen((ev) {
-      if (ev['type'] == 'game' || ev['type'] == 'reconnected') {
-        _debounce?.cancel();
-        _debounce = Timer(const Duration(milliseconds: 400), reload);
-      }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) reload(showLoading: true);
     });
+    _rt = context.read<Realtime>().events.listen((ev) {
+      if (ev['type'] != 'game' && ev['type'] != 'reconnected') return;
+      if (!_tabLive()) return;
+      _debounce?.cancel();
+      _debounce = Timer(const Duration(milliseconds: 400), () => reload());
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant T oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.tabActive && !oldWidget.tabActive) reload();
   }
 
   @override
@@ -53,44 +85,97 @@ abstract class _LiveListState<T extends StatefulWidget> extends State<T> {
     super.dispose();
   }
 
-  void openGame(String id) =>
-      Navigator.push(context, MaterialPageRoute(builder: (_) => GameScreen(gameId: id))).then((_) => reload());
+  void openGame(String id) {
+    openGameScreen(context, id, onReturn: () {
+      if (mounted) reload();
+    });
+  }
 }
 
-/// "I WANT TO PLAY": active games nearby, closest → liveliest → most room.
-class PlayScreen extends StatefulWidget {
-  const PlayScreen({super.key});
+/// Nearby games: active first, closest → liveliest → most room.
+class PlayScreen extends LiveListScreen {
+  const PlayScreen({super.key, super.tabActive});
   @override
   State<PlayScreen> createState() => _PlayScreenState();
 }
 
 class _PlayScreenState extends _LiveListState<PlayScreen> {
   List<Game> _games = [];
+  LocationState? _location;
+  Timer? _locDebounce;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _location = context.read<LocationState>();
+      _location!.addListener(_onLocation);
+    });
+  }
+
+  @override
+  void dispose() {
+    _locDebounce?.cancel();
+    _location?.removeListener(_onLocation);
+    super.dispose();
+  }
+
+  void _onLocation() {
+    if (!_tabLive()) return;
+    _locDebounce?.cancel();
+    _locDebounce = Timer(const Duration(milliseconds: 400), () {
+      if (mounted) reload();
+    });
+  }
 
   @override
   Future<void> fetch() async {
     final c = context.read<LocationState>().center;
-    final j = await context.read<Api>().get('/api/games/nearby?lat=${c.latitude}&lng=${c.longitude}');
-    _games = sortPlayable([for (final g in j) Game.fromJson(g)]);
+    final j = await context.read<Api>().get(
+      '/api/games/nearby?lat=${c.latitude}&lng=${c.longitude}&radius_km=$listNearbyRadiusKm',
+    );
+    _games = sortPlayable([for (final g in j as List) Game.fromJson(g)]);
   }
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocationState>();
     final live = _games.where((g) => g.isLive).toList();
     final soon = _games.where((g) => !g.isLive).toList();
+    final waitingGps = !loc.hasFix && loc.status != LocationStatus.denied && loc.status != LocationStatus.serviceOff;
     return Scaffold(
-      appBar: AppBar(title: const Text('I WANT TO PLAY')),
+      appBar: AppBar(title: const Text('PLAY')),
       body: RefreshIndicator(
-        onRefresh: reload,
-        child: ListView(padding: const EdgeInsets.all(16), children: [
+        onRefresh: () => reload(showLoading: true),
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          children: [
+          if (waitingGps)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                'Finding your location… Showing games near Grand-Bassam until GPS is ready.',
+                style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
+            )
+          else if (!loc.hasFix)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                'Location is off — distances use Grand-Bassam. Turn on location to see games near you.',
+                style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
+            ),
           if (loading) const Center(child: CircularProgressIndicator()),
           ErrorBanner(error),
-          if (!loading && _games.isEmpty)
+          if (!loading && _games.isEmpty && error == null)
             EmptyState(
               icon: Icons.sports_basketball,
               title: 'No games nearby yet',
-              body: 'Be the one who starts it.',
-              action: FilledButton(
+              body: error != null ? 'Pull down to try again.' : 'Be the one who starts it.',
+              action: PrimaryButton(
                 onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateGameScreen())).then((_) => reload()),
                 child: const Text('CREATE A GAME'),
               ),
@@ -116,8 +201,8 @@ class _PlayScreenState extends _LiveListState<PlayScreen> {
   }
 }
 
-class MyGamesScreen extends StatefulWidget {
-  const MyGamesScreen({super.key});
+class MyGamesScreen extends LiveListScreen {
+  const MyGamesScreen({super.key, super.tabActive});
   @override
   State<MyGamesScreen> createState() => _MyGamesScreenState();
 }
@@ -215,7 +300,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final gameId = n.data['game_id'] as String?;
     final courtId = n.data['court_id'] as String?;
     if (gameId != null) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => GameScreen(gameId: gameId)));
+      openGameScreen(context, gameId);
     } else if (courtId != null) {
       Navigator.push(context, MaterialPageRoute(builder: (_) => CourtDetailsScreen(courtId: courtId)));
     }

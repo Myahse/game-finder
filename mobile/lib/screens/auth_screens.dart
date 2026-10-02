@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+
+import '../core/pick_image.dart';
 import 'package:provider/provider.dart';
 
 import '../core/api.dart';
@@ -10,6 +12,7 @@ import '../core/models.dart';
 import '../ui/theme.dart';
 import '../ui/app_icons.dart';
 import '../ui/widgets.dart';
+import 'legal_screens.dart';
 
 class SplashScreen extends StatelessWidget {
   final String? status;
@@ -143,7 +146,7 @@ class WelcomeScreen extends StatelessWidget {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             const Spacer(),
             Row(children: [
               Container(width: 10, height: 10, decoration: const BoxDecoration(color: Palette.live, shape: BoxShape.circle)),
@@ -169,6 +172,21 @@ class WelcomeScreen extends StatelessWidget {
               onPressed: () => showLoginSheet(context),
               child: const Text('LOG IN'),
             ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LegalTextScreen(title: 'Terms', sections: termsSections))),
+                  child: const Text('Terms', style: TextStyle(color: Palette.brand)),
+                ),
+                Text('·', style: TextStyle(color: Colors.white38)),
+                TextButton(
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LegalTextScreen(title: 'Privacy', sections: privacySections))),
+                  child: const Text('Privacy', style: TextStyle(color: Palette.brand)),
+                ),
+              ],
+            ),
           ]),
         ),
       ),
@@ -184,14 +202,14 @@ class _LoginSheet extends StatefulWidget {
 }
 
 class _LoginSheetState extends State<_LoginSheet> {
-  final _email = TextEditingController();
+  final _login = TextEditingController();
   final _password = TextEditingController();
   String? _error;
   bool _busy = false;
 
   @override
   void dispose() {
-    _email.dispose();
+    _login.dispose();
     _password.dispose();
     super.dispose();
   }
@@ -202,7 +220,7 @@ class _LoginSheetState extends State<_LoginSheet> {
       _error = null;
     });
     try {
-      await context.read<AuthState>().login(_email.text, _password.text);
+      await context.read<AuthState>().login(_login.text, _password.text);
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       setState(() => _error = errorText(e));
@@ -241,10 +259,12 @@ class _LoginSheetState extends State<_LoginSheet> {
             Text('Pick up where you left off on the map.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
             const SizedBox(height: 20),
             TextField(
-              controller: _email,
-              keyboardType: TextInputType.emailAddress,
-              autofillHints: const [AutofillHints.email],
-              decoration: const InputDecoration(labelText: 'Email'),
+              controller: _login,
+              keyboardType: TextInputType.text,
+              autofillHints: const [AutofillHints.username],
+              textCapitalization: TextCapitalization.none,
+              autocorrect: false,
+              decoration: const InputDecoration(labelText: 'Email or username'),
             ),
             const SizedBox(height: 12),
             PasswordTextField(
@@ -287,9 +307,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
   XFile? _photo;
   String? _error;
   bool _busy = false;
+  bool _agreedTerms = false;
 
   Future<void> _submit() async {
     if (!_form.currentState!.validate()) return;
+    if (!_agreedTerms) {
+      setState(() => _error = 'Please accept the Terms and Privacy Policy.');
+      return;
+    }
     setState(() {
       _busy = true;
       _error = null;
@@ -329,7 +354,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Row(children: [
               GestureDetector(
                 onTap: () async {
-                  final f = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 1024, imageQuality: 85);
+                  final f = await pickImageFile(context, maxWidth: 1024, imageQuality: 85);
                   if (f != null) setState(() => _photo = f);
                 },
                 child: CircleAvatar(
@@ -368,9 +393,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
               helperText: 'At least 8 characters',
               validator: (v) => (v ?? '').length >= 8 ? null : 'At least 8 characters',
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
+            CheckboxListTile(
+              value: _agreedTerms,
+              onChanged: (v) => setState(() => _agreedTerms = v ?? false),
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
+              title: const Text('I agree to the Terms and Privacy Policy.'),
+              subtitle: Wrap(
+                spacing: 4,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LegalTextScreen(title: 'Terms', sections: termsSections))),
+                    child: const Text('Read Terms'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LegalTextScreen(title: 'Privacy', sections: privacySections))),
+                    child: const Text('Read Privacy'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
             ErrorBanner(_error),
-            FilledButton(onPressed: _busy ? null : _submit, child: Text(_busy ? '…' : 'CREATE ACCOUNT')),
+            FilledButton(onPressed: _busy || !_agreedTerms ? null : _submit, child: Text(_busy ? '…' : 'CREATE ACCOUNT')),
             const SizedBox(height: 8),
             TextButton(
               onPressed: () {
@@ -430,7 +476,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       body: SafeArea(
         child: ListView(padding: const EdgeInsets.all(24), children: [
           Text('Welcome, ${user?.firstName ?? ''}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-          Text('WHAT DO YOU PLAY?', style: Theme.of(context).textTheme.displaySmall),
+          Text('SET UP YOUR COURT RADAR', style: Theme.of(context).textTheme.displaySmall),
+          const SizedBox(height: 8),
+          Text(
+            'Pick your main sport and how you usually play. We sort games on the map — change anytime in Profile.',
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+          ),
           const SizedBox(height: 20),
           if (_sports == null && _error == null) const Center(child: CircularProgressIndicator()),
           for (final s in active)
@@ -462,9 +513,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ]),
           const SizedBox(height: 32),
           ErrorBanner(_error),
-          FilledButton(
+          PrimaryButton(
             onPressed: _busy || chosen == null ? null : () => _done(chosen),
-            child: const Text("LET'S PLAY"),
+            child: const Text('OPEN THE MAP'),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Turn on location on the map for distances and nearby alerts.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13),
           ),
         ]),
       ),

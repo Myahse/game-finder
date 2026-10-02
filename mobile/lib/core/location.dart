@@ -18,6 +18,8 @@ class LocationState extends ChangeNotifier {
 
   LatLng get center => position ?? defaultCenter;
 
+  bool get hasFix => position != null;
+
   Future<void> start() async {
     if (!await Geolocator.isLocationServiceEnabled()) {
       status = LocationStatus.serviceOff;
@@ -33,6 +35,13 @@ class LocationState extends ChangeNotifier {
     }
     status = LocationStatus.granted;
     notifyListeners();
+    try {
+      final fix = await Geolocator.getCurrentPosition(locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium));
+      position = LatLng(fix.latitude, fix.longitude);
+      notifyListeners();
+    } catch (_) {
+      // Stream below may still deliver a fix.
+    }
     _sub?.cancel();
     _sub = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 15),

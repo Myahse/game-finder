@@ -25,6 +25,8 @@ type Config struct {
 	// Firebase Cloud Messaging (HTTP v1). Push is disabled when empty.
 	FCMProjectID          string
 	FCMServiceAccountJSON string
+	// Comma-separated CIDRs; X-Real-IP is trusted only from these peers (e.g. nginx in Docker).
+	TrustedProxyCIDRs string
 }
 
 func Load() (Config, error) {
@@ -43,6 +45,7 @@ func Load() (Config, error) {
 		SeedDemo:              env("SEED_DEMO", "false") == "true",
 		FCMProjectID:          env("FCM_PROJECT_ID", ""),
 		FCMServiceAccountJSON: env("FCM_SERVICE_ACCOUNT_JSON", ""),
+		TrustedProxyCIDRs:     env("TRUSTED_PROXY_CIDRS", "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"),
 	}
 	if c.DatabaseURL == "" {
 		return c, errors.New("DATABASE_URL is required")

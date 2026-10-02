@@ -302,6 +302,10 @@ func (s *Server) upload(w http.ResponseWriter, r *http.Request) {
 	rel := filepath.Join(kind, uid(r), hex.EncodeToString(rnd)+ext)
 	dst := filepath.Join(s.cfg.UploadDir, rel)
 	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+		if os.IsPermission(err) {
+			writeError(w, http.StatusInternalServerError, "upload_storage", "Upload storage is not writable. Restart the API container.")
+			return
+		}
 		writeDBError(w, r, err)
 		return
 	}
@@ -318,6 +322,6 @@ func (s *Server) upload(w http.ResponseWriter, r *http.Request) {
 	}
 	out.Close()
 	writeJSON(w, http.StatusCreated, map[string]string{
-		"url": s.cfg.PublicBaseURL + "/uploads/" + strings.ReplaceAll(rel, string(filepath.Separator), "/"),
+		"url": "/uploads/" + strings.ReplaceAll(rel, string(filepath.Separator), "/"),
 	})
 }

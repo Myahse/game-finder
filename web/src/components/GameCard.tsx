@@ -2,6 +2,7 @@ import { ImageOff, Star } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { DistanceText, Flame, SportIcon, TimeText } from './icons'
 import { formatDistance, gameTimeLabel, gameTypeLabels, skillLabels } from '../lib/format'
+import { courtPhotoUrl } from '../lib/mediaUrl'
 import type { Game } from '../lib/types'
 
 /** SPORT + DISTANCE + PLAYER COUNT + STATUS, at a glance. */
@@ -18,7 +19,7 @@ export function GameCard({
 }) {
   const live = game.status === 'active'
   const full = game.spots_left === 0
-  const photo = game.court.photos?.[0]
+  const photo = courtPhotoUrl(game.court.photos ?? [])
   const mapLayout = variant === 'map'
 
   return (

@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, type ReactNode } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { Bell, BasketballIcon, CalendarDays, MapPin, User, Wrench } from './icons'
 import { useAuth } from '../lib/auth'
 import { useRealtime } from '../lib/realtime'
 import { useNotifications } from '../lib/queries'
+import { EngagementPrompts } from './EngagementPrompts'
 import { PresenceWatcher } from './PresenceWatcher'
 import type { RealtimeEvent } from '../lib/types'
 
@@ -17,21 +19,31 @@ const tabs: Tab[] = [
   { to: '/profile', label: 'Profile', navIcon: <User className="size-6 md:size-5" aria-hidden /> },
 ]
 
-type Toast = { id: string; title: string; body: string; link?: string }
-
 export function AppShell() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const isMap = pathname === '/'
-  const [toasts, setToasts] = useState<Toast[]>([])
   const { data: notes } = useNotifications(!!user)
 
   const onNotification = useCallback(
     (ev: Extract<RealtimeEvent, { type: 'notification' }>) => {
-      const link = ev.data.game_id ? `/games/${ev.data.game_id}` : ev.data.court_id ? `/courts/${ev.data.court_id}` : undefined
-      setToasts((t) => [...t.slice(-2), { id: ev.id, title: ev.title, body: ev.body, link }])
-      setTimeout(() => setToasts((t) => t.filter((x) => x.id !== ev.id)), 6000)
+      const link = ev.data.game_id
+        ? `/games/${ev.data.game_id}`
+        : ev.data.court_id
+          ? `/?court=${ev.data.court_id}`
+          : undefined
+      toast(ev.title, {
+        id: ev.id,
+        description: ev.body,
+        duration: 6000,
+        action: link
+          ? {
+              label: 'Open',
+              onClick: () => navigate(link),
+            }
+          : undefined,
+      })
       if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
         const n = new Notification(ev.title, { body: ev.body, tag: ev.id, icon: '/favicon.svg' })
         n.onclick = () => {
@@ -42,14 +54,7 @@ export function AppShell() {
     },
     [navigate],
   )
-  const connected = useRealtime(user?.id ?? null, onNotification)
-
-  useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      const t = setTimeout(() => Notification.requestPermission().catch(() => {}), 4000)
-      return () => clearTimeout(t)
-    }
-  }, [])
+  useRealtime(user?.id ?? null, onNotification)
 
   return (
     <div className="flex h-full flex-col md:flex-row">
@@ -93,10 +98,6 @@ export function AppShell() {
             <Wrench className="size-5 shrink-0" aria-hidden /> Admin
           </NavLink>
         )}
-        <div className="mt-auto hidden items-center gap-2 px-3 py-2 text-xs text-ink-2 md:flex">
-          <span className={`size-2 rounded-full ${connected ? 'bg-live' : 'bg-idle'}`} />
-          {connected ? 'Live updates on' : 'Reconnecting…'}
-        </div>
       </nav>
 
       <main
@@ -108,23 +109,7 @@ export function AppShell() {
       </main>
 
       <PresenceWatcher />
-
-      <div className="pointer-events-none fixed inset-x-0 top-3 z-50 flex flex-col items-center gap-2 px-4" aria-live="polite">
-        {toasts.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => {
-              if (t.link) navigate(t.link)
-              setToasts((x) => x.filter((y) => y.id !== t.id))
-            }}
-            className="pointer-events-auto w-full max-w-sm rounded-2xl border border-line bg-surface p-3 text-left shadow-xl"
-          >
-            <p className="font-semibold">{t.title}</p>
-            <p className="text-sm text-ink-2">{t.body}</p>
-          </button>
-        ))}
-      </div>
+      <EngagementPrompts enabled={!!user} />
     </div>
   )
 }

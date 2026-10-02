@@ -5,7 +5,7 @@ import type { Me, Session } from './types'
 
 interface AuthState {
   user: Me | null
-  login: (email: string, password: string) => Promise<void>
+  login: (login: string, password: string) => Promise<void>
   register: (input: {
     first_name: string
     last_name: string
@@ -37,8 +37,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .catch(() => {})
   }, [])
 
-  const login = useCallback(async (email: string, password: string) => {
-    setSession(await api<Session>('/api/auth/login', { method: 'POST', json: { email, password } }))
+  const login = useCallback(async (loginId: string, password: string) => {
+    setSession(
+      await api<Session>('/api/auth/login', {
+        method: 'POST',
+        json: { login: loginId.trim(), password },
+      }),
+    )
   }, [])
 
   const register = useCallback<AuthState['register']>(async (input) => {
