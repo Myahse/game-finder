@@ -5,6 +5,8 @@ import { api, errorMessage, uploadImage } from '../lib/api'
 import { formatDistance, gameTypeLabels, skillLabels } from '../lib/format'
 import { useLocation } from '../lib/location'
 import { LIST_NEARBY_RADIUS_KM } from '../lib/nearby'
+import { useAuth } from '../lib/auth'
+import { useMySport } from '../lib/mySport'
 import { useCourtsNearby, useSports } from '../lib/queries'
 import type { Game, GameType, SkillLevel } from '../lib/types'
 import { Clock, Flame, SportIcon, SportName } from '../components/icons'
@@ -20,9 +22,12 @@ export function CreateGamePage() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const { user } = useAuth()
+  const mySport = useMySport()
   const { center } = useLocation()
   const { data: sports } = useSports()
-  const { data: courts } = useCourtsNearby(center, null, LIST_NEARBY_RADIUS_KM)
+  const sportSlug = user?.role === 'admin' ? null : mySport?.slug ?? null
+  const { data: courts } = useCourtsNearby(center, sportSlug, LIST_NEARBY_RADIUS_KM)
   const active = sports?.filter((s) => s.active) ?? []
 
   const [courtId, setCourtId] = useState(params.get('court') ?? '')
@@ -46,8 +51,15 @@ export function CreateGamePage() {
   useEffect(() => {
     setPlacePhotos([])
   }, [courtId])
+
+  useEffect(() => {
+    if (mySport) setSportId(mySport.id)
+  }, [mySport?.id])
+
   const courtSports = court ? active.filter((s) => court.sports.some((cs) => cs.id === s.id)) : active
-  const chosenSport = courtSports.find((s) => s.id === sportId) ?? courtSports[0]
+  const lockedSport = mySport && user?.role !== 'admin' ? mySport : null
+  const selectableSports = lockedSport ? courtSports.filter((s) => s.id === lockedSport.id) : courtSports
+  const chosenSport = selectableSports.find((s) => s.id === sportId) ?? selectableSports[0] ?? lockedSport
 
   const addPlacePhoto = async (files: FileList | null) => {
     if (!files?.length) return
@@ -162,19 +174,25 @@ export function CreateGamePage() {
         )}
 
         <Field label="Sport">
-          <div className="flex flex-wrap gap-2">
-            {courtSports.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => setSportId(s.id)}
-                aria-pressed={chosenSport?.id === s.id}
-                className={`rounded-xl border-2 px-4 py-2.5 font-semibold ${chosenSport?.id === s.id ? 'border-brand bg-brand/10' : 'border-line bg-surface'}`}
-              >
-                <SportName sport={s} />
-              </button>
-            ))}
-          </div>
+          {lockedSport ? (
+            <p className="flex items-center gap-2 rounded-xl border border-line bg-surface-2 px-4 py-2.5 font-semibold">
+              <SportName sport={lockedSport} />
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {selectableSports.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setSportId(s.id)}
+                  aria-pressed={chosenSport?.id === s.id}
+                  className={`rounded-xl border-2 px-4 py-2.5 font-semibold ${chosenSport?.id === s.id ? 'border-brand bg-brand/10' : 'border-line bg-surface'}`}
+                >
+                  <SportName sport={s} />
+                </button>
+              ))}
+            </div>
+          )}
         </Field>
 
         <Field label="Start time">

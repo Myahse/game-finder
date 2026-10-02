@@ -98,6 +98,8 @@ export function ProfilePage() {
 function EditProfile({ me, onSaved }: { me: Me; onSaved: (u: Me) => void }) {
   const update = useUpdateMe()
   const { data: sports } = useSports()
+  const sportLocked = me.role !== 'admin' && !!me.preferred_sport_id
+  const lockedSport = sports?.find((s) => s.id === me.preferred_sport_id)
   const [form, setForm] = useState({
     first_name: me.first_name,
     last_name: me.last_name,
@@ -129,7 +131,11 @@ function EditProfile({ me, onSaved }: { me: Me; onSaved: (u: Me) => void }) {
       onSubmit={(e) => {
         e.preventDefault()
         update.mutate(
-          { ...form, skill_level: form.skill_level as SkillLevel, preferred_sport_id: form.preferred_sport_id || undefined },
+          {
+            ...form,
+            skill_level: form.skill_level as SkillLevel,
+            ...(sportLocked ? {} : { preferred_sport_id: form.preferred_sport_id || undefined }),
+          },
           { onSuccess: onSaved, onError: (err) => setError(errorMessage(err)) },
         )
       }}
@@ -150,16 +156,20 @@ function EditProfile({ me, onSaved }: { me: Me; onSaved: (u: Me) => void }) {
       <Field label="Username">
         <Input value={form.username} pattern="[A-Za-z0-9_.]{3,24}" onChange={(e) => setForm({ ...form, username: e.target.value })} required />
       </Field>
-      <Field label="Preferred sport">
-        <Select value={form.preferred_sport_id} onChange={(e) => setForm({ ...form, preferred_sport_id: e.target.value })}>
-          {sports
-            ?.filter((s) => s.active)
-            .map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-        </Select>
+      <Field label="Sport" hint={sportLocked ? 'Set at signup and locked to keep the map focused.' : undefined}>
+        {sportLocked && lockedSport ? (
+          <p className="rounded-xl border border-line bg-surface-2 px-3 py-2.5 text-sm font-semibold">{lockedSport.name}</p>
+        ) : (
+          <Select value={form.preferred_sport_id} onChange={(e) => setForm({ ...form, preferred_sport_id: e.target.value })}>
+            {sports
+              ?.filter((s) => s.active)
+              .map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+          </Select>
+        )}
       </Field>
       <Field label="Skill level">
         <Select value={form.skill_level} onChange={(e) => setForm({ ...form, skill_level: e.target.value as SkillLevel })}>

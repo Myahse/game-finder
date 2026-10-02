@@ -471,7 +471,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final user = context.watch<AuthState>().user;
     final active = _sports?.where((s) => s.active).toList() ?? const <Sport>[];
     final soon = _sports?.where((s) => !s.active).toList() ?? const <Sport>[];
-    final chosen = _sportId ?? (active.isNotEmpty ? active.first.id : null);
     return Scaffold(
       body: SafeArea(
         child: ListView(padding: const EdgeInsets.all(24), children: [
@@ -479,7 +478,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Text('SET UP YOUR COURT RADAR', style: Theme.of(context).textTheme.displaySmall),
           const SizedBox(height: 8),
           Text(
-            'Pick your main sport and how you usually play. We sort games on the map — change anytime in Profile.',
+            'Pick the one sport you play. The map and games stay on that sport — it can\'t be changed later.',
             style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 20),
@@ -490,7 +489,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: ChoiceTile(
                 leading: SportIcon(s.slug, size: 22, color: Palette.brand),
                 label: s.name.toUpperCase(),
-                selected: chosen == s.id,
+                selected: _sportId == s.id,
                 onTap: () => setState(() => _sportId = s.id),
               ),
             ),
@@ -514,7 +513,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           const SizedBox(height: 32),
           ErrorBanner(_error),
           PrimaryButton(
-            onPressed: _busy || chosen == null ? null : () => _done(chosen),
+            onPressed: _busy || _sportId == null ? null : () => _done(_sportId!),
             child: const Text('OPEN THE MAP'),
           ),
           const SizedBox(height: 8),

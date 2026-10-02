@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { subscribeLiveGamePulse } from '../lib/liveGames'
 import { useLocation } from '../lib/location'
+import { useBrowseSportSlug, useMySport } from '../lib/mySport'
 import { useGamesNearby, useSports } from '../lib/queries'
+import { useAuth } from '../lib/auth'
 import { useQueryErrorToast } from '../lib/toastErrors'
 import { sortPlayable } from '../lib/sort'
 import { GameCard } from '../components/GameCard'
@@ -15,8 +17,11 @@ export function PlayPage() {
   const [pulseIds, setPulseIds] = useState<Set<string>>(() => new Set())
   useEffect(() => subscribeLiveGamePulse(setPulseIds), [])
 
-  const [params, setParams] = useSearchParams()
-  const sport = params.get('sport')
+  const [, setParams] = useSearchParams()
+  const { user } = useAuth()
+  const sport = useBrowseSportSlug()
+  const mySport = useMySport()
+  const isAdmin = user?.role === 'admin'
   const { center, status, waitingGps, hasFix } = useLocation()
   const { data: sports } = useSports()
   const { data: games, isLoading, isError, error } = useGamesNearby(center, sport)
@@ -31,16 +36,26 @@ export function PlayPage() {
       <PageHeader title="Play" back="/" />
       <div className="mx-auto max-w-2xl p-4">
         <div className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4">
-          <Chip active={!sport} onClick={() => setParams({}, { replace: true })}>
-            All
-          </Chip>
-          {sports
-            ?.filter((s) => s.active)
-            .map((s) => (
-              <Chip key={s.id} active={sport === s.slug} onClick={() => setParams({ sport: s.slug }, { replace: true })}>
-                <SportName sport={s} />
+          {isAdmin ? (
+            <>
+              <Chip active={!sport} onClick={() => setParams({}, { replace: true })}>
+                All
               </Chip>
-            ))}
+              {sports
+                ?.filter((s) => s.active)
+                .map((s) => (
+                  <Chip key={s.id} active={sport === s.slug} onClick={() => setParams({ sport: s.slug }, { replace: true })}>
+                    <SportName sport={s} />
+                  </Chip>
+                ))}
+            </>
+          ) : (
+            mySport && (
+              <Chip active>
+                <SportName sport={mySport} />
+              </Chip>
+            )
+          )}
         </div>
         {waitingGps && (
           <p className="mb-3 text-sm text-ink-2">

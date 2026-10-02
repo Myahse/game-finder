@@ -17,11 +17,9 @@ export function OnboardingPage() {
   const [skill, setSkill] = useState<SkillLevel>(user?.skill_level ?? 'intermediate')
   const [error, setError] = useState('')
   const available = sports?.filter((s) => s.active) ?? []
-  const chosen = sportId ?? available[0]?.id ?? null
-
   const done = () =>
     update.mutate(
-      { preferred_sport_id: chosen ?? undefined, skill_level: skill, onboarded: true },
+      { preferred_sport_id: sportId ?? undefined, skill_level: skill, onboarded: true },
       {
         onSuccess: (me) => {
           updateUser(me)
@@ -36,7 +34,7 @@ export function OnboardingPage() {
       <p className="text-sm font-semibold text-ink-2">Welcome, {user?.first_name}</p>
       <h1 className="display mt-1 text-5xl font-extrabold">Set up your court radar</h1>
       <p className="mt-3 text-ink-2">
-        Pick your main sport and how you usually play. We use this to sort games on the map — change anytime in Profile.
+        Pick the one sport you play. The map and games stay on that sport — it can&apos;t be changed later.
       </p>
 
       <div className="mt-6 grid gap-3">
@@ -46,9 +44,9 @@ export function OnboardingPage() {
             key={s.id}
             type="button"
             onClick={() => setSportId(s.id)}
-            aria-pressed={chosen === s.id}
+            aria-pressed={sportId === s.id}
             className={`flex items-center gap-4 rounded-2xl border-2 p-4 text-left transition ${
-              chosen === s.id ? 'border-brand bg-brand/10' : 'border-line bg-surface'
+              sportId === s.id ? 'border-brand bg-brand/10' : 'border-line bg-surface'
             }`}
           >
             <SportIcon slug={s.slug} className="size-10 text-brand" />
@@ -84,7 +82,7 @@ export function OnboardingPage() {
 
       <div className="mt-auto grid gap-2 pt-10">
         <ErrorText>{error}</ErrorText>
-        <Button onClick={done} loading={update.isPending} disabled={!chosen}>
+        <Button onClick={done} loading={update.isPending} disabled={!sportId}>
           Open the map
         </Button>
         <p className="text-center text-xs text-ink-2">Turn on location on the map for distances and nearby alerts.</p>

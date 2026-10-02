@@ -142,6 +142,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late String? _avatar = _me.avatarUrl;
   bool _busy = false;
   String? _error;
+  bool get _sportLocked => !_me.isAdmin && _me.preferredSportId != null;
 
   Future<void> _photo() async {
     final api = context.read<Api>();
@@ -180,7 +181,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         'username': _username.text.trim().replaceFirst(RegExp(r'^@+'), ''),
         'skill_level': _skill,
       };
-      if (_sportId != null) patch['preferred_sport_id'] = _sportId;
+      if (!_sportLocked && _sportId != null) patch['preferred_sport_id'] = _sportId;
       if (_avatar != null) patch['avatar_url'] = _avatar;
       await context.read<AuthState>().updateMe(patch);
       if (mounted) Navigator.pop(context);
@@ -224,15 +225,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           const SizedBox(height: 12),
           TextField(controller: _username, decoration: const InputDecoration(labelText: 'Username')),
           const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: widget.sports.any((s) => s.id == _sportId) ? _sportId : null,
-            decoration: const InputDecoration(labelText: 'Preferred sport'),
-            items: [
-              for (final s in widget.sports.where((s) => s.active))
-                DropdownMenuItem(value: s.id, child: SportInline(s)),
-            ],
-            onChanged: (v) => setState(() => _sportId = v),
-          ),
+          if (_sportLocked) ...[
+            const Text('Sport', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
+            if (widget.sports.where((s) => s.id == _me.preferredSportId).firstOrNull case final s?)
+              SportInline(s)
+            else
+              const Text('—'),
+            const SizedBox(height: 12),
+          ] else
+            DropdownButtonFormField<String>(
+              initialValue: widget.sports.any((s) => s.id == _sportId) ? _sportId : null,
+              decoration: const InputDecoration(labelText: 'Preferred sport'),
+              items: [
+                for (final s in widget.sports.where((s) => s.active))
+                  DropdownMenuItem(value: s.id, child: SportInline(s)),
+              ],
+              onChanged: (v) => setState(() => _sportId = v),
+            ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: _skill,

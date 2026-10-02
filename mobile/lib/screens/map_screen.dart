@@ -11,6 +11,8 @@ import 'package:provider/provider.dart';
 
 
 import '../core/api.dart';
+import '../core/auth.dart';
+import '../core/my_sport.dart';
 import '../core/user_errors.dart';
 
 import '../core/format.dart';
@@ -217,10 +219,21 @@ class _MapScreenState extends State<MapScreen> {
 
       final j = await context.read<Api>().get('/api/sports');
 
-      if (mounted) setState(() => _sports = [for (final s in j) Sport.fromJson(s)].where((s) => s.active).toList());
+      if (!mounted) return;
+      setState(() {
+        _sports = [for (final s in j) Sport.fromJson(s)].where((s) => s.active).toList();
+        _syncSportFilterToUser();
+      });
 
     } catch (_) {}
 
+  }
+
+  void _syncSportFilterToUser() {
+    final user = context.read<AuthState>().user;
+    if (user?.isAdmin ?? false) return;
+    final slug = sportSlugForUser(user, _sports);
+    if (slug != null) _sport = slug;
   }
 
 
@@ -299,6 +312,9 @@ class _MapScreenState extends State<MapScreen> {
     final dark = Theme.of(context).brightness == Brightness.dark;
 
     final live = _courts.where((c) => c.activity == Activity.active).length;
+    final user = context.watch<AuthState>().user;
+    final isAdmin = user?.isAdmin ?? false;
+    final mySport = sportForUser(user, _sports);
 
     final navOverlap = kFloatingNavClearance + MediaQuery.paddingOf(context).bottom;
 
@@ -387,9 +403,11 @@ class _MapScreenState extends State<MapScreen> {
 
               child: Row(children: [
 
-                _filterChip('All', _sport == null, () => _setSport(null)),
-
-                for (final s in _sports) _filterChip(s.name, _sport == s.slug, () => _setSport(s.slug)),
+                if (isAdmin) ...[
+                  _filterChip('All', _sport == null, () => _setSport(null)),
+                  for (final s in _sports) _filterChip(s.name, _sport == s.slug, () => _setSport(s.slug)),
+                ] else if (mySport != null)
+                  _filterChip(mySport.name, true, () {}),
 
                 _filterChip('Add court', false, () {
                   Navigator.push<Court>(context, MaterialPageRoute(builder: (_) => const AddCourtScreen())).then((court) {

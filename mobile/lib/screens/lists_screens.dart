@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../core/api.dart';
+import '../core/auth.dart';
+import '../core/my_sport.dart';
 import '../core/user_errors.dart';
 import '../core/format.dart';
 import '../core/location.dart';
@@ -131,9 +133,18 @@ class _PlayScreenState extends _LiveListState<PlayScreen> {
 
   @override
   Future<void> fetch() async {
+    final api = context.read<Api>();
+    final user = context.read<AuthState>().user;
     final c = context.read<LocationState>().center;
-    final j = await context.read<Api>().get(
-      '/api/games/nearby?lat=${c.latitude}&lng=${c.longitude}&radius_km=$listNearbyRadiusKm',
+    var sportQ = '';
+    if (!(user?.isAdmin ?? false) && user?.preferredSportId != null) {
+      final sportsJ = await api.get('/api/sports');
+      final sports = [for (final x in sportsJ) Sport.fromJson(x)];
+      final slug = sportSlugForUser(user, sports);
+      if (slug != null) sportQ = '&sport=$slug';
+    }
+    final j = await api.get(
+      '/api/games/nearby?lat=${c.latitude}&lng=${c.longitude}&radius_km=$listNearbyRadiusKm$sportQ',
     );
     _games = sortPlayable([for (final g in j as List) Game.fromJson(g)]);
   }

@@ -12,6 +12,7 @@ import '../core/location.dart';
 import '../core/models.dart';
 import '../core/map_pause.dart';
 import '../core/nearby.dart';
+import '../core/my_sport.dart';
 import '../core/realtime.dart';
 import '../ui/theme.dart';
 import '../ui/app_icons.dart';
@@ -338,19 +339,33 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
   void initState() {
     super.initState();
     _courtId = widget.courtId;
+    unawaited(_loadCourts());
+  }
+
+  Future<void> _loadCourts() async {
+    final api = context.read<Api>();
+    final user = context.read<AuthState>().user;
     final c = context.read<LocationState>().center;
-    context.read<Api>().get('/api/courts/nearby?lat=${c.latitude}&lng=${c.longitude}&radius_km=$listNearbyRadiusKm').then((j) {
+    try {
+      final sportsJ = await api.get('/api/sports');
+      final catalog = [for (final x in sportsJ) Sport.fromJson(x)];
+      final slug = (user?.isAdmin ?? false) ? null : sportSlugForUser(user, catalog);
+      final sportQ = slug != null ? '&sport=$slug' : '';
+      final j = await api.get('/api/courts/nearby?lat=${c.latitude}&lng=${c.longitude}&radius_km=$listNearbyRadiusKm$sportQ');
       if (!mounted) return;
       final courts = [for (final x in j) Court.fromJson(x)];
       setState(() {
         _courts = courts;
-        if (_courtId != null && _sportId == null) {
+        final preferred = user?.preferredSportId;
+        if (preferred != null && !(user?.isAdmin ?? false)) {
+          _sportId = preferred;
+        } else if (_courtId != null && _sportId == null) {
           final court = courts.where((c) => c.id == _courtId).firstOrNull;
           final active = court?.sports.where((s) => s.active).toList() ?? const <Sport>[];
           if (active.length == 1) _sportId = active.first.id;
         }
       });
-    }).catchError((_) {});
+    } catch (_) {}
   }
 
   Future<void> _addPlacePhoto() async {
@@ -445,9 +460,12 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
         ),
       );
     }
+    final user = context.watch<AuthState>().user;
     final court = _courts.where((c) => c.id == _courtId).firstOrNull;
-    final sports = court?.sports.where((s) => s.active).toList() ?? const <Sport>[];
-    final sport = sports.where((s) => s.id == _sportId).firstOrNull ?? sports.firstOrNull;
+    final courtSports = court?.sports.where((s) => s.active).toList() ?? const <Sport>[];
+    final locked = (!(user?.isAdmin ?? false)) ? sportForUser(user, courtSports) : null;
+    final sports = locked != null ? [locked] : courtSports;
+    final sport = sports.where((s) => s.id == _sportId).firstOrNull ?? sports.firstOrNull ?? locked;
     final needsPlacePhoto = court != null && court.photos.isEmpty && _placePhotos.isEmpty;
 
     return Scaffold(
@@ -540,15 +558,18 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
         const SizedBox(height: 16),
         const Text('Sport', style: TextStyle(fontWeight: FontWeight.w700)),
         const SizedBox(height: 6),
-        Wrap(spacing: 8, children: [
-          for (final s in sports)
-            ChoiceTile(
-              leading: SportIcon(s.slug, size: 20),
-              label: s.name,
-              selected: sport?.id == s.id,
-              onTap: () => setState(() => _sportId = s.id),
-            ),
-        ]),
+        if (locked != null)
+          SportInline(locked, iconSize: 20)
+        else
+          Wrap(spacing: 8, children: [
+            for (final s in sports)
+              ChoiceTile(
+                leading: SportIcon(s.slug, size: 20),
+                label: s.name,
+                selected: sport?.id == s.id,
+                onTap: () => setState(() => _sportId = s.id),
+              ),
+          ]),
         const SizedBox(height: 16),
         const Text('Start time', style: TextStyle(fontWeight: FontWeight.w700)),
         const SizedBox(height: 6),

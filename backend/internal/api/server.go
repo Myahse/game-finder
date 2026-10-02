@@ -355,6 +355,8 @@ var appErrors = map[string]struct {
 	"location_required":          {http.StatusUnprocessableEntity, "Turn on location to check in."},
 	"court_not_available":        {http.StatusUnprocessableEntity, "This court isn't available."},
 	"sport_not_offered_at_court": {http.StatusUnprocessableEntity, "That sport isn't played at this court."},
+	"sport_locked":               {http.StatusForbidden, "Your sport was set at signup and can't be changed."},
+	"wrong_sport":                {http.StatusForbidden, "You can only use your chosen sport."},
 	"start_time_in_past":         {http.StatusUnprocessableEntity, "Start time is in the past."},
 	"start_time_too_far":         {http.StatusUnprocessableEntity, "Start time must be within 30 days."},
 	"max_players_below_current":  {http.StatusUnprocessableEntity, "More players have already joined."},

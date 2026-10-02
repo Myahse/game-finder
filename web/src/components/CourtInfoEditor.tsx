@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { api, errorMessage } from '../lib/api'
+import { reverseGeocode } from '../lib/reverseGeocode'
 import { parseOpeningHours } from '../lib/openingHours'
+import { useAuth } from '../lib/auth'
+import { useMySport } from '../lib/mySport'
 import { qk, useSports } from '../lib/queries'
 import type { CourtDetail } from '../lib/types'
 import { SportName } from './icons'
@@ -16,7 +19,10 @@ type LightingChoice = 'unknown' | 'yes' | 'no'
 
 export function CourtInfoEditor({ court, canEdit }: Props) {
   const qc = useQueryClient()
+  const { user } = useAuth()
+  const mySport = useMySport()
   const { data: sports } = useSports()
+  const sportLocked = user?.role !== 'admin' && !!mySport
   const parsed = parseOpeningHours(court.opening_hours)
   const [opens, setOpens] = useState(parsed?.opens ?? '')
   const [closes, setCloses] = useState(parsed?.closes ?? '')
@@ -28,6 +34,7 @@ export function CourtInfoEditor({ court, canEdit }: Props) {
   )
   const [sportIds, setSportIds] = useState<string[]>(court.sports.map((s) => s.id))
   const [busy, setBusy] = useState(false)
+  const [geocodingAddress, setGeocodingAddress] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -41,10 +48,21 @@ export function CourtInfoEditor({ court, canEdit }: Props) {
     setSportIds(court.sports.map((s) => s.id))
   }, [court])
 
+  useEffect(() => {
+    if (sportLocked && mySport) setSportIds([mySport.id])
+  }, [sportLocked, mySport?.id])
+
   if (!canEdit) return null
 
   const toggleSport = (id: string) =>
     setSportIds((s) => (s.includes(id) ? (s.length > 1 ? s.filter((x) => x !== id) : s) : [...s, id]))
+
+  const fillAddressFromMap = async () => {
+    setGeocodingAddress(true)
+    const addr = await reverseGeocode({ latitude: court.latitude, longitude: court.longitude })
+    if (addr) setAddress(addr)
+    setGeocodingAddress(false)
+  }
 
   const save = async () => {
     setBusy(true)
@@ -76,23 +94,37 @@ export function CourtInfoEditor({ court, canEdit }: Props) {
       <p className="mt-1 text-xs text-ink-2">Update details before approval. Shown to everyone once the court is live.</p>
 
       <div className="mt-4 grid gap-4">
-        <Field label="Sports">
-          <div className="flex flex-wrap gap-2">
-            {sports?.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => toggleSport(s.id)}
-                aria-pressed={sportIds.includes(s.id)}
-                className={`rounded-xl border-2 px-3 py-2 text-sm font-semibold ${sportIds.includes(s.id) ? 'border-brand bg-brand/10' : 'border-line bg-surface-2'}`}
-              >
-                <SportName sport={s} />
-              </button>
-            ))}
-          </div>
+        <Field label="Sport">
+          {sportLocked && mySport ? (
+            <p className="flex items-center gap-2 rounded-xl border border-brand bg-brand/10 px-3 py-2 text-sm font-semibold">
+              <SportName sport={mySport} />
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {sports?.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => toggleSport(s.id)}
+                  aria-pressed={sportIds.includes(s.id)}
+                  className={`rounded-xl border-2 px-3 py-2 text-sm font-semibold ${sportIds.includes(s.id) ? 'border-brand bg-brand/10' : 'border-line bg-surface-2'}`}
+                >
+                  <SportName sport={s} />
+                </button>
+              ))}
+            </div>
+          )}
         </Field>
-        <Field label="Address">
+        <Field label="Address" hint="Use the map pin on file — only admins can move the pin.">
           <Input placeholder="Street or place name" value={address} onChange={(e) => setAddress(e.target.value)} />
+          <button
+            type="button"
+            className="mt-2 text-sm font-semibold text-brand disabled:opacity-50"
+            disabled={geocodingAddress}
+            onClick={() => fillAddressFromMap()}
+          >
+            {geocodingAddress ? 'Looking up…' : 'Fill from map location'}
+          </button>
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Opens">

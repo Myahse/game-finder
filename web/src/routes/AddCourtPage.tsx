@@ -1,19 +1,25 @@
-import { useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, errorMessage, uploadImage } from '../lib/api'
 import { resolveMediaUrl } from '../lib/mediaUrl'
 import { useLocation, type Coords } from '../lib/location'
+import { useAuth } from '../lib/auth'
+import { useMySport } from '../lib/mySport'
 import { useSports } from '../lib/queries'
 import type { Court } from '../lib/types'
 import { Hourglass, Plus, SportName } from '../components/icons'
 import { LocationPicker } from '../components/LocationPicker'
 import { formatOpeningHours } from '../lib/openingHours'
+import { reverseGeocode } from '../lib/reverseGeocode'
 import { Button, ErrorText, Field, Input, PageHeader, Textarea } from '../components/ui'
 
 export function AddCourtPage() {
   const navigate = useNavigate()
   const { coords, center } = useLocation()
+  const { user } = useAuth()
+  const mySport = useMySport()
   const { data: sports } = useSports()
+  const isAdmin = user?.role === 'admin'
   const [name, setName] = useState('')
   const [where, setWhere] = useState<Coords | null>(null)
   const [sportIds, setSportIds] = useState<string[]>([])
@@ -21,6 +27,7 @@ export function AddCourtPage() {
   const [opensAt, setOpensAt] = useState('')
   const [closesAt, setClosesAt] = useState('')
   const [address, setAddress] = useState('')
+  const [geocodingAddress, setGeocodingAddress] = useState(false)
   const [surface, setSurface] = useState('')
   const [lighting, setLighting] = useState<'unknown' | 'yes' | 'no'>('unknown')
   const [photos, setPhotos] = useState<string[]>([])
@@ -31,6 +38,18 @@ export function AddCourtPage() {
   const [doneCourt, setDoneCourt] = useState<(Court & { reused_nearby?: boolean }) | null>(null)
 
   const toggleSport = (id: string) => setSportIds((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))
+
+  useEffect(() => {
+    if (mySport && !isAdmin) setSportIds([mySport.id])
+  }, [mySport?.id, isAdmin])
+
+  const onPickLocation = useCallback(async (c: Coords) => {
+    setWhere(c)
+    setGeocodingAddress(true)
+    const addr = await reverseGeocode(c)
+    if (addr) setAddress(addr)
+    setGeocodingAddress(false)
+  }, [])
 
   const addPhotos = async (files: FileList | null) => {
     if (!files) return
@@ -107,27 +126,33 @@ export function AddCourtPage() {
           <Input required minLength={2} maxLength={80} placeholder="e.g. Terrain Mockeyville" value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
         <Field label="Location" hint={coords ? 'Centered on you. Drag the pin to adjust.' : undefined}>
-          <LocationPicker value={where} initial={center} onChange={setWhere} />
+          <LocationPicker value={where} initial={center} onChange={onPickLocation} />
           {coords && !where && (
-            <button type="button" className="mt-2 text-sm font-semibold text-brand" onClick={() => setWhere(coords)}>
+            <button type="button" className="mt-2 text-sm font-semibold text-brand" onClick={() => onPickLocation(coords)}>
               I'm at the court now
             </button>
           )}
         </Field>
-        <Field label="Sports">
-          <div className="flex flex-wrap gap-2">
-            {sports?.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => toggleSport(s.id)}
-                aria-pressed={sportIds.includes(s.id)}
-                className={`rounded-xl border-2 px-3 py-2 font-semibold ${sportIds.includes(s.id) ? 'border-brand bg-brand/10' : 'border-line bg-surface'}`}
-              >
-                <SportName sport={s} />
-              </button>
-            ))}
-          </div>
+        <Field label="Sport" hint={!isAdmin ? 'Your account sport — courts are tagged for your game type only.' : undefined}>
+          {mySport && !isAdmin ? (
+            <p className="flex items-center gap-2 rounded-xl border border-brand bg-brand/10 px-4 py-3 font-semibold">
+              <SportName sport={mySport} />
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {sports?.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => toggleSport(s.id)}
+                  aria-pressed={sportIds.includes(s.id)}
+                  className={`rounded-xl border-2 px-3 py-2 font-semibold ${sportIds.includes(s.id) ? 'border-brand bg-brand/10' : 'border-line bg-surface'}`}
+                >
+                  <SportName sport={s} />
+                </button>
+              ))}
+            </div>
+          )}
         </Field>
         <Field label="Photos (optional)">
           <div className="flex flex-wrap gap-2">
@@ -142,7 +167,10 @@ export function AddCourtPage() {
             )}
           </div>
         </Field>
-        <Field label="Address (optional)">
+        <Field
+          label="Address (optional)"
+          hint={geocodingAddress ? 'Looking up address from the map…' : 'Filled automatically from the pin. You can edit it.'}
+        >
           <Input placeholder="Street or place name" value={address} onChange={(e) => setAddress(e.target.value)} />
         </Field>
         <Field label="Opening hours (optional)" hint="24-hour format">

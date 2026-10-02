@@ -35,6 +35,9 @@ func (s *Server) patchCourtInfo(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnprocessableEntity, "sport_required", "Choose at least one sport.")
 		return
 	}
+	if !s.enforceCourtSportIDs(w, r, in.SportIDs) {
+		return
+	}
 
 	var opening *string
 	opens := strings.TrimSpace(in.OpensAt)

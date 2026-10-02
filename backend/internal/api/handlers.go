@@ -245,6 +245,9 @@ func (s *Server) proposeCourt(w http.ResponseWriter, r *http.Request) {
 	if !readJSON(w, r, &in) || !in.validate(s, w) {
 		return
 	}
+	if !s.enforceCourtSportIDs(w, r, in.SportIDs) {
+		return
+	}
 	// Reuse a quiet court pin nearby instead of duplicating the same spot.
 	var out []byte
 	err := s.db.Tx(r.Context(), uid(r), func(tx pgx.Tx) error {
@@ -411,6 +414,9 @@ func (s *Server) createGame(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnprocessableEntity, "too_many_photos", "Up to 6 photos for the court.")
 		return
 	}
+	if !s.enforcePreferredSport(w, r, in.SportID) {
+		return
+	}
 	if !s.validateUploadURLs(w, in.CourtPhotos) {
 		return
 	}
@@ -514,7 +520,16 @@ func (s *Server) updateGame(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) joinGame(w http.ResponseWriter, r *http.Request) {
-	if err := s.db.Exec(r.Context(), uid(r), "select join_game($1)", chi.URLParam(r, "id")); err != nil {
+	gameID := chi.URLParam(r, "id")
+	var sportID string
+	if err := s.db.Pool.QueryRow(r.Context(), `select sport_id::text from games where id = $1`, gameID).Scan(&sportID); err != nil {
+		writeDBError(w, r, err)
+		return
+	}
+	if !s.enforcePreferredSport(w, r, sportID) {
+		return
+	}
+	if err := s.db.Exec(r.Context(), uid(r), "select join_game($1)", gameID); err != nil {
 		writeDBError(w, r, err)
 		return
 	}
@@ -653,6 +668,20 @@ func (s *Server) updateMe(w http.ResponseWriter, r *http.Request) {
 	if in.AvatarURL != nil && !s.allowedUploadURL(*in.AvatarURL) {
 		writeError(w, http.StatusUnprocessableEntity, "invalid_photo_url", "Avatar must be uploaded through the app.")
 		return
+	}
+	if in.PreferredSportID != nil {
+		var existing *string
+		var role string
+		if err := s.db.Pool.QueryRow(r.Context(), `
+			select preferred_sport_id::text, role from users where id = $1`, uid(r)).Scan(&existing, &role); err != nil {
+			writeDBError(w, r, err)
+			return
+		}
+		newID := strings.TrimSpace(*in.PreferredSportID)
+		if role != "admin" && existing != nil && *existing != "" && newID != "" && newID != *existing {
+			writeError(w, http.StatusForbidden, "sport_locked", "Your sport was set at signup and can't be changed.")
+			return
+		}
 	}
 	err := s.db.Exec(r.Context(), uid(r), `
 		update users set

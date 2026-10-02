@@ -4,7 +4,9 @@ import { syncNotifyArea, type NotifyAreaState } from '../lib/notifyArea'
 import { formatDistance, timeAgo } from '../lib/format'
 import { useLocation, type Coords } from '../lib/location'
 import { MAP_NEARBY_RADIUS_KM } from '../lib/nearby'
+import { useBrowseSportSlug, useMySport } from '../lib/mySport'
 import { useCourt, useCourtsNearby, useGamesNearby, useSports } from '../lib/queries'
+import { useAuth } from '../lib/auth'
 import { useQueryErrorToast } from '../lib/toastErrors'
 import { MapBottomSheet } from '../components/MapBottomSheet'
 import { MapGamesRail } from '../components/MapGamesRail'
@@ -19,7 +21,10 @@ import { Plus } from 'lucide-react'
 
 export function MapPage() {
   const [params, setParams] = useSearchParams()
-  const sport = params.get('sport')
+  const { user } = useAuth()
+  const sport = useBrowseSportSlug()
+  const mySport = useMySport()
+  const isAdmin = user?.role === 'admin'
   const selectedId = params.get('court')
   const { coords, status, center } = useLocation()
   const { data: sports } = useSports()
@@ -73,16 +78,26 @@ export function MapPage() {
           </span>
         </div>
         <div className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
-          <Chip active={!sport} onClick={() => update('sport', null)}>
-            All
-          </Chip>
-          {sports
-            ?.filter((s) => s.active)
-            .map((s) => (
-              <Chip key={s.id} active={sport === s.slug} onClick={() => update('sport', s.slug)}>
-                <SportName sport={s} iconClassName="size-4" />
+          {isAdmin ? (
+            <>
+              <Chip active={!sport} onClick={() => update('sport', null)}>
+                All
               </Chip>
-            ))}
+              {sports
+                ?.filter((s) => s.active)
+                .map((s) => (
+                  <Chip key={s.id} active={sport === s.slug} onClick={() => update('sport', s.slug)}>
+                    <SportName sport={s} iconClassName="size-4" />
+                  </Chip>
+                ))}
+            </>
+          ) : (
+            mySport && (
+              <Chip active>
+                <SportName sport={mySport} iconClassName="size-4" />
+              </Chip>
+            )
+          )}
           <Link to="/courts/new">
             <Chip>
               <span className="inline-flex items-center gap-1">
