@@ -1,0 +1,10 @@
+.git
+.github
+**/.env
+**/.env.*
+!**/.env.example
+mobile
+web/node_modules
+web/dist
+**/*.md
+agent-tools

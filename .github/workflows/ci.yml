@@ -57,6 +57,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+      - run: cp assets/.env.example assets/.env
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test

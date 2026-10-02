@@ -62,6 +62,11 @@ func Load() (Config, error) {
 		R2BucketName:          env("R2_BUCKET_NAME", ""),
 		R2PublicURL:           strings.TrimRight(env("R2_PUBLIC_URL", ""), "/"),
 	}
+	// PaaS (Render, Railway, …) inject PORT; prefer it over Dockerfile ADDR=:8080.
+	if port := strings.TrimSpace(os.Getenv("PORT")); port != "" {
+		c.Addr = ":" + port
+	}
+
 	if c.DatabaseURL == "" {
 		return c, errors.New("DATABASE_URL is required")
 	}

@@ -134,7 +134,22 @@ func (e *env) register(username string) user {
 		"username": username, "email": email, "password": "password123",
 	})
 	u := obj["user"].(map[string]any)
-	return user{ID: u["id"].(string), Token: obj["access_token"].(string)}
+	out := user{ID: u["id"].(string), Token: obj["access_token"].(string)}
+	e.onboardSport(out, "")
+	return out
+}
+
+func (e *env) onboardSport(u user, sportID string) {
+	e.t.Helper()
+	if sportID == "" {
+		_, sports := e.must(200, "", "GET", "/api/sports", nil)
+		sportID = sports[0].(map[string]any)["id"].(string)
+	}
+	e.must(200, u.Token, "PATCH", "/api/me", map[string]any{
+		"preferred_sport_id": sportID,
+		"skill_level":        "intermediate",
+		"onboarded":          true,
+	})
 }
 
 const iugbLat, iugbLng = 5.2133, -3.7389

@@ -1,0 +1,47 @@
+# Render Blueprint — free-tier API (Docker). Connect repo in Render → New → Blueprint.
+# Docs: docs/DEPLOY.md
+#
+# After deploy, set PUBLIC_BASE_URL to https://<service-name>.onrender.com and
+# point Vercel VITE_API_URL + API CORS_ORIGINS at the same URL.
+# On free tier: use R2 for uploads (ephemeral disk). Service sleeps after ~15 min idle.
+
+services:
+  - type: web
+    name: game-finder-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    # Monorepo: API lives in backend/ (paths below are relative to rootDir).
+    rootDir: backend
+    dockerfilePath: Dockerfile
+    dockerContext: .
+    healthCheckPath: /healthz
+    envVars:
+      - key: SEED_DEMO
+        value: "false"
+      - key: UPLOAD_DIR
+        value: /tmp/uploads
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: ADMIN_EMAILS
+        sync: false
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET_NAME
+        sync: false
+      - key: R2_PUBLIC_URL
+        sync: false
+      - key: FCM_PROJECT_ID
+        sync: false
+      - key: FCM_SERVICE_ACCOUNT_JSON
+        sync: false
