@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -76,7 +77,7 @@ func (s *Server) Routes() http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID, middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   s.cfg.CORSOrigins,
+		AllowOriginFunc:  func(_ *http.Request, origin string) bool { return corsAllowed(s.cfg.CORSOrigins, origin) },
 		AllowedMethods:   []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Authorization", "Content-Type"},
 		AllowCredentials: false,
@@ -288,12 +289,35 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 }
 
 func originPatterns(origins []string) []string {
-	var out []string
+	out := []string{"*.vercel.app"}
+	seen := map[string]bool{"*.vercel.app": true}
 	for _, o := range origins {
 		o = strings.TrimPrefix(strings.TrimPrefix(o, "https://"), "http://")
-		out = append(out, o)
+		if o != "" && !seen[o] {
+			seen[o] = true
+			out = append(out, o)
+		}
 	}
 	return out
+}
+
+// corsAllowed matches configured origins and any https://*.vercel.app preview deployment.
+func corsAllowed(allowed []string, origin string) bool {
+	origin = strings.TrimSpace(origin)
+	if origin == "" {
+		return false
+	}
+	for _, a := range allowed {
+		if strings.EqualFold(a, origin) {
+			return true
+		}
+	}
+	u, err := url.Parse(origin)
+	if err != nil || u.Scheme != "https" {
+		return false
+	}
+	host := strings.ToLower(u.Hostname())
+	return strings.HasSuffix(host, ".vercel.app") || host == "vercel.app"
 }
 
 // ---------------------------------------------------------------------------

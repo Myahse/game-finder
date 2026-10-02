@@ -46,7 +46,10 @@ func Load() (Config, error) {
 		JWTSecret:             []byte(env("JWT_SECRET", "")),
 		AccessTokenTTL:        duration("ACCESS_TOKEN_TTL", 15*time.Minute),
 		RefreshTokenTTL:       duration("REFRESH_TOKEN_TTL", 30*24*time.Hour),
-		CORSOrigins:           list("CORS_ORIGINS", "http://localhost:5173"),
+		CORSOrigins: list(
+			"CORS_ORIGINS",
+			"http://localhost:5173,http://localhost:9099,https://game-finder-swart.vercel.app",
+		),
 		AdminEmails:           list("ADMIN_EMAILS", ""),
 		UploadDir:             env("UPLOAD_DIR", "./uploads"),
 		PublicBaseURL:         strings.TrimRight(env("PUBLIC_BASE_URL", "http://localhost:8080"), "/"),

@@ -56,4 +56,13 @@ Write-Host "`n=== Then update Vercel + local .env ===`n" -ForegroundColor Cyan
 Write-Host "VITE_API_URL=$publicBase"
 Write-Host "API_URL=$publicBase"
 Write-Host "PUBLIC_BASE_URL=$publicBase"
-Write-Host "`nRedeploy Vercel after changing VITE_API_URL. Run mobile\sync-env.ps1 for the app.`n"
+$mapbox = Get-DotEnvValue 'VITE_MAPBOX_ACCESS_TOKEN'
+if (-not $mapbox) { $mapbox = Get-DotEnvValue 'MAPBOX_ACCESS_TOKEN' }
+if ($mapbox -match '^sk\.') {
+  Write-Host "# VITE_MAPBOX_ACCESS_TOKEN= use a public pk.* token in Vercel, not sk.*" -ForegroundColor Red
+} elseif ($mapbox) {
+  Write-Host "VITE_MAPBOX_ACCESS_TOKEN=$mapbox"
+} else {
+  Write-Host "# VITE_MAPBOX_ACCESS_TOKEN= (set pk.* from mapbox.com in Vercel)" -ForegroundColor DarkYellow
+}
+Write-Host "`nRedeploy Vercel after changing VITE_* vars. Run mobile\sync-env.ps1 for the app.`n"

@@ -2,7 +2,13 @@ import Map, { AttributionControl, Marker } from 'react-map-gl/mapbox'
 import { MapPin } from './icons'
 import type { Coords } from '../lib/location'
 import { configureEarthMap } from '../lib/mapboxEarth'
-import { MAPBOX_ACCESS_TOKEN, MAPBOX_MAP_PROPS, MAP_STYLE_LIGHT, mapboxConfigured } from '../lib/mapbox'
+import {
+  MAPBOX_ACCESS_TOKEN,
+  MAPBOX_MAP_PROPS,
+  MAP_STYLE_LIGHT,
+  mapboxConfigured,
+  mapboxTokenSetupError,
+} from '../lib/mapbox'
 
 /** Tap the map to drop the court pin. */
 export function LocationPicker({
@@ -14,10 +20,11 @@ export function LocationPicker({
   initial: Coords
   onChange: (c: Coords) => void
 }) {
-  if (!mapboxConfigured()) {
+  const mapboxErr = mapboxTokenSetupError()
+  if (mapboxErr || !mapboxConfigured()) {
     return (
       <div className="flex h-64 items-center justify-center rounded-2xl border border-line bg-surface-2 p-4 text-center text-xs text-ink-2">
-        Add <code className="text-ink">VITE_MAPBOX_ACCESS_TOKEN</code> to show the map.
+        {mapboxErr ?? 'Add VITE_MAPBOX_ACCESS_TOKEN (public pk.* token) to show the map.'}
       </div>
     )
   }

@@ -10,6 +10,7 @@ import {
   MAP_STYLE_DARK,
   MAP_STYLE_LIGHT,
   mapboxConfigured,
+  mapboxTokenSetupError,
 } from '../lib/mapbox'
 import { SportIcon, Users } from './icons'
 import { courtPhotoUrl } from '../lib/mediaUrl'
@@ -120,12 +121,13 @@ export function CourtMap({ courts, center, me, sportSlug, selectedId, onSelect }
     mapRef.current?.flyTo({ center: [target.longitude, target.latitude], zoom: 14, duration: 700 })
   }
 
-  if (!mapboxConfigured()) {
+  const mapboxErr = mapboxTokenSetupError()
+  if (mapboxErr || !mapboxConfigured()) {
     return (
       <div className="absolute inset-0 flex items-center justify-center bg-surface-2 p-6 text-center">
         <p className="max-w-sm text-sm text-ink-2">
-          Set <code className="text-ink">VITE_MAPBOX_ACCESS_TOKEN</code> in <code className="text-ink">.env</code> (get a
-          public token at mapbox.com), then rebuild or restart the dev server.
+          {mapboxErr ??
+            'Set VITE_MAPBOX_ACCESS_TOKEN to a public pk.* token (mapbox.com → Tokens), then rebuild or redeploy.'}
         </p>
       </div>
     )

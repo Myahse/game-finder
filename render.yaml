@@ -26,7 +26,7 @@ services:
       - key: JWT_SECRET
         sync: false
       - key: CORS_ORIGINS
-        sync: false
+        value: "http://localhost:5173,https://game-finder-swart.vercel.app"
       - key: PUBLIC_BASE_URL
         sync: false
       - key: ADMIN_EMAILS
