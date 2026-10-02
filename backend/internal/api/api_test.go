@@ -29,9 +29,10 @@ import (
 )
 
 type env struct {
-	t   *testing.T
-	srv *httptest.Server
-	db  *db.DB
+	t      *testing.T
+	srv    *httptest.Server
+	db     *db.DB
+	google *fakeGoogle
 }
 
 func setup(t *testing.T) *env {
@@ -64,7 +65,10 @@ func setup(t *testing.T) *env {
 		t.Fatal(err)
 	}
 
+	google := newFakeGoogle(t)
 	cfg := config.Config{
+		GoogleClientIDs: []string{fakeGoogleClientID},
+		GoogleJWKSURL:   google.jwks.URL,
 		JWTSecret:       []byte(strings.Repeat("s", 32)),
 		AccessTokenTTL:  time.Hour,
 		RefreshTokenTTL: time.Hour,
@@ -83,7 +87,7 @@ func setup(t *testing.T) *env {
 	srv := httptest.NewServer(api.New(cfg, d, hub, media).Routes())
 	t.Cleanup(srv.Close)
 	time.Sleep(100 * time.Millisecond) // let LISTEN attach
-	return &env{t: t, srv: srv, db: d}
+	return &env{t: t, srv: srv, db: d, google: google}
 }
 
 type user struct {

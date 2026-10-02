@@ -115,7 +115,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	var id, hash, role string
 	var suspended bool
 	err := s.db.Pool.QueryRow(r.Context(), `
-		select id, password_hash, role::text, suspended_at is not null
+		select id, coalesce(password_hash, ''), role::text, suspended_at is not null
 		from users
 		where email = lower($1) or username = $1::citext`,
 		ident).Scan(&id, &hash, &role, &suspended)

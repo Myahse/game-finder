@@ -14,6 +14,8 @@ interface AuthState {
     password: string
     avatar_url?: string
   }) => Promise<void>
+  /** Exchange a Google ID token for a session; returns true for a new account. */
+  googleSignIn: (idToken: string) => Promise<boolean>
   logout: () => Promise<void>
   updateUser: (u: Me) => void
 }
@@ -50,6 +52,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(await api<Session>('/api/auth/register', { method: 'POST', json: input }))
   }, [])
 
+  const googleSignIn = useCallback(async (idToken: string) => {
+    const s = await api<Session>('/api/auth/google', { method: 'POST', json: { id_token: idToken } })
+    setSession(s)
+    return !s.user.onboarded
+  }, [])
+
   const logout = useCallback(async () => {
     const s = getSession()
     if (s) await api('/api/auth/logout', { method: 'POST', json: { refresh_token: s.refresh_token } }).catch(() => {})
@@ -62,7 +70,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (s) setSession({ ...s, user: u })
   }, [])
 
-  const value = useMemo(() => ({ user, login, register, logout, updateUser }), [user, login, register, logout, updateUser])
+  const value = useMemo(
+    () => ({ user, login, register, googleSignIn, logout, updateUser }),
+    [user, login, register, googleSignIn, logout, updateUser],
+  )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 

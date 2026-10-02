@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { GoogleSignInButton, OrDivider } from '../components/GoogleSignInButton'
 import { LoginBottomSheet } from '../components/LoginBottomSheet'
 import { useLocale } from '../i18n/LocaleProvider'
 import { LegalFooter } from './LegalPage'
@@ -52,6 +53,8 @@ export function WelcomePage() {
           </p>
 
           <div className="mt-10 grid gap-3">
+            <GoogleSignInButton />
+            <OrDivider className="my-1 text-[#9aa3ae]" />
             <Link to="/register" className="display flex min-h-14 items-center justify-center rounded-2xl bg-brand text-2xl font-bold text-white">
               {t.welcome.createAccount}
             </Link>

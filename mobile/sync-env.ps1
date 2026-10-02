@@ -8,7 +8,7 @@ if (-not (Test-Path $assets)) {
   New-Item -ItemType Directory -Path $assets | Out-Null
 }
 
-$wanted = @('API_URL', 'VITE_API_URL', 'PUBLIC_BASE_URL', 'MAPBOX_ACCESS_TOKEN', 'VITE_MAPBOX_ACCESS_TOKEN', 'R2_PUBLIC_URL')
+$wanted = @('API_URL', 'VITE_API_URL', 'PUBLIC_BASE_URL', 'MAPBOX_ACCESS_TOKEN', 'VITE_MAPBOX_ACCESS_TOKEN', 'R2_PUBLIC_URL', 'VITE_GOOGLE_CLIENT_ID', 'GOOGLE_SERVER_CLIENT_ID', 'GOOGLE_IOS_CLIENT_ID')
 $found = @{}
 
 if (Test-Path $rootEnv) {

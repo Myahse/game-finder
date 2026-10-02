@@ -11,6 +11,7 @@ import '../core/format.dart';
 import '../core/models.dart';
 import '../ui/theme.dart';
 import '../ui/app_icons.dart';
+import '../ui/google_button.dart';
 import '../ui/widgets.dart';
 import 'legal_screens.dart';
 
@@ -162,6 +163,8 @@ class WelcomeScreen extends StatelessWidget {
               TextSpan(text: 'Find the game.', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
             ]), style: TextStyle(color: Color(0xFFC9CED6), fontSize: 20, height: 1.35)),
             const SizedBox(height: 40),
+            const GoogleSignInButton(onDark: true),
+            const SizedBox(height: 12),
             FilledButton(
               onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen())),
               child: const Text('CREATE ACCOUNT'),
@@ -258,6 +261,8 @@ class _LoginSheetState extends State<_LoginSheet> {
             const SizedBox(height: 4),
             Text('Pick up where you left off on the map.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
             const SizedBox(height: 20),
+            GoogleSignInButton(onDark: Theme.of(context).brightness == Brightness.dark),
+            const SizedBox(height: 16),
             TextField(
               controller: _login,
               keyboardType: TextInputType.text,

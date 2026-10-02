@@ -33,6 +33,10 @@ type Config struct {
 	R2SecretAccessKey string
 	R2BucketName      string
 	R2PublicURL       string // public bucket URL or custom domain (no trailing slash)
+	// Google Sign-In: OAuth client IDs whose ID tokens we accept (web, Android,
+	// iOS). Empty disables /api/auth/google.
+	GoogleClientIDs []string
+	GoogleJWKSURL   string // override Google's key set URL (tests only)
 }
 
 func (c Config) R2Enabled() bool {
@@ -64,6 +68,7 @@ func Load() (Config, error) {
 		R2SecretAccessKey:     env("R2_SECRET_ACCESS_KEY", ""),
 		R2BucketName:          env("R2_BUCKET_NAME", ""),
 		R2PublicURL:           strings.TrimRight(env("R2_PUBLIC_URL", ""), "/"),
+		GoogleClientIDs:       rawList("GOOGLE_CLIENT_IDS"),
 	}
 	// PaaS (Render, Railway, …) inject PORT; prefer it over Dockerfile ADDR=:8080.
 	if port := strings.TrimSpace(os.Getenv("PORT")); port != "" {
@@ -98,6 +103,17 @@ func duration(key string, def time.Duration) time.Duration {
 		return d
 	}
 	return def
+}
+
+// rawList splits a comma-separated value without changing case.
+func rawList(key string) []string {
+	var out []string
+	for _, s := range strings.Split(os.Getenv(key), ",") {
+		if s = strings.TrimSpace(s); s != "" {
+			out = append(out, s)
+		}
+	}
+	return out
 }
 
 func list(key, def string) []string {

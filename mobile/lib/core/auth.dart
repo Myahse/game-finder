@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import 'api.dart';
+import 'google_auth.dart';
 import 'models.dart';
 
 class AuthState extends ChangeNotifier {
@@ -33,6 +34,16 @@ class AuthState extends ChangeNotifier {
     await api.setSession(Session.fromJson(s));
   }
 
+  /// Signs in with Google. Returns null if the user closed the Google sheet,
+  /// otherwise whether a new account was created (onboarding follows).
+  Future<bool?> googleSignIn() async {
+    final idToken = await GoogleAuth.idToken();
+    if (idToken == null) return null;
+    final s = Session.fromJson(await api.post('/api/auth/google', {'id_token': idToken}));
+    await api.setSession(s);
+    return s.user['onboarded'] != true;
+  }
+
   Future<Me> updateMe(Map<String, dynamic> patch) async {
     final j = Map<String, dynamic>.from(await api.patch('/api/me', patch));
     await _storeUser(j);
@@ -58,6 +69,7 @@ class AuthState extends ChangeNotifier {
       } catch (_) {}
     }
     await api.setSession(null);
+    await GoogleAuth.signOut(); // show the account picker next time
   }
 
   @override

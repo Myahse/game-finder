@@ -37,6 +37,7 @@ type Server struct {
 	userNotifyLimit *rateLimiter
 	trustedProxies  []*net.IPNet
 	media           *storage.Media
+	google          *auth.GoogleVerifier
 }
 
 func New(cfg config.Config, d *db.DB, hub *realtime.Hub, media *storage.Media) *Server {
@@ -52,7 +53,16 @@ func New(cfg config.Config, d *db.DB, hub *realtime.Hub, media *storage.Media) *
 		userNotifyLimit: newRateLimiter(6, time.Hour),
 		trustedProxies: parseTrustedCIDRs(cfg.TrustedProxyCIDRs),
 		media:          media,
+		google:         newGoogleVerifier(cfg),
 	}
+}
+
+func newGoogleVerifier(cfg config.Config) *auth.GoogleVerifier {
+	v := auth.NewGoogleVerifier(cfg.GoogleClientIDs)
+	if cfg.GoogleJWKSURL != "" {
+		v.WithJWKSURL(cfg.GoogleJWKSURL)
+	}
+	return v
 }
 
 func parseTrustedCIDRs(raw string) []*net.IPNet {
@@ -103,6 +113,7 @@ func (s *Server) Routes() http.Handler {
 		r.Route("/auth", func(r chi.Router) {
 			r.With(s.rateLimited).Post("/register", s.register)
 			r.With(s.rateLimited).Post("/login", s.login)
+			r.With(s.rateLimited).Post("/google", s.googleSignIn)
 			r.With(s.rateLimited).Post("/refresh", s.refresh)
 			r.Post("/logout", s.logout)
 			r.With(s.rateLimitedPublic).Get("/username-available", s.usernameAvailable)

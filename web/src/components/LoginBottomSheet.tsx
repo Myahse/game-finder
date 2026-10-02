@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
+import { GoogleSignInButton, OrDivider } from './GoogleSignInButton'
 import { Button, ErrorText, Field, Input, PasswordInput } from './ui'
 
 type Props = {
@@ -86,7 +87,11 @@ export function LoginBottomSheet({ open, onClose }: Props) {
         <h2 id="login-sheet-title" className="display text-3xl font-extrabold">Log in</h2>
         <p className="mt-1 text-sm text-ink-2">Pick up where you left off on the map.</p>
 
-        <form onSubmit={submit} className="mt-5 grid gap-4">
+        <div className="mt-5 grid gap-3">
+          <GoogleSignInButton onSignedIn={onClose} showTerms={false} />
+          <OrDivider className="text-ink-2" />
+        </div>
+        <form onSubmit={submit} className="mt-4 grid gap-4">
           <Field label="Email or username">
             <Input
               type="text"

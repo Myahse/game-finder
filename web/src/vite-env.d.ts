@@ -7,4 +7,6 @@ interface ImportMetaEnv {
   readonly VITE_MAP_STYLE_LIGHT?: string
   readonly VITE_MAP_STYLE_DARK?: string
   readonly VITE_MEDIA_PUBLIC_ORIGIN?: string
+  /** Google OAuth web client ID; enables "Continue with Google". */
+  readonly VITE_GOOGLE_CLIENT_ID?: string
 }
