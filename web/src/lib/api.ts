@@ -1,11 +1,25 @@
 import type { Session } from './types'
 
-/** Fly API used when the static host has no VITE_API_URL at build time (e.g. Vercel misconfig). */
-export const DEFAULT_REMOTE_API = 'https://game-finder-api.fly.dev'
+/** Production API fallback when VITE_API_URL was not set at build time (set VITE_API_URL on Vercel). */
+export const DEFAULT_REMOTE_API = 'https://game-finder-api.onrender.com'
+
+const LEGACY_API_HOSTS = new Set(['game-finder-api.fly.dev'])
+
+/** Vite bakes VITE_API_URL at build time; rewrite retired Fly hosts to Render. */
+function viteApiUrl(): string | undefined {
+  const raw = import.meta.env.VITE_API_URL?.trim().replace(/\/$/, '')
+  if (!raw) return undefined
+  try {
+    if (LEGACY_API_HOSTS.has(new URL(raw).hostname)) return DEFAULT_REMOTE_API
+  } catch {
+    // ignore
+  }
+  return raw
+}
 
 /** API + upload host. Prefer same-origin (nginx/vite proxy); LAN-safe when env points at localhost. */
 export function apiOrigin(): string {
-  const env = import.meta.env.VITE_API_URL?.trim().replace(/\/$/, '')
+  const env = viteApiUrl()
   if (typeof window !== 'undefined') {
     const pageHost = window.location.hostname
     const onLan = pageHost !== 'localhost' && pageHost !== '127.0.0.1'
@@ -41,7 +55,8 @@ export function apiOrigin(): string {
 }
 
 /** @deprecated use apiOrigin() — kept for imports that expect a string at load time */
-export const API_URL = typeof window !== 'undefined' ? apiOrigin() : (import.meta.env.VITE_API_URL?.trim() || 'http://localhost:8080').replace(/\/$/, '')
+export const API_URL =
+  typeof window !== 'undefined' ? apiOrigin() : (viteApiUrl() || 'http://localhost:8080').replace(/\/$/, '')
 
 const STORAGE_KEY = 'ftg.session'
 
