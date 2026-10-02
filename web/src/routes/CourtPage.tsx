@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
 import { formatDistance, timeAgo } from '../lib/format'
 import { CourtAddPhotos } from '../components/CourtAddPhotos'
-import { CourtHoursEditor } from '../components/CourtHoursEditor'
+import { CourtInfoEditor } from '../components/CourtInfoEditor'
 import { CourtPhotoStrip } from '../components/CourtPhotoStrip'
 import { useAuth } from '../lib/auth'
 import { useLocation } from '../lib/location'
@@ -17,7 +17,7 @@ export function CourtPage() {
   const { user } = useAuth()
   const { coords } = useLocation()
   const { data: court, isLoading } = useCourt(id, coords)
-  const canAddPhotos =
+  const canEditCourt =
     !!user && !!court && (court.created_by === user.id || user.role === 'admin')
 
   if (isLoading) return <Loading />
@@ -27,12 +27,10 @@ export function CourtPage() {
     <div className="pb-10">
       <PageHeader title={court.name} back={`/?court=${court.id}`} />
       <CourtPhotoStrip photos={court.photos} />
-      {id && <CourtAddPhotos courtId={id} photos={court.photos} canAdd={canAddPhotos} />}
+      {id && <CourtAddPhotos courtId={id} photos={court.photos} canAdd={canEditCourt} />}
 
       <div className="mx-auto grid max-w-2xl gap-4 p-4">
-        {id && (
-          <CourtHoursEditor courtId={id} openingHours={court.opening_hours} canEdit={canAddPhotos} />
-        )}
+        <CourtInfoEditor court={court} canEdit={canEditCourt} />
         {court.status !== 'approved' && (
           <p className="rounded-xl bg-players/20 p-3 text-sm font-medium">
             {court.status === 'pending' ? (
@@ -81,38 +79,40 @@ export function CourtPage() {
           )}
         </section>
 
-        <Card>
-          <h2 className="display mb-3 text-2xl font-bold">Court info</h2>
-          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
-            <Info
-              label="Sports"
-              value={
-                <span className="flex flex-wrap gap-x-3 gap-y-1">
-                  {court.sports.map((s) => <SportName key={s.id} sport={s} />)}
-                </span>
-              }
-            />
-            <Info label="Address" value={court.address} />
-            <Info label="Opening hours" value={court.opening_hours} />
-            <Info label="Surface" value={court.surface} />
-            <Info
-              label="Lighting"
-              value={
-                court.lighting == null
-                  ? null
-                  : court.lighting
-                    ? (
-                        <span className="inline-flex items-center gap-1.5">
-                          <Lightbulb className="size-4 shrink-0" aria-hidden />
-                          Lit at night
-                        </span>
-                      )
-                    : 'No lights'
-              }
-            />
-          </dl>
-          {court.description && <p className="mt-3 text-sm text-ink-2">{court.description}</p>}
-        </Card>
+        {!canEditCourt && (
+          <Card>
+            <h2 className="display mb-3 text-2xl font-bold">Court info</h2>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+              <Info
+                label="Sports"
+                value={
+                  <span className="flex flex-wrap gap-x-3 gap-y-1">
+                    {court.sports.map((s) => <SportName key={s.id} sport={s} />)}
+                  </span>
+                }
+              />
+              <Info label="Address" value={court.address} />
+              <Info label="Opening hours" value={court.opening_hours} />
+              <Info label="Surface" value={court.surface} />
+              <Info
+                label="Lighting"
+                value={
+                  court.lighting == null
+                    ? null
+                    : court.lighting
+                      ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <Lightbulb className="size-4 shrink-0" aria-hidden />
+                            Lit at night
+                          </span>
+                        )
+                      : 'No lights'
+                }
+              />
+            </dl>
+            {court.description && <p className="mt-3 text-sm text-ink-2">{court.description}</p>}
+          </Card>
+        )}
       </div>
     </div>
   )

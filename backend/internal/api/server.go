@@ -129,6 +129,7 @@ func (s *Server) Routes() http.Handler {
 			r.With(s.rateLimitedUser("court")).Post("/courts", s.proposeCourt)
 			r.With(s.rateLimitedUser("court")).Post("/courts/{id}/photos", s.addCourtPhotos)
 			r.With(s.rateLimitedUser("court")).Patch("/courts/{id}/hours", s.patchCourtHours)
+			r.With(s.rateLimitedUser("court")).Patch("/courts/{id}/info", s.patchCourtInfo)
 			r.Post("/courts/{id}/reports", s.reportCourt)
 
 			r.Get("/games/nearby", s.gamesNearby)

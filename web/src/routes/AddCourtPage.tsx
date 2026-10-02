@@ -20,6 +20,9 @@ export function AddCourtPage() {
   const [description, setDescription] = useState('')
   const [opensAt, setOpensAt] = useState('')
   const [closesAt, setClosesAt] = useState('')
+  const [address, setAddress] = useState('')
+  const [surface, setSurface] = useState('')
+  const [lighting, setLighting] = useState<'unknown' | 'yes' | 'no'>('unknown')
   const [photos, setPhotos] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
@@ -61,6 +64,9 @@ export function AddCourtPage() {
           photos,
           opening_hours:
             opensAt.trim() && closesAt.trim() ? formatOpeningHours(opensAt.trim(), closesAt.trim()) : null,
+          address: address.trim() || null,
+          surface: surface.trim() || null,
+          lighting: lighting === 'unknown' ? null : lighting === 'yes',
         },
       })
       setDoneCourt(court)
@@ -136,11 +142,28 @@ export function AddCourtPage() {
             )}
           </div>
         </Field>
+        <Field label="Address (optional)">
+          <Input placeholder="Street or place name" value={address} onChange={(e) => setAddress(e.target.value)} />
+        </Field>
         <Field label="Opening hours (optional)" hint="24-hour format">
           <div className="grid grid-cols-2 gap-3">
             <Input type="time" aria-label="Opens" value={opensAt} onChange={(e) => setOpensAt(e.target.value)} />
             <Input type="time" aria-label="Closes" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} />
           </div>
+        </Field>
+        <Field label="Surface (optional)">
+          <Input placeholder="e.g. Concrete, grass" value={surface} onChange={(e) => setSurface(e.target.value)} />
+        </Field>
+        <Field label="Lighting (optional)">
+          <select
+            className="w-full rounded-xl border border-line bg-surface-2 px-3 py-2.5 text-sm"
+            value={lighting}
+            onChange={(e) => setLighting(e.target.value as 'unknown' | 'yes' | 'no')}
+          >
+            <option value="unknown">Not specified</option>
+            <option value="yes">Lit at night</option>
+            <option value="no">No lights</option>
+          </select>
         </Field>
         <Field label="Description (optional)">
           <Textarea maxLength={1000} placeholder="Hoops, surface, lights, best times…" value={description} onChange={(e) => setDescription(e.target.value)} />

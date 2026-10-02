@@ -359,8 +359,14 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> with _CourtLoad
   String? _photoError;
   TimeOfDay? _opens;
   TimeOfDay? _closes;
-  bool _savingHours = false;
-  String? _hoursError;
+  bool _savingInfo = false;
+  String? _infoError;
+  String? _infoSyncedForCourtId;
+  final _address = TextEditingController();
+  final _surface = TextEditingController();
+  final _description = TextEditingController();
+  bool? _lighting;
+  Set<String> _sportIds = {};
 
   @override
   String get courtId => widget.courtId;
@@ -371,37 +377,50 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> with _CourtLoad
     startLoading();
   }
 
-  void _syncHoursFromCourt(Court c) {
+  void _syncInfoFromCourt(Court c) {
+    if (_infoSyncedForCourtId == c.id) return;
+    _infoSyncedForCourtId = c.id;
     final p = parseOpeningHours(c.openingHours);
-    if (p != null) {
-      _opens = hmToTimeOfDay(p.opens);
-      _closes = hmToTimeOfDay(p.closes);
-    }
+    _opens = p != null ? hmToTimeOfDay(p.opens) : null;
+    _closes = p != null ? hmToTimeOfDay(p.closes) : null;
+    _address.text = c.address ?? '';
+    _surface.text = c.surface ?? '';
+    _description.text = c.description ?? '';
+    _lighting = c.lighting;
+    _sportIds = c.sports.map((s) => s.id).toSet();
   }
 
-  Future<void> _saveHours() async {
+  @override
+  void dispose() {
+    _address.dispose();
+    _surface.dispose();
+    _description.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveCourtInfo() async {
     final c = court;
-    if (c == null) return;
+    if (c == null || _sportIds.isEmpty) return;
     setState(() {
-      _savingHours = true;
-      _hoursError = null;
+      _savingInfo = true;
+      _infoError = null;
     });
     try {
-      final Map<String, dynamic> body;
-      if (_opens != null && _closes != null) {
-        body = {
-          'opens_at': timeOfDayToHm(_opens!),
-          'closes_at': timeOfDayToHm(_closes!),
-        };
-      } else {
-        body = {'opens_at': null, 'closes_at': null};
-      }
-      await context.read<Api>().patch('/api/courts/${c.id}/hours', body);
+      await context.read<Api>().patch('/api/courts/${c.id}/info', {
+        'opens_at': _opens != null ? timeOfDayToHm(_opens!) : '',
+        'closes_at': _closes != null ? timeOfDayToHm(_closes!) : '',
+        'address': _address.text.trim(),
+        'surface': _surface.text.trim(),
+        'description': _description.text.trim(),
+        'lighting': _lighting,
+        'sport_ids': _sportIds.toList(),
+      });
+      _infoSyncedForCourtId = null;
       await load();
     } catch (e) {
-      setState(() => _hoursError = errorText(e));
+      setState(() => _infoError = errorText(e));
     } finally {
-      if (mounted) setState(() => _savingHours = false);
+      if (mounted) setState(() => _savingInfo = false);
     }
   }
 
@@ -433,8 +452,8 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> with _CourtLoad
     final canAddPhotos =
         c != null && me != null && (c.createdBy == me.id || me.isAdmin) && c.photos.length < 6;
     final canEditCourt = c != null && me != null && (c.createdBy == me.id || me.isAdmin);
-    if (c != null && _opens == null && _closes == null && c.openingHours != null) {
-      _syncHoursFromCourt(c);
+    if (c != null && canEditCourt) {
+      _syncInfoFromCourt(c);
     }
     return Scaffold(
       appBar: AppBar(title: Text(c?.name.toUpperCase() ?? '')),
@@ -473,7 +492,30 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> with _CourtLoad
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                        Text('OPENING HOURS', style: Theme.of(context).textTheme.titleMedium),
+                        Text('COURT INFO', style: Theme.of(context).textTheme.titleMedium),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: [
+                            for (final s in c.sports)
+                              FilterChip(
+                                label: SportInline(s),
+                                selected: _sportIds.contains(s.id),
+                                onSelected: (on) {
+                                  setState(() {
+                                    if (on) {
+                                      _sportIds.add(s.id);
+                                    } else if (_sportIds.length > 1) {
+                                      _sportIds.remove(s.id);
+                                    }
+                                  });
+                                },
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(controller: _address, decoration: const InputDecoration(labelText: 'Address')),
                         const SizedBox(height: 8),
                         Row(children: [
                           Expanded(
@@ -485,7 +527,7 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> with _CourtLoad
                                 );
                                 if (t != null) setState(() => _opens = t);
                               },
-                              child: Text(_opens == null ? 'Opens' : 'Opens ${timeOfDayToHm(_opens!)}'),
+                              child: Text(_opens == null ? 'Opens' : timeOfDayToHm(_opens!)),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -498,21 +540,40 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> with _CourtLoad
                                 );
                                 if (t != null) setState(() => _closes = t);
                               },
-                              child: Text(_closes == null ? 'Closes' : 'Closes ${timeOfDayToHm(_closes!)}'),
+                              child: Text(_closes == null ? 'Closes' : timeOfDayToHm(_closes!)),
                             ),
                           ),
                         ]),
                         const SizedBox(height: 8),
-                        PrimaryButton(
-                          onPressed: _savingHours ? null : _saveHours,
-                          child: _savingHours
-                              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                              : const Text('SAVE HOURS'),
+                        TextField(controller: _surface, decoration: const InputDecoration(labelText: 'Surface')),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<bool?>(
+                          value: _lighting,
+                          decoration: const InputDecoration(labelText: 'Lighting'),
+                          items: const [
+                            DropdownMenuItem(value: null, child: Text('Not specified')),
+                            DropdownMenuItem(value: true, child: Text('Lit at night')),
+                            DropdownMenuItem(value: false, child: Text('No lights')),
+                          ],
+                          onChanged: (v) => setState(() => _lighting = v),
                         ),
-                        if (_hoursError != null)
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _description,
+                          maxLines: 3,
+                          decoration: const InputDecoration(labelText: 'Description'),
+                        ),
+                        const SizedBox(height: 12),
+                        PrimaryButton(
+                          onPressed: _savingInfo ? null : _saveCourtInfo,
+                          child: _savingInfo
+                              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                              : const Text('SAVE COURT INFO'),
+                        ),
+                        if (_infoError != null)
                           Padding(
                             padding: const EdgeInsets.only(top: 8),
-                            child: Text(_hoursError!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                            child: Text(_infoError!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
                           ),
                       ]),
                     ),
@@ -546,6 +607,7 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> with _CourtLoad
                       onTap: () => openGameScreen(context, g.id),
                     ),
                   ),
+                if (!canEditCourt) ...[
                 const SizedBox(height: 16),
                 Card(
                   child: Padding(
@@ -572,6 +634,7 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> with _CourtLoad
                     ]),
                   ),
                 ),
+                ],
               ]),
             ),
     );
