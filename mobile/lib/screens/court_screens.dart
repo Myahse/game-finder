@@ -722,8 +722,9 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen>
                                               minute: 0,
                                             ),
                                       );
-                                      if (t != null)
+                                      if (t != null) {
                                         setState(() => _closes = t);
+                                      }
                                     },
                                     child: Text(
                                       _closes == null
@@ -743,7 +744,9 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen>
                             ),
                             const SizedBox(height: 8),
                             DropdownButtonFormField<bool?>(
-                              value: _lighting,
+                              // Rebuild with the court's value once it loads.
+                              key: ValueKey('lighting-$_infoSyncedForCourtId'),
+                              initialValue: _lighting,
                               decoration: const InputDecoration(
                                 labelText: 'Lighting',
                               ),
@@ -1038,8 +1041,9 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
   }
 
   Future<void> _submit() async {
-    if (_where == null)
+    if (_where == null) {
       return setState(() => _error = 'Tap the map to place the court.');
+    }
     setState(() {
       _busy = true;
       _error = null;
@@ -1061,7 +1065,7 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
             ? null
             : _description.text.trim(),
         'photos': _photos,
-        if (openingHours != null) 'opening_hours': openingHours,
+        'opening_hours': ?openingHours,
         if (_address.text.trim().isNotEmpty) 'address': _address.text.trim(),
       });
       final court = Court.fromJson(j as Map<String, dynamic>);
@@ -1424,7 +1428,7 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
                           width: 72,
                           height: 72,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
+                          errorBuilder: (_, _, _) =>
                               const Icon(Icons.broken_image_outlined),
                         ),
                       ),

@@ -7,7 +7,6 @@ import '../screens/lists_screens.dart';
 import 'app_icons.dart';
 import 'live_enter.dart';
 import 'theme.dart';
-import 'widgets.dart';
 
 /// Maresi-style docked sheet: handle + header + horizontal game cards.
 class MapGamesRail extends StatelessWidget {
@@ -95,8 +94,8 @@ class MapGamesRail extends StatelessWidget {
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     itemCount: 3,
-                    separatorBuilder: (_, __) => const SizedBox(width: 12),
-                    itemBuilder: (_, __) => _SkeletonCard(width: cardW),
+                    separatorBuilder: (_, _) => const SizedBox(width: 12),
+                    itemBuilder: (_, _) => _SkeletonCard(width: cardW),
                   )
                 : sorted.isEmpty
                     ? Padding(
@@ -137,7 +136,7 @@ class MapGamesRail extends StatelessWidget {
                         scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                         itemCount: sorted.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 12),
+                        separatorBuilder: (_, _) => const SizedBox(width: 12),
                         itemBuilder: (_, i) {
                           final g = sorted[i];
                           return SizedBox(

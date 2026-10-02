@@ -109,7 +109,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (me.isAdmin)
             const Padding(
               padding: EdgeInsets.only(top: 12),
-              child: Card(child: ListTile(leading: const Icon(Icons.build_outlined), title: Text('Admin tools are in the web dashboard'))),
+              child: Card(child: ListTile(leading: Icon(Icons.build_outlined), title: Text('Admin tools are in the web dashboard'))),
             ),
           const SizedBox(height: 16),
           OutlinedButton(

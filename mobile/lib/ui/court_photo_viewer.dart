@@ -39,7 +39,7 @@ class CourtPhotoViewerScreen extends StatelessWidget {
             child: Image.network(
               urls[i],
               fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_outlined, color: Colors.white54, size: 48),
+              errorBuilder: (_, _, _) => const Icon(Icons.broken_image_outlined, color: Colors.white54, size: 48),
             ),
           ),
         ),
@@ -63,7 +63,7 @@ class CourtPhotoStrip extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: photos.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (_, i) {
           final url = resolveMediaUrl(photos[i]);
           return GestureDetector(
@@ -75,7 +75,7 @@ class CourtPhotoStrip extends StatelessWidget {
                 width: 280,
                 height: height,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+                errorBuilder: (_, _, _) => Container(
                   width: 280,
                   height: height,
                   color: Colors.black12,

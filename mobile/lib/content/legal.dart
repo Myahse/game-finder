@@ -1,4 +1,5 @@
 /// Terms & privacy copy (align with web/src/content/legal.ts).
+library;
 
 const legalLastUpdated = 'October 2025';
 

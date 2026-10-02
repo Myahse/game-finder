@@ -53,6 +53,7 @@ dependencies:
   network_info_plus: ^8.2.1
   mapbox_maps_flutter: ^3.0.0
   google_sign_in: ^7.2.0
+  http_parser: ^4.1.2
 
 dev_dependencies:
   flutter_test:

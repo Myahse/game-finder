@@ -14,10 +14,8 @@ class CourtMapPin extends StatelessWidget {
   final String? placementSportSlug;
   final String? placementPhotoUrl;
 
-  const CourtMapPin({super.key, required Court court, required VoidCallback onTap, this.sportSlug})
-      : court = court,
-        onTap = onTap,
-        placementSportSlug = null,
+  const CourtMapPin({super.key, required Court this.court, required VoidCallback this.onTap, this.sportSlug})
+      : placementSportSlug = null,
         placementPhotoUrl = null;
 
   const CourtMapPin.placement({super.key, this.placementSportSlug, this.placementPhotoUrl})
@@ -86,7 +84,7 @@ class CourtMapPin extends StatelessWidget {
                             fit: BoxFit.cover,
                             width: size,
                             height: size,
-                            errorBuilder: (_, __, ___) => _thumb(slug, activity),
+                            errorBuilder: (_, _, _) => _thumb(slug, activity),
                           )
                         : _thumb(slug, activity),
                   ),
@@ -98,7 +96,7 @@ class CourtMapPin extends StatelessWidget {
               ),
             ],
           ),
-          if (showCount && c != null)
+          if (showCount)
             Positioned(
               top: size - 14,
               child: Container(

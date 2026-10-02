@@ -521,7 +521,7 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
                     width: 72,
                     height: 72,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_outlined),
+                    errorBuilder: (_, _, _) => const Icon(Icons.broken_image_outlined),
                   ),
                 ),
               for (final p in _placePhotos)
@@ -532,7 +532,7 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
                     width: 72,
                     height: 72,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_outlined),
+                    errorBuilder: (_, _, _) => const Icon(Icons.broken_image_outlined),
                   ),
                 ),
               if (court.photos.length + _placePhotos.length < 6)
