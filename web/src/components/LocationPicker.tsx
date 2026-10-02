@@ -2,7 +2,7 @@ import Map, { AttributionControl, Marker } from 'react-map-gl/mapbox'
 import { MapPin } from './icons'
 import type { Coords } from '../lib/location'
 import { configureEarthMap } from '../lib/mapboxEarth'
-import { MAPBOX_ACCESS_TOKEN, MAP_STYLE_LIGHT, mapboxConfigured } from '../lib/mapbox'
+import { MAPBOX_ACCESS_TOKEN, MAPBOX_MAP_PROPS, MAP_STYLE_LIGHT, mapboxConfigured } from '../lib/mapbox'
 
 /** Tap the map to drop the court pin. */
 export function LocationPicker({
@@ -25,6 +25,7 @@ export function LocationPicker({
   return (
     <div className="relative h-64 overflow-hidden rounded-2xl border border-line">
       <Map
+        {...MAPBOX_MAP_PROPS}
         mapboxAccessToken={MAPBOX_ACCESS_TOKEN}
         initialViewState={{ longitude: initial.longitude, latitude: initial.latitude, zoom: 15, bearing: 0, pitch: 0 }}
         minZoom={2}

@@ -1,8 +1,3 @@
-import mapboxgl from 'mapbox-gl'
-
-// Ad blockers block events.mapbox.com and flood the console; maps work fine without telemetry.
-mapboxgl.config.EVENTS_URL = null
-
 /** Mapbox GL styles. Override with VITE_MAP_STYLE_LIGHT / VITE_MAP_STYLE_DARK if needed. */
 export const MAPBOX_ACCESS_TOKEN = (import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ?? '').trim()
 
@@ -15,3 +10,8 @@ export const MAP_STYLE_DARK =
 export function mapboxConfigured(): boolean {
   return MAPBOX_ACCESS_TOKEN.length > 0
 }
+
+/** react-map-gl forwards these to mapbox-gl Map. EVENTS_URL is read-only in v3+; do not assign it. */
+export const MAPBOX_MAP_PROPS = {
+  performanceMetricsCollection: false,
+} as const

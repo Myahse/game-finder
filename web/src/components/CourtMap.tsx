@@ -4,7 +4,13 @@ import Supercluster, { type ClusterProperties } from 'supercluster'
 import type { Coords } from '../lib/location'
 import { UserLocationPulse } from './UserLocationPulse'
 import { configureEarthMap } from '../lib/mapboxEarth'
-import { MAPBOX_ACCESS_TOKEN, MAP_STYLE_DARK, MAP_STYLE_LIGHT, mapboxConfigured } from '../lib/mapbox'
+import {
+  MAPBOX_ACCESS_TOKEN,
+  MAPBOX_MAP_PROPS,
+  MAP_STYLE_DARK,
+  MAP_STYLE_LIGHT,
+  mapboxConfigured,
+} from '../lib/mapbox'
 import { SportIcon, Users } from './icons'
 import { courtPhotoUrl } from '../lib/mediaUrl'
 import type { Activity, Court } from '../lib/types'
@@ -128,6 +134,7 @@ export function CourtMap({ courts, center, me, sportSlug, selectedId, onSelect }
   return (
     <div className="absolute inset-0">
       <Map
+        {...MAPBOX_MAP_PROPS}
         ref={mapRef}
         mapboxAccessToken={MAPBOX_ACCESS_TOKEN}
         initialViewState={{ longitude: center.longitude, latitude: center.latitude, zoom: 13, bearing: 0, pitch: 0 }}
