@@ -1,5 +1,8 @@
 import type { Session } from './types'
 
+/** Fly API used when the static host has no VITE_API_URL at build time (e.g. Vercel misconfig). */
+export const DEFAULT_REMOTE_API = 'https://game-finder-api.fly.dev'
+
 /** API + upload host. Prefer same-origin (nginx/vite proxy); LAN-safe when env points at localhost. */
 export function apiOrigin(): string {
   const env = import.meta.env.VITE_API_URL?.trim().replace(/\/$/, '')
@@ -15,7 +18,12 @@ export function apiOrigin(): string {
         return `${window.location.protocol}//${pageHost}:8080`
       }
     }
-    if (!env) return window.location.origin
+    if (!env) {
+      if (pageHost === 'localhost' || pageHost === '127.0.0.1') {
+        return window.location.origin
+      }
+      return DEFAULT_REMOTE_API
+    }
 
     // Vite/nginx serve /api and /uploads on the app port; avoid broken :8080 image URLs in dev.
     try {
