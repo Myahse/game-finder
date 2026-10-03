@@ -38,13 +38,14 @@ const en = {
   onboarding: {
     welcome: 'Welcome',
     title: 'Set up your court radar',
-    subtitle: 'Confirm your profile, then pick your sport.',
+    subtitle: 'Confirm your profile, pick your sport, and choose your level.',
     profile: 'Your profile',
     usernameHint: '3–24 letters, numbers, _ or .',
     usernameTaken: 'That username is taken.',
     email: 'Email',
     sport: 'Your sport',
     sportHint: "Pick the one sport you play. The map and games stay on that sport — it can't be changed later.",
+    levelHint: 'Pick the level that fits you today. Games use this as a guide for who joins.',
     comingSoon: 'Coming soon:',
     openMap: 'Open the map',
     locationHint: 'Turn on location on the map for distances and nearby alerts.',
@@ -110,7 +111,7 @@ const fr: MessageTree = {
   onboarding: {
     welcome: 'Bienvenue',
     title: 'Configurez votre radar',
-    subtitle: 'Confirmez votre profil, puis choisissez votre sport.',
+    subtitle: 'Confirmez votre profil, choisissez votre sport et votre niveau.',
     profile: 'Votre profil',
     usernameHint: '3–24 lettres, chiffres, _ ou .',
     usernameTaken: "Ce nom d'utilisateur est pris.",
@@ -118,6 +119,7 @@ const fr: MessageTree = {
     sport: 'Votre sport',
     sportHint:
       "Choisissez un seul sport. La carte et les matchs restent sur ce sport — ce choix ne peut pas être modifié.",
+    levelHint: 'Choisissez le niveau qui vous correspond. Les matchs s’en servent pour indiquer qui peut rejoindre.',
     comingSoon: 'Bientôt :',
     openMap: 'Ouvrir la carte',
     locationHint: 'Activez la localisation sur la carte pour les distances et alertes.',

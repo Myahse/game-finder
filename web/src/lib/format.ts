@@ -60,6 +60,9 @@ export const skillLabels: Record<SkillLevel, string> = {
   all_levels: 'All levels',
 }
 
+/** Skill options for a player profile (not game hosting). */
+export const playerSkillLevels: SkillLevel[] = ['beginner', 'intermediate', 'advanced']
+
 export const gameTypeLabels: Record<GameType, string> = {
   pickup: 'Pickup',
   training: 'Training',
