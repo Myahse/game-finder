@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { api, errorMessage, uploadImage } from '../lib/api'
 import { resolveMediaUrl } from '../lib/mediaUrl'
 import { useLocation, type Coords } from '../lib/location'
@@ -10,10 +10,22 @@ import { useCourtsNearby, useSports } from '../lib/queries'
 import type { Court } from '../lib/types'
 import { CourtPlacementMap } from '../components/CourtPlacementMap'
 import { Hourglass, Plus, SportName } from '../components/icons'
-import { StepFlow, useStepFlow } from '../components/StepFlow'
 import { formatOpeningHours } from '../lib/openingHours'
 import { reverseGeocode } from '../lib/reverseGeocode'
-import { Button, ErrorText, Field, Input, PageHeader, Textarea } from '../components/ui'
+import { Button, ErrorText, Field, Input, Textarea } from '../components/ui'
+
+function StepDots({ step, total }: { step: number; total: number }) {
+  return (
+    <div className="flex items-center justify-center gap-2" aria-hidden>
+      {Array.from({ length: total }, (_, i) => (
+        <span
+          key={i}
+          className={`h-1.5 rounded-full transition-all ${i === step ? 'w-8 bg-brand' : i < step ? 'w-4 bg-brand/50' : 'w-4 bg-line'}`}
+        />
+      ))}
+    </div>
+  )
+}
 
 export function AddCourtPage() {
   const navigate = useNavigate()
@@ -25,7 +37,7 @@ export function AddCourtPage() {
   const { data: nearbyCourts } = useCourtsNearby(mapCenter, sportSlug, LIST_NEARBY_RADIUS_KM)
   const { data: sports } = useSports()
   const isAdmin = user?.role === 'admin'
-  const { step, setStep } = useStepFlow()
+  const [step, setStep] = useState(0)
   const [name, setName] = useState('')
   const [where, setWhere] = useState<Coords | null>(null)
   const [sportIds, setSportIds] = useState<string[]>([])
@@ -48,6 +60,15 @@ export function AddCourtPage() {
   useEffect(() => {
     if (mySport && !isAdmin) setSportIds([mySport.id])
   }, [mySport?.id, isAdmin])
+
+  useEffect(() => {
+    if (step !== 0) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [step])
 
   const onPickLocation = useCallback(async (c: Coords) => {
     setWhere(c)
@@ -130,128 +151,157 @@ export function AddCourtPage() {
 
   const mapInitial = where ?? coords ?? center
 
-  return (
-    <div className="pb-10">
-      <PageHeader title="Add a court" back="/" />
-      <div className="mx-auto max-w-md p-5">
-        <StepFlow
-          step={step}
-          stepCount={2}
-          onStepChange={setStep}
-          onStepAdvance={() => setStep(1)}
-          onSubmit={submit}
-          canNext={step === 0 ? !!where : !!sportIds.length && !uploading}
-          busy={busy}
-          nextLabel="Next: court details"
-          submitLabel="Submit court"
-        >
-          {[
-            <div key="map" className="-mx-1 grid gap-2">
-              <p className="text-sm text-ink-2">
-                Gray dots are existing courts. Blue dot is you. Zoom and pan, then tap to place the orange pin.
-              </p>
-              <div className="relative h-[min(72dvh,520px)] overflow-hidden rounded-2xl border border-line">
-                <CourtPlacementMap
-                  value={where}
-                  initial={mapInitial}
-                  onChange={onPickLocation}
-                  me={coords}
-                  courts={nearbyCourts ?? []}
-                  className="absolute inset-0"
-                  edgePinHint
-                />
-              </div>
-              {coords && !where && (
-                <button type="button" className="text-sm font-semibold text-brand" onClick={pinMyPosition}>
-                  I&apos;m at the court — pin my position
-                </button>
-              )}
-            </div>,
-            <div key="details" className="grid gap-5">
-              <Field label="Name">
-                <Input
-                  required
-                  minLength={2}
-                  maxLength={80}
-                  placeholder="e.g. Terrain Mockeyville"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </Field>
-              <p className="text-sm text-ink-2">
-                Location set on map.
-                <button type="button" className="ml-2 font-semibold text-brand" onClick={() => setStep(0)}>
-                  Adjust pin
-                </button>
-              </p>
-              <Field label="Sport" hint={!isAdmin ? 'Your account sport — courts are tagged for your game type only.' : undefined}>
-                {mySport && !isAdmin ? (
-                  <p className="flex items-center gap-2 rounded-xl border border-brand bg-brand/10 px-4 py-3 font-semibold">
-                    <SportName sport={mySport} />
-                  </p>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {sports?.map((s) => (
-                      <button
-                        key={s.id}
-                        type="button"
-                        onClick={() => toggleSport(s.id)}
-                        aria-pressed={sportIds.includes(s.id)}
-                        className={`rounded-xl border-2 px-3 py-2 font-semibold ${sportIds.includes(s.id) ? 'border-brand bg-brand/10' : 'border-line bg-surface'}`}
-                      >
-                        <SportName sport={s} />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </Field>
-              <Field label="Photos (optional)">
-                <div className="flex flex-wrap gap-2">
-                  {photos.map((p) => (
-                    <img key={p} src={resolveMediaUrl(p)} alt="" className="size-20 rounded-xl object-cover" />
-                  ))}
-                  {photos.length < 6 && (
-                    <label className="flex size-20 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-line text-2xl text-ink-2">
-                      {uploading ? '…' : <Plus className="size-8" aria-hidden />}
-                      <input type="file" multiple accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => addPhotos(e.target.files)} />
-                    </label>
-                  )}
-                </div>
-              </Field>
-              <Field
-                label="Address (optional)"
-                hint={geocodingAddress ? 'Looking up address from the map…' : 'Filled automatically from the pin. You can edit it.'}
-              >
-                <Input placeholder="Street or place name" value={address} onChange={(e) => setAddress(e.target.value)} />
-              </Field>
-              <Field label="Opening hours (optional)" hint="24-hour format">
-                <div className="grid grid-cols-2 gap-3">
-                  <Input type="time" aria-label="Opens" value={opensAt} onChange={(e) => setOpensAt(e.target.value)} />
-                  <Input type="time" aria-label="Closes" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} />
-                </div>
-              </Field>
-              <Field label="Surface (optional)">
-                <Input placeholder="e.g. Concrete, grass" value={surface} onChange={(e) => setSurface(e.target.value)} />
-              </Field>
-              <Field label="Lighting (optional)">
-                <select
-                  className="w-full rounded-xl border border-line bg-surface-2 px-3 py-2.5 text-sm"
-                  value={lighting}
-                  onChange={(e) => setLighting(e.target.value as 'unknown' | 'yes' | 'no')}
-                >
-                  <option value="unknown">Not specified</option>
-                  <option value="yes">Lit at night</option>
-                  <option value="no">No lights</option>
-                </select>
-              </Field>
-              <Field label="Description (optional)">
-                <Textarea maxLength={1000} placeholder="Hoops, surface, lights, best times…" value={description} onChange={(e) => setDescription(e.target.value)} />
-              </Field>
-            </div>,
-          ]}
-        </StepFlow>
-        {error ? <div className="mt-3"><ErrorText>{error}</ErrorText></div> : null}
+  if (step === 0) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col bg-bg">
+        <header className="flex shrink-0 items-center gap-2 border-b border-line bg-surface/95 px-3 py-2.5 backdrop-blur pt-[max(0.5rem,env(safe-area-inset-top))]">
+          <Link to="/" className="-ml-1 rounded-lg p-2 text-ink-2 hover:text-ink" aria-label="Back to map">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+              <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </Link>
+          <div className="min-w-0 flex-1">
+            <h1 className="display truncate text-2xl font-extrabold">Place court</h1>
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-2">Step 1 of 2</p>
+          </div>
+          <StepDots step={0} total={2} />
+        </header>
+
+        <div className="relative min-h-0 flex-1">
+          <CourtPlacementMap
+            value={where}
+            initial={mapInitial}
+            onChange={onPickLocation}
+            me={coords}
+            courts={nearbyCourts ?? []}
+            className="absolute inset-0"
+            edgePinHint
+          />
+          <p className="pointer-events-none absolute inset-x-4 top-3 z-10 rounded-xl bg-surface/90 px-3 py-2 text-center text-xs font-medium text-ink-2 shadow backdrop-blur">
+            Gray dots = courts · blue = you · tap to drop the orange pin
+          </p>
+        </div>
+
+        <div className="shrink-0 space-y-2 border-t border-line bg-surface px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          {coords && !where && (
+            <button type="button" className="w-full text-center text-sm font-semibold text-brand" onClick={pinMyPosition}>
+              I&apos;m at the court — pin my position
+            </button>
+          )}
+          {error ? <ErrorText>{error}</ErrorText> : null}
+          <Button type="button" className="w-full" disabled={!where} onClick={() => { setError(''); setStep(1) }}>
+            Next: court details
+          </Button>
+        </div>
       </div>
-    </div>
+    )
+  }
+
+  return (
+    <form onSubmit={submit} className="min-h-full pb-10">
+      <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-line bg-bg/90 px-4 py-3 backdrop-blur">
+        <button
+          type="button"
+          className="-ml-2 rounded-lg p-2 text-ink-2 hover:text-ink"
+          aria-label="Back to map"
+          onClick={() => setStep(0)}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+            <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        <div className="min-w-0 flex-1">
+          <h1 className="display truncate text-3xl font-extrabold">Court details</h1>
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink-2">Step 2 of 2</p>
+        </div>
+        <StepDots step={1} total={2} />
+      </header>
+
+      <div className="mx-auto grid max-w-md gap-5 p-5">
+        <Field label="Name">
+          <Input
+            required
+            minLength={2}
+            maxLength={80}
+            placeholder="e.g. Terrain Mockeyville"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </Field>
+        <p className="text-sm text-ink-2">
+          Pin placed on the map.
+          <button type="button" className="ml-2 font-semibold text-brand" onClick={() => setStep(0)}>
+            Adjust on map
+          </button>
+        </p>
+        <Field label="Sport" hint={!isAdmin ? 'Your account sport — courts are tagged for your game type only.' : undefined}>
+          {mySport && !isAdmin ? (
+            <p className="flex items-center gap-2 rounded-xl border border-brand bg-brand/10 px-4 py-3 font-semibold">
+              <SportName sport={mySport} />
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {sports?.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => toggleSport(s.id)}
+                  aria-pressed={sportIds.includes(s.id)}
+                  className={`rounded-xl border-2 px-3 py-2 font-semibold ${sportIds.includes(s.id) ? 'border-brand bg-brand/10' : 'border-line bg-surface'}`}
+                >
+                  <SportName sport={s} />
+                </button>
+              ))}
+            </div>
+          )}
+        </Field>
+        <Field label="Photos (optional)">
+          <div className="flex flex-wrap gap-2">
+            {photos.map((p) => (
+              <img key={p} src={resolveMediaUrl(p)} alt="" className="size-20 rounded-xl object-cover" />
+            ))}
+            {photos.length < 6 && (
+              <label className="flex size-20 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-line text-2xl text-ink-2">
+                {uploading ? '…' : <Plus className="size-8" aria-hidden />}
+                <input type="file" multiple accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => addPhotos(e.target.files)} />
+              </label>
+            )}
+          </div>
+        </Field>
+        <Field
+          label="Address (optional)"
+          hint={geocodingAddress ? 'Looking up address from the map…' : 'Filled automatically from the pin. You can edit it.'}
+        >
+          <Input placeholder="Street or place name" value={address} onChange={(e) => setAddress(e.target.value)} />
+        </Field>
+        <Field label="Opening hours (optional)" hint="24-hour format">
+          <div className="grid grid-cols-2 gap-3">
+            <Input type="time" aria-label="Opens" value={opensAt} onChange={(e) => setOpensAt(e.target.value)} />
+            <Input type="time" aria-label="Closes" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} />
+          </div>
+        </Field>
+        <Field label="Surface (optional)">
+          <Input placeholder="e.g. Concrete, grass" value={surface} onChange={(e) => setSurface(e.target.value)} />
+        </Field>
+        <Field label="Lighting (optional)">
+          <select
+            className="w-full rounded-xl border border-line bg-surface-2 px-3 py-2.5 text-sm"
+            value={lighting}
+            onChange={(e) => setLighting(e.target.value as 'unknown' | 'yes' | 'no')}
+          >
+            <option value="unknown">Not specified</option>
+            <option value="yes">Lit at night</option>
+            <option value="no">No lights</option>
+          </select>
+        </Field>
+        <Field label="Description (optional)">
+          <Textarea maxLength={1000} placeholder="Hoops, surface, lights, best times…" value={description} onChange={(e) => setDescription(e.target.value)} />
+        </Field>
+        <ErrorText>{error}</ErrorText>
+        <Button type="submit" loading={busy} disabled={!sportIds.length || uploading}>
+          Submit court
+        </Button>
+      </div>
+    </form>
   )
 }
