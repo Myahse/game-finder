@@ -98,7 +98,7 @@ Without them, everything still works in-app.
 
 ### Adding a sport
 
-Insert a row in `sports` (or flip `active = true` for football/volleyball/tennis/badminton, which are pre-seeded). Filters, markers, court tags and game creation all read from the API, so no client release is needed.
+Insert a row in `sports` (or set `active = true` on an existing row). Filters, markers, court tags and game creation all read from the API, so no client release is needed.
 
 ### Security
 
