@@ -534,6 +534,25 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen>
     }
   }
 
+  Future<void> _removeCourtPhoto(String url) async {
+    final c = court;
+    if (c == null) return;
+    setState(() {
+      _uploadingPhotos = true;
+      _photoError = null;
+    });
+    try {
+      await context.read<Api>().delete('/api/courts/${c.id}/photos', body: {
+        'photos': [url],
+      });
+      await load();
+    } catch (e) {
+      setState(() => _photoError = errorText(e));
+    } finally {
+      if (mounted) setState(() => _uploadingPhotos = false);
+    }
+  }
+
   Future<void> _addCourtPhotos() async {
     final c = court;
     if (c == null || c.photos.length >= 6) return;
@@ -561,13 +580,9 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen>
   Widget build(BuildContext context) {
     final c = court;
     final me = context.watch<AuthState>().user;
-    final canAddPhotos =
-        c != null &&
-        me != null &&
-        (c.createdBy == me.id || me.isAdmin) &&
-        c.photos.length < 6;
     final canEditCourt =
         c != null && me != null && (c.createdBy == me.id || me.isAdmin);
+    final canAddPhotos = canEditCourt && c != null && c.photos.length < 6;
     if (c != null && canEditCourt) {
       _syncInfoFromCourt(c);
     }
@@ -584,8 +599,53 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen>
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  if (c.photos.isNotEmpty) ...[
+                  if (c.photos.isNotEmpty && !canEditCourt) ...[
                     CourtPhotoStrip(photos: c.photos),
+                    const SizedBox(height: 8),
+                  ],
+                  if (canEditCourt && c.photos.isNotEmpty) ...[
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final p in c.photos)
+                          Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.network(
+                                  resolveMediaUrl(p),
+                                  width: 88,
+                                  height: 88,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, _, _) =>
+                                      const Icon(Icons.broken_image_outlined),
+                                ),
+                              ),
+                              Positioned(
+                                right: -4,
+                                top: -4,
+                                child: Material(
+                                  color: Theme.of(context).colorScheme.surface,
+                                  shape: const CircleBorder(),
+                                  elevation: 2,
+                                  child: InkWell(
+                                    customBorder: const CircleBorder(),
+                                    onPressed: _uploadingPhotos
+                                        ? null
+                                        : () => _removeCourtPhoto(p),
+                                    child: const Padding(
+                                      padding: EdgeInsets.all(4),
+                                      child: Icon(Icons.close, size: 18),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
                     const SizedBox(height: 8),
                   ],
                   if (canAddPhotos) ...[
@@ -605,7 +665,7 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen>
                       ),
                     ),
                     Text(
-                      '${c.photos.length}/6 photos',
+                      '${c.photos.length}/6 photos · remove any that don\'t match',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 12,
@@ -1428,16 +1488,40 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
                   runSpacing: 8,
                   children: [
                     for (final p in _photos)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.network(
-                          resolveMediaUrl(p),
-                          width: 72,
-                          height: 72,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) =>
-                              const Icon(Icons.broken_image_outlined),
-                        ),
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(
+                              resolveMediaUrl(p),
+                              width: 72,
+                              height: 72,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) =>
+                                  const Icon(Icons.broken_image_outlined),
+                            ),
+                          ),
+                          Positioned(
+                            right: -4,
+                            top: -4,
+                            child: Material(
+                              color: Theme.of(context).colorScheme.surface,
+                              shape: const CircleBorder(),
+                              elevation: 2,
+                              child: InkWell(
+                                customBorder: const CircleBorder(),
+                                onTap: () => setState(
+                                  () => _photos.removeWhere((x) => x == p),
+                                ),
+                                child: const Padding(
+                                  padding: EdgeInsets.all(4),
+                                  child: Icon(Icons.close, size: 16),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     if (_photos.length < 6)
                       InkWell(

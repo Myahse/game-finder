@@ -10,7 +10,7 @@ import { LIST_NEARBY_RADIUS_KM } from '../lib/nearby'
 import { useCourtsNearby, useSports } from '../lib/queries'
 import type { Court } from '../lib/types'
 import { CourtPlacementMap } from '../components/CourtPlacementMap'
-import { Hourglass, Plus, SportName } from '../components/icons'
+import { Hourglass, Plus, SportName, X } from '../components/icons'
 import { formatOpeningHours } from '../lib/openingHours'
 import { reverseGeocode } from '../lib/reverseGeocode'
 import { StepIndicator } from '../components/StepIndicator'
@@ -253,7 +253,17 @@ export function AddCourtPage() {
         <Field label="Photos (optional)">
           <div className="flex flex-wrap gap-2">
             {photos.map((p) => (
-              <img key={p} src={resolveMediaUrl(p)} alt="" className="size-20 rounded-xl object-cover" />
+              <div key={p} className="relative">
+                <img src={resolveMediaUrl(p)} alt="" className="size-20 rounded-xl object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setPhotos((list) => list.filter((x) => x !== p))}
+                  className="absolute -right-1.5 -top-1.5 flex size-7 items-center justify-center rounded-full border border-line bg-surface text-ink shadow hover:bg-surface-2"
+                  aria-label="Remove photo"
+                >
+                  <X className="size-4" aria-hidden />
+                </button>
+              </div>
             ))}
             {photos.length < 6 && (
               <label className="flex size-20 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-line text-2xl text-ink-2">

@@ -26,8 +26,11 @@ export function CourtPage() {
   return (
     <div className="pb-10">
       <PageHeader title={court.name} back={`/?court=${court.id}`} />
-      <CourtPhotoStrip photos={court.photos} />
-      {id && <CourtAddPhotos courtId={id} photos={court.photos} canAdd={canEditCourt} />}
+      {canEditCourt ? (
+        id ? <CourtAddPhotos courtId={id} photos={court.photos} canManage={canEditCourt} /> : null
+      ) : (
+        <CourtPhotoStrip photos={court.photos} />
+      )}
 
       <div className="mx-auto grid max-w-2xl gap-4 p-4">
         <CourtInfoEditor court={court} canEdit={canEditCourt} />

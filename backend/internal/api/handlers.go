@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -138,6 +139,73 @@ func (s *Server) addCourtPhotos(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"photos": photos})
+}
+
+func (s *Server) removeCourtPhotos(w http.ResponseWriter, r *http.Request) {
+	courtID := chi.URLParam(r, "id")
+	var in struct {
+		Photos []string `json:"photos"`
+	}
+	if !readJSON(w, r, &in) {
+		return
+	}
+	if len(in.Photos) == 0 {
+		writeError(w, http.StatusUnprocessableEntity, "photos_required", "Choose at least one photo to remove.")
+		return
+	}
+	photos, status, code, msg, err := s.removeCourtPhotoURLs(r.Context(), courtID, uid(r), in.Photos)
+	if err != nil {
+		writeDBError(w, r, err)
+		return
+	}
+	if status != 0 {
+		writeError(w, status, code, msg)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"photos": photos})
+}
+
+// removeCourtPhotoURLs drops matching URLs from a court (proposer or admin only).
+func (s *Server) removeCourtPhotoURLs(ctx context.Context, courtID, userID string, remove []string) (photos []string, status int, code, msg string, err error) {
+	status, code, msg, err = s.courtProposerMayEdit(ctx, courtID, userID)
+	if err != nil || status != 0 {
+		return nil, status, code, msg, err
+	}
+	if err := s.db.Pool.QueryRow(ctx, `select photos from courts where id = $1`, courtID).Scan(&photos); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, http.StatusNotFound, "not_found", "Court not found.", nil
+		}
+		return nil, 0, "", "", err
+	}
+	removeSet := make(map[string]bool, len(remove))
+	for _, u := range remove {
+		u = strings.TrimSpace(u)
+		if u != "" {
+			removeSet[u] = true
+		}
+	}
+	if len(removeSet) == 0 {
+		return nil, http.StatusUnprocessableEntity, "photos_required", "Choose at least one photo to remove.", nil
+	}
+	next := make([]string, 0, len(photos))
+	for _, p := range photos {
+		if !removeSet[p] {
+			next = append(next, p)
+		}
+	}
+	if len(next) == len(photos) {
+		return nil, http.StatusUnprocessableEntity, "photo_not_found", "That photo is not on this court.", nil
+	}
+	tag, err := s.db.Pool.Exec(ctx, `
+		update courts set photos = $2
+		where id = $1 and (created_by = $3 or public.is_admin())`, courtID, next, userID)
+	if err != nil {
+		return nil, 0, "", "", err
+	}
+	if tag.RowsAffected() == 0 {
+		return nil, http.StatusNotFound, "not_found", "Court not found.", nil
+	}
+	return next, 0, "", "", nil
 }
 
 // appendCourtPhotos merges upload URLs onto a court (proposer or admin only, max 6 total).
