@@ -32,6 +32,24 @@ String gameTime(Game g) {
   return sameDay ? 'Today ${clock(g.startTime)}' : DateFormat('EEE d MMM, HH:mm').format(g.startTime);
 }
 
+const maxPlayersSliderMin = 2;
+const maxPlayersSliderCap = 30;
+const maxPlayersSliderUnlimited = 31;
+const maxPlayersApiUnlimited = 0;
+
+bool isUnlimitedMaxPlayers(int max) => max == maxPlayersApiUnlimited;
+
+int maxPlayersSliderToApi(int slider) =>
+    slider >= maxPlayersSliderUnlimited ? maxPlayersApiUnlimited : slider;
+
+String maxPlayersSliderLabel(int slider) =>
+    slider >= maxPlayersSliderUnlimited ? 'Unlimited' : '$slider';
+
+String gamePlayerCountLabel(int playerCount, int maxPlayers) =>
+    isUnlimitedMaxPlayers(maxPlayers) ? '$playerCount/∞' : '$playerCount/$maxPlayers';
+
+bool gameHasOpenSpots(Game g) => g.unlimitedPlayers || g.spotsLeft > 0;
+
 const skillLabels = {
   'beginner': 'Beginner',
   'intermediate': 'Intermediate',
@@ -68,7 +86,9 @@ List<Game> sortPlayable(Iterable<Game> games) {
     if (c != 0) return c;
     c = b.playerCount.compareTo(a.playerCount);
     if (c != 0) return c;
-    return b.spotsLeft.compareTo(a.spotsLeft);
+    final spotsA = a.unlimitedPlayers ? 999999 : a.spotsLeft;
+    final spotsB = b.unlimitedPlayers ? 999999 : b.spotsLeft;
+    return spotsB.compareTo(spotsA);
   });
   return list;
 }

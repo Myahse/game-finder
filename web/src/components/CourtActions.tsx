@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { errorMessage } from '../lib/api'
-import { directionsUrl, distanceM } from '../lib/format'
+import { directionsUrl, distanceM, gameHasOpenSpots, gamePlayerCountLabel } from '../lib/format'
 import type { Coords } from '../lib/location'
 import { useGameAction, useMyPresence, usePresenceAction } from '../lib/queries'
 import type { Court, Game } from '../lib/types'
@@ -17,7 +17,7 @@ export function CourtActions({ court, games, me }: { court: Court; games: Game[]
   const [error, setError] = useState('')
 
   const live = games.filter((g) => g.status === 'active')
-  const joinable = live.find((g) => !g.joined && g.spots_left > 0)
+  const joinable = live.find((g) => !g.joined && gameHasOpenSpots(g))
   const myGame = games.find((g) => g.joined && (g.status === 'active' || g.status === 'scheduled'))
   const hereNow = presence?.court_id === court.id
   const far = me ? distanceM(me.latitude, me.longitude, court.latitude, court.longitude) > 500 : false
@@ -45,12 +45,16 @@ export function CourtActions({ court, games, me }: { court: Court; games: Game[]
         <Button variant="live" onClick={() => navigate(`/games/${myGame.id}`)}>
           <span className="inline-flex items-center gap-2">
             <Check className="size-5 shrink-0" aria-hidden />
-            You're in · {myGame.player_count}/{myGame.max_players}
+            You're in · {gamePlayerCountLabel(myGame.player_count, myGame.max_players)}
           </span>
         </Button>
       ) : (
         <Button variant={joinable ? 'live' : 'primary'} onClick={join} loading={gameAction.isPending}>
-          {joinable ? `Join game · ${joinable.player_count}/${joinable.max_players}` : live.length ? 'Start another game' : 'Create game'}
+          {joinable
+            ? `Join game · ${gamePlayerCountLabel(joinable.player_count, joinable.max_players)}`
+            : live.length
+              ? 'Start another game'
+              : 'Create game'}
         </Button>
       )}
       <div className="grid grid-cols-2 gap-2">

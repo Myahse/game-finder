@@ -437,7 +437,7 @@ func (s *Server) createGame(w http.ResponseWriter, r *http.Request) {
 		CourtID         string     `json:"court_id"`
 		SportID         string     `json:"sport_id"`
 		StartTime       *time.Time `json:"start_time"`
-		MaxPlayers      int        `json:"max_players"`
+		MaxPlayers      *int       `json:"max_players"`
 		SkillLevel      string     `json:"skill_level"`
 		GameType        string     `json:"game_type"`
 		DurationMinutes int        `json:"duration_minutes"`
@@ -450,8 +450,9 @@ func (s *Server) createGame(w http.ResponseWriter, r *http.Request) {
 		now := time.Now()
 		in.StartTime = &now
 	}
-	if in.MaxPlayers == 0 {
-		in.MaxPlayers = 10
+	maxPlayers := 10
+	if in.MaxPlayers != nil {
+		maxPlayers = *in.MaxPlayers
 	}
 	if in.DurationMinutes == 0 {
 		in.DurationMinutes = 120
@@ -469,8 +470,8 @@ func (s *Server) createGame(w http.ResponseWriter, r *http.Request) {
 	case in.CourtID == "" || in.SportID == "":
 		writeError(w, http.StatusUnprocessableEntity, "court_required", "Choose a court and sport.")
 		return
-	case in.MaxPlayers < 2 || in.MaxPlayers > 50:
-		writeError(w, http.StatusUnprocessableEntity, "invalid_max_players", "Max players must be 2–50.")
+	case maxPlayers != 0 && (maxPlayers < 2 || maxPlayers > 50):
+		writeError(w, http.StatusUnprocessableEntity, "invalid_max_players", "Max players must be 2–50, or 0 for unlimited.")
 		return
 	case !skillLevels[in.SkillLevel] || !gameTypes[in.GameType]:
 		writeError(w, http.StatusUnprocessableEntity, "invalid_option", "Invalid skill level or game type.")
@@ -518,7 +519,7 @@ func (s *Server) createGame(w http.ResponseWriter, r *http.Request) {
 			insert into games (court_id, sport_id, creator_id, start_time, max_players, skill_level, game_type, duration_minutes)
 			values ($1, $2, app_uid(), $3, $4, $5::skill_level, $6::game_type, $7)
 			returning id::text`,
-			in.CourtID, in.SportID, *in.StartTime, in.MaxPlayers, in.SkillLevel, in.GameType, in.DurationMinutes).Scan(&gameID)
+			in.CourtID, in.SportID, *in.StartTime, maxPlayers, in.SkillLevel, in.GameType, in.DurationMinutes).Scan(&gameID)
 	})
 	if err != nil {
 		writeDBError(w, r, err)
@@ -563,6 +564,13 @@ func (s *Server) updateGame(w http.ResponseWriter, r *http.Request) {
 	if (in.SkillLevel != nil && !skillLevels[*in.SkillLevel]) || (in.GameType != nil && !gameTypes[*in.GameType]) {
 		writeError(w, http.StatusUnprocessableEntity, "invalid_option", "Invalid skill level or game type.")
 		return
+	}
+	if in.MaxPlayers != nil {
+		mp := *in.MaxPlayers
+		if mp != 0 && (mp < 2 || mp > 50) {
+			writeError(w, http.StatusUnprocessableEntity, "invalid_max_players", "Max players must be 2–50, or 0 for unlimited.")
+			return
+		}
 	}
 	err := s.db.Tx(r.Context(), uid(r), func(tx pgx.Tx) error {
 		tag, err := tx.Exec(r.Context(), `

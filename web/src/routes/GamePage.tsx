@@ -4,7 +4,16 @@ import { Link, useParams } from 'react-router-dom'
 import { Check, DistanceText, Flame, SearchX, SportName, TimeText, X } from '../components/icons'
 import { ApiError, api, errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
-import { directionsUrl, formatDistance, gameTimeLabel, gameTypeLabels, skillLabels } from '../lib/format'
+import {
+  directionsUrl,
+  formatDistance,
+  gamePlayerCountLabel,
+  gameTimeLabel,
+  gameTypeLabels,
+  gameHasOpenSpots,
+  isUnlimitedMaxPlayers,
+  skillLabels,
+} from '../lib/format'
 import { useLocation } from '../lib/location'
 import { useGame, useGameAction } from '../lib/queries'
 import { AppAlert, Avatar, Button, Card, Empty, ErrorText, Input, PageHeader } from '../components/ui'
@@ -30,7 +39,8 @@ export function GamePage() {
 
   const open = game.status === 'active' || game.status === 'scheduled'
   const isCreator = game.creator_id === user?.id
-  const pct = Math.min(100, (game.player_count / game.max_players) * 100)
+  const unlimited = isUnlimitedMaxPlayers(game.max_players)
+  const pct = unlimited ? 0 : Math.min(100, (game.player_count / game.max_players) * 100)
   const { cls: statusCls, text: statusText, Icon: StatusIcon } = statusLabel[game.status]
   const run = (a: 'join' | 'leave' | 'cancel') => {
     setError('')
@@ -61,17 +71,25 @@ export function GamePage() {
 
           <div className="mt-5">
             <div className="flex items-end justify-between">
-              <p className="display text-5xl font-extrabold">
-                {game.player_count}
-                <span className="text-3xl text-ink-2"> / {game.max_players}</span>
-              </p>
-              <p className={`font-semibold ${game.spots_left ? 'text-live' : 'text-danger'}`}>
-                {game.spots_left ? `${game.spots_left} spot${game.spots_left === 1 ? '' : 's'} left` : 'Full'}
+              <p className="display text-5xl font-extrabold">{gamePlayerCountLabel(game.player_count, game.max_players)}</p>
+              <p className={`font-semibold ${unlimited || game.spots_left ? 'text-live' : 'text-danger'}`}>
+                {unlimited
+                  ? 'Open to all'
+                  : game.spots_left
+                    ? `${game.spots_left} spot${game.spots_left === 1 ? '' : 's'} left`
+                    : 'Full'}
               </p>
             </div>
-            <div className="mt-2 h-3 overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-valuenow={game.player_count} aria-valuemax={game.max_players}>
-              <div className="h-full rounded-full bg-live transition-all duration-500" style={{ width: `${pct}%` }} />
-            </div>
+            {!unlimited && (
+              <div
+                className="mt-2 h-3 overflow-hidden rounded-full bg-surface-2"
+                role="progressbar"
+                aria-valuenow={game.player_count}
+                aria-valuemax={game.max_players}
+              >
+                <div className="h-full rounded-full bg-live transition-all duration-500" style={{ width: `${pct}%` }} />
+              </div>
+            )}
           </div>
 
           <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-ink-2">
@@ -95,8 +113,8 @@ export function GamePage() {
                   Leave game
                 </Button>
               ) : (
-                <Button variant="live" onClick={() => run('join')} loading={action.isPending} disabled={game.spots_left === 0}>
-                  {game.spots_left === 0 ? 'Game full' : 'Join game'}
+                <Button variant="live" onClick={() => run('join')} loading={action.isPending} disabled={!gameHasOpenSpots(game)}>
+                  {gameHasOpenSpots(game) ? 'Join game' : 'Game full'}
                 </Button>
               ))}
             <a

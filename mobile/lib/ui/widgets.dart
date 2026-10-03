@@ -87,7 +87,7 @@ class GameCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context);
     final muted = t.colorScheme.onSurfaceVariant;
-    final full = game.spotsLeft == 0;
+    final full = !gameHasOpenSpots(game);
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
@@ -104,7 +104,7 @@ class GameCard extends StatelessWidget {
               ),
               child: Column(children: [
                 SportIcon(game.sport.slug, size: dense ? 22 : 26, color: game.isLive ? Palette.live : muted),
-                Text('${game.playerCount}/${game.maxPlayers}',
+                Text(gamePlayerCountLabel(game.playerCount, game.maxPlayers),
                     style: TextStyle(
                         fontWeight: FontWeight.w900,
                         fontSize: dense ? 15 : 18,
@@ -168,7 +168,12 @@ class GameCard extends StatelessWidget {
                 if (game.distanceM != null)
                   Text(formatDistance(game.distanceM), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
                 const SizedBox(height: 4),
-                Text(full ? 'Full' : '${game.spotsLeft} spot${game.spotsLeft == 1 ? '' : 's'}',
+                Text(
+                    full
+                        ? 'Full'
+                        : game.unlimitedPlayers
+                            ? 'Open'
+                            : '${game.spotsLeft} spot${game.spotsLeft == 1 ? '' : 's'}',
                     style: TextStyle(
                         fontSize: 12, fontWeight: FontWeight.w700, color: full ? t.colorScheme.error : Palette.live)),
               ]),

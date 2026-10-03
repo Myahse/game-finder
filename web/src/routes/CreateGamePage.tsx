@@ -2,7 +2,16 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { api, errorMessage, uploadImage } from '../lib/api'
-import { formatDistance, gameTypeLabels, skillLabels } from '../lib/format'
+import {
+  formatDistance,
+  gameTypeLabels,
+  MAX_PLAYERS_SLIDER_CAP,
+  MAX_PLAYERS_SLIDER_MIN,
+  MAX_PLAYERS_SLIDER_UNLIMITED,
+  maxPlayersSliderLabel,
+  maxPlayersSliderToApi,
+  skillLabels,
+} from '../lib/format'
 import { useLocation } from '../lib/location'
 import { LIST_NEARBY_RADIUS_KM } from '../lib/nearby'
 import { useAuth } from '../lib/auth'
@@ -35,7 +44,7 @@ export function CreateGamePage() {
   const [when, setWhen] = useState<'now' | 'later'>('now')
   const [start, setStart] = useState(() => localInputValue(new Date(Date.now() + 60 * 60_000)))
   const [minStart] = useState(() => localInputValue(new Date()))
-  const [maxPlayers, setMaxPlayers] = useState(10)
+  const [maxPlayersSlider, setMaxPlayersSlider] = useState(10)
   const [skill, setSkill] = useState<SkillLevel>('all_levels')
   const [type, setType] = useState<GameType>('pickup')
   const [error, setError] = useState('')
@@ -92,7 +101,7 @@ export function CreateGamePage() {
           court_id: courtId,
           sport_id: chosenSport.id,
           start_time: when === 'now' ? new Date().toISOString() : new Date(start).toISOString(),
-          max_players: maxPlayers,
+          max_players: maxPlayersSliderToApi(maxPlayersSlider),
           skill_level: skill,
           game_type: type,
           court_photos: placePhotos,
@@ -224,15 +233,19 @@ export function CreateGamePage() {
           )}
         </Field>
 
-        <Field label={`Maximum players: ${maxPlayers}`}>
+        <Field label={`Maximum players: ${maxPlayersSliderLabel(maxPlayersSlider)}`}>
           <input
             type="range"
-            min={2}
-            max={30}
-            value={maxPlayers}
-            onChange={(e) => setMaxPlayers(Number(e.target.value))}
+            min={MAX_PLAYERS_SLIDER_MIN}
+            max={MAX_PLAYERS_SLIDER_UNLIMITED}
+            step={1}
+            value={maxPlayersSlider}
+            onChange={(e) => setMaxPlayersSlider(Number(e.target.value))}
             className="w-full accent-[var(--brand)]"
           />
+          <p className="mt-1 text-xs text-ink-2">
+            Drag to the end for unlimited players ({MAX_PLAYERS_SLIDER_CAP}+).
+          </p>
         </Field>
 
         <Field label="Skill level">

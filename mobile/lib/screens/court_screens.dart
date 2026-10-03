@@ -312,7 +312,7 @@ class _CourtActionsState extends State<CourtActions> {
     final hereNow = presence.current?.courtId == c.id;
     final live = c.games.where((g) => g.isLive);
     final joinable = live
-        .where((g) => !g.joined && g.spotsLeft > 0)
+        .where((g) => !g.joined && gameHasOpenSpots(g))
         .firstOrNull;
     final mine = c.games.where((g) => g.joined && g.isOpen).firstOrNull;
     final far =
@@ -332,7 +332,7 @@ class _CourtActionsState extends State<CourtActions> {
               children: [
                 const Icon(Icons.check_circle_outline),
                 const SizedBox(width: 8),
-                Text("YOU'RE IN · ${mine.playerCount}/${mine.maxPlayers}"),
+                Text("YOU'RE IN · ${gamePlayerCountLabel(mine.playerCount, mine.maxPlayers)}"),
               ],
             ),
           )
@@ -357,7 +357,7 @@ class _CourtActionsState extends State<CourtActions> {
                   },
             child: Text(
               joinable != null
-                  ? 'JOIN GAME · ${joinable.playerCount}/${joinable.maxPlayers}'
+                  ? 'JOIN GAME · ${gamePlayerCountLabel(joinable.playerCount, joinable.maxPlayers)}'
                   : live.isNotEmpty
                   ? 'START ANOTHER GAME'
                   : 'CREATE GAME',

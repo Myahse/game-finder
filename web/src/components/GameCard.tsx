@@ -1,7 +1,15 @@
 import { ImageOff, Star } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { DistanceText, Flame, SportIcon, TimeText } from './icons'
-import { formatDistance, gameTimeLabel, gameTypeLabels, skillLabels } from '../lib/format'
+import {
+  formatDistance,
+  gameHasOpenSpots,
+  gamePlayerCountLabel,
+  gameTimeLabel,
+  gameTypeLabels,
+  isUnlimitedMaxPlayers,
+  skillLabels,
+} from '../lib/format'
 import { courtPhotoUrl } from '../lib/mediaUrl'
 import type { Game } from '../lib/types'
 
@@ -18,7 +26,7 @@ export function GameCard({
   className?: string
 }) {
   const live = game.status === 'active'
-  const full = game.spots_left === 0
+  const full = !gameHasOpenSpots(game)
   const photo = courtPhotoUrl(game.court.photos ?? [])
   const mapLayout = variant === 'map'
 
@@ -44,7 +52,7 @@ export function GameCard({
             </span>
           )}
           <span className="display absolute bottom-2 right-2 rounded-lg bg-black/55 px-2 py-0.5 text-lg font-extrabold text-white">
-            {game.player_count}/{game.max_players}
+            {gamePlayerCountLabel(game.player_count, game.max_players)}
           </span>
         </div>
       ) : (
@@ -54,10 +62,7 @@ export function GameCard({
           }`}
         >
           <SportIcon slug={game.sport.slug} className="size-8" />
-          <span className="display text-2xl font-extrabold">
-            {game.player_count}
-            <span className="text-base opacity-60">/{game.max_players}</span>
-          </span>
+          <span className="display text-2xl font-extrabold">{gamePlayerCountLabel(game.player_count, game.max_players)}</span>
         </div>
       )}
       <div className="min-w-0 flex-1 py-0.5">
@@ -88,7 +93,7 @@ export function GameCard({
       <div className="flex shrink-0 flex-col items-end justify-between py-0.5 text-right">
         {game.distance_m != null && <span className="display text-xl font-bold">{formatDistance(game.distance_m)}</span>}
         <span className={`text-xs font-semibold ${full ? 'text-danger' : 'text-live'}`}>
-          {full ? 'Full' : `${game.spots_left} spot${game.spots_left === 1 ? '' : 's'}`}
+          {full ? 'Full' : isUnlimitedMaxPlayers(game.max_players) ? 'Open' : `${game.spots_left} spot${game.spots_left === 1 ? '' : 's'}`}
         </span>
       </div>
     </Link>

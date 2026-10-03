@@ -78,7 +78,7 @@ export interface Game {
   status: GameStatus
   cancelled_reason: string | null
   player_count: number
-  spots_left: number
+  spots_left: number | null
   joined: boolean
   court: Pick<Court, 'id' | 'name' | 'latitude' | 'longitude' | 'address'> & { photos?: string[] }
   sport: Sport

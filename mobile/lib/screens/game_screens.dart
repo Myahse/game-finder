@@ -196,21 +196,34 @@ class _GameScreenState extends State<GameScreen> {
                   ),
                 const SizedBox(height: 18),
                 Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                  Text('${g.playerCount}', style: const TextStyle(fontSize: 52, fontWeight: FontWeight.w900, height: 1)),
-                  Text(' / ${g.maxPlayers}', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                  Text(gamePlayerCountLabel(g.playerCount, g.maxPlayers),
+                      style: const TextStyle(fontSize: 52, fontWeight: FontWeight.w900, height: 1)),
                   const Spacer(),
-                  Text(g.spotsLeft == 0 ? 'Full' : '${g.spotsLeft} spots left',
-                      style: TextStyle(fontWeight: FontWeight.w800, color: g.spotsLeft == 0 ? Theme.of(context).colorScheme.error : Palette.live)),
-                ]),
-                const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: LinearProgressIndicator(
-                    value: g.playerCount / g.maxPlayers,
-                    minHeight: 12,
-                    color: Palette.live,
+                  Text(
+                    g.unlimitedPlayers
+                        ? 'Open to all'
+                        : g.spotsLeft == 0
+                            ? 'Full'
+                            : '${g.spotsLeft} spots left',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: g.unlimitedPlayers || g.spotsLeft > 0
+                          ? Palette.live
+                          : Theme.of(context).colorScheme.error,
+                    ),
                   ),
-                ),
+                ]),
+                if (!g.unlimitedPlayers) ...[
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: LinearProgressIndicator(
+                      value: g.playerCount / g.maxPlayers,
+                      minHeight: 12,
+                      color: Palette.live,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 14),
                 Wrap(spacing: 12, runSpacing: 6, children: [
                   Row(mainAxisSize: MainAxisSize.min, children: [
@@ -242,8 +255,8 @@ class _GameScreenState extends State<GameScreen> {
                         )
                       : FilledButton(
                           style: FilledButton.styleFrom(backgroundColor: Palette.live),
-                          onPressed: _busy || g.spotsLeft == 0 ? null : () => _action('join'),
-                          child: Text(g.spotsLeft == 0 ? 'GAME FULL' : 'JOIN GAME'),
+                          onPressed: _busy || !gameHasOpenSpots(g) ? null : () => _action('join'),
+                          child: Text(gameHasOpenSpots(g) ? 'JOIN GAME' : 'GAME FULL'),
                         ),
                 const SizedBox(height: 10),
                 OutlinedButton.icon(
@@ -326,7 +339,7 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
   String? _sportId;
   bool _now = true;
   DateTime _start = DateTime.now().add(const Duration(hours: 1));
-  int _max = 10;
+  int _maxSlider = 10;
   String _skill = 'all_levels';
   String _type = 'pickup';
   bool _busy = false;
@@ -417,7 +430,7 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
         'court_id': _courtId,
         'sport_id': sportId,
         'start_time': (_now ? DateTime.now() : _start).toUtc().toIso8601String(),
-        'max_players': _max,
+        'max_players': maxPlayersSliderToApi(_maxSlider),
         'skill_level': _skill,
         'game_type': _type,
         'court_photos': _placePhotos,
@@ -595,8 +608,20 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
         if (!_now)
           TextButton.icon(onPressed: _pickTime, icon: const Icon(Icons.schedule), label: Text(gameTimeFor(_start))),
         const SizedBox(height: 16),
-        Text('Maximum players: $_max', style: const TextStyle(fontWeight: FontWeight.w700)),
-        Slider(value: _max.toDouble(), min: 2, max: 30, divisions: 28, label: '$_max', onChanged: (v) => setState(() => _max = v.round())),
+        Text('Maximum players: ${maxPlayersSliderLabel(_maxSlider)}', style: const TextStyle(fontWeight: FontWeight.w700)),
+        Slider(
+          value: _maxSlider.toDouble(),
+          min: maxPlayersSliderMin.toDouble(),
+          max: maxPlayersSliderUnlimited.toDouble(),
+          divisions: maxPlayersSliderUnlimited - maxPlayersSliderMin,
+          label: maxPlayersSliderLabel(_maxSlider),
+          onChanged: (v) => setState(() => _maxSlider = v.round()),
+        ),
+        Text(
+          'Drag to the end for unlimited players ($maxPlayersSliderCap+).',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+        ),
         DropdownButtonFormField<String>(
           initialValue: _skill,
           decoration: const InputDecoration(labelText: 'Skill level'),

@@ -63,6 +63,38 @@ export const skillLabels: Record<SkillLevel, string> = {
 /** Skill options for a player profile (not game hosting). */
 export const playerSkillLevels: SkillLevel[] = ['beginner', 'intermediate', 'advanced']
 
+/** Slider UI: 2–30 capped, 31 = unlimited (API `max_players` 0). */
+export const MAX_PLAYERS_SLIDER_MIN = 2
+export const MAX_PLAYERS_SLIDER_CAP = 30
+export const MAX_PLAYERS_SLIDER_UNLIMITED = 31
+export const MAX_PLAYERS_API_UNLIMITED = 0
+
+export function isUnlimitedMaxPlayers(max: number): boolean {
+  return max === MAX_PLAYERS_API_UNLIMITED
+}
+
+export function maxPlayersSliderToApi(slider: number): number {
+  return slider >= MAX_PLAYERS_SLIDER_UNLIMITED ? MAX_PLAYERS_API_UNLIMITED : slider
+}
+
+export function maxPlayersApiToSlider(api: number): number {
+  return isUnlimitedMaxPlayers(api) ? MAX_PLAYERS_SLIDER_UNLIMITED : api
+}
+
+export function maxPlayersSliderLabel(slider: number): string {
+  return slider >= MAX_PLAYERS_SLIDER_UNLIMITED ? 'Unlimited' : String(slider)
+}
+
+export function gamePlayerCountLabel(playerCount: number, maxPlayers: number): string {
+  if (isUnlimitedMaxPlayers(maxPlayers)) return `${playerCount}/∞`
+  return `${playerCount}/${maxPlayers}`
+}
+
+export function gameHasOpenSpots(game: { max_players: number; spots_left: number | null }): boolean {
+  if (isUnlimitedMaxPlayers(game.max_players)) return true
+  return (game.spots_left ?? 0) > 0
+}
+
 export const gameTypeLabels: Record<GameType, string> = {
   pickup: 'Pickup',
   training: 'Training',

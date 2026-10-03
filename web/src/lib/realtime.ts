@@ -101,7 +101,11 @@ export function apply(qc: QueryClient, ev: RealtimeEvent, notify: Notify) {
                 player_count: ev.player_count!,
                 status: ev.status ?? g.status,
                 max_players: ev.max_players ?? g.max_players,
-                spots_left: Math.max((ev.max_players ?? g.max_players) - ev.player_count!, 0),
+                spots_left: (() => {
+                  const max = ev.max_players ?? g.max_players
+                  if (max === 0) return null
+                  return Math.max(max - ev.player_count!, 0)
+                })(),
               }
             : g,
         )

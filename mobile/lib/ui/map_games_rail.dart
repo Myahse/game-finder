@@ -183,7 +183,7 @@ class _RailGameCard extends StatelessWidget {
                   SportIcon(game.sport.slug, size: 20, color: game.isLive ? Palette.live : muted),
                   const SizedBox(width: 8),
                   Text(
-                    '${game.playerCount}/${game.maxPlayers}',
+                    gamePlayerCountLabel(game.playerCount, game.maxPlayers),
                     style: TextStyle(
                       fontWeight: FontWeight.w900,
                       fontSize: 17,

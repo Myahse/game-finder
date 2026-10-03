@@ -112,6 +112,8 @@ class Game {
   final DateTime startTime;
   final int durationMinutes, maxPlayers, playerCount, spotsLeft;
   final bool joined;
+
+  bool get unlimitedPlayers => maxPlayers == 0;
   final String courtName;
   final double courtLat, courtLng;
   final Sport sport;
@@ -131,7 +133,7 @@ class Game {
         durationMinutes = (j['duration_minutes'] as num).toInt(),
         maxPlayers = (j['max_players'] as num).toInt(),
         playerCount = (j['player_count'] as num).toInt(),
-        spotsLeft = (j['spots_left'] as num).toInt(),
+        spotsLeft = j['spots_left'] == null ? -1 : (j['spots_left'] as num).toInt(),
         joined = j['joined'] ?? false,
         courtName = j['court']['name'],
         courtLat = _num(j['court']['latitude'])!,

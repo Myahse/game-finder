@@ -1,4 +1,10 @@
+import { isUnlimitedMaxPlayers } from './format'
 import type { Game } from './types'
+
+function openSpotsSortKey(g: Game): number {
+  if (isUnlimitedMaxPlayers(g.max_players)) return Number.MAX_SAFE_INTEGER
+  return g.spots_left ?? 0
+}
 
 /**
  * "I want to play" ordering: closest first, then the liveliest game,
@@ -15,6 +21,6 @@ export function sortPlayable(games: Game[]): Game[] {
         bucket(a.distance_m) - bucket(b.distance_m) ||
         Number(b.status === 'active') - Number(a.status === 'active') ||
         b.player_count - a.player_count ||
-        b.spots_left - a.spots_left,
+        openSpotsSortKey(b) - openSpotsSortKey(a),
     )
 }
