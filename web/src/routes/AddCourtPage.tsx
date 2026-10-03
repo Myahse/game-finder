@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
 import { api, errorMessage, uploadImage } from '../lib/api'
 import { resolveMediaUrl } from '../lib/mediaUrl'
@@ -152,8 +153,8 @@ export function AddCourtPage() {
   const mapInitial = where ?? coords ?? center
 
   if (step === 0) {
-    return (
-      <div className="fixed inset-0 z-50 flex flex-col bg-bg">
+    return createPortal(
+      <div className="fixed inset-0 z-[100] flex h-[100dvh] max-h-[100dvh] flex-col bg-bg">
         <header className="flex shrink-0 items-center gap-2 border-b border-line bg-surface/95 px-3 py-2.5 backdrop-blur pt-[max(0.5rem,env(safe-area-inset-top))]">
           <Link to="/" className="-ml-1 rounded-lg p-2 text-ink-2 hover:text-ink" aria-label="Back to map">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
@@ -167,17 +168,17 @@ export function AddCourtPage() {
           <StepDots step={0} total={2} />
         </header>
 
-        <div className="relative min-h-0 flex-1">
+        <div className="relative h-0 min-h-0 flex-1">
           <CourtPlacementMap
             value={where}
             initial={mapInitial}
             onChange={onPickLocation}
             me={coords}
             courts={nearbyCourts ?? []}
-            className="absolute inset-0"
+            className="absolute inset-0 size-full min-h-[12rem]"
             edgePinHint
           />
-          <p className="pointer-events-none absolute inset-x-4 top-3 z-10 rounded-xl bg-surface/90 px-3 py-2 text-center text-xs font-medium text-ink-2 shadow backdrop-blur">
+          <p className="pointer-events-none absolute inset-x-4 top-14 z-10 rounded-xl bg-surface/90 px-3 py-2 text-center text-xs font-medium text-ink-2 shadow backdrop-blur">
             Gray dots = courts · blue = you · tap to drop the orange pin
           </p>
         </div>
@@ -193,7 +194,8 @@ export function AddCourtPage() {
             Next: court details
           </Button>
         </div>
-      </div>
+      </div>,
+      document.body,
     )
   }
 
