@@ -28,6 +28,7 @@ ThemeData buildTheme(Brightness b) {
     primary: Palette.brand,
     onPrimary: Colors.white,
     surface: dark ? const Color(0xFF151A21) : Colors.white,
+    surfaceContainerHighest: dark ? const Color(0xFF1D232C) : const Color(0xFFEFECE6),
   );
   final base = ThemeData(useMaterial3: true, colorScheme: scheme, brightness: b);
   return base.copyWith(

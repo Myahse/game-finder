@@ -12,7 +12,9 @@ import {
   Lightbulb,
   MapPin,
   MapPinPlus,
+  Maximize2,
   Megaphone,
+  Minimize2,
   Plus,
   SearchX,
   User,
@@ -148,4 +150,23 @@ export const notificationIcons: Record<AppNotification['type'], LucideIcon> = {
   system: Megaphone,
 }
 
-export { Bell, CalendarDays, Check, CheckCircle, Circle, Clock, Flame, Hourglass, Lightbulb, MapPin, Plus, SearchX, User, Users, Wrench, X }
+export {
+  Bell,
+  CalendarDays,
+  Check,
+  CheckCircle,
+  Circle,
+  Clock,
+  Flame,
+  Hourglass,
+  Lightbulb,
+  MapPin,
+  Maximize2,
+  Minimize2,
+  Plus,
+  SearchX,
+  User,
+  Users,
+  Wrench,
+  X,
+}

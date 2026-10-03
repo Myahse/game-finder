@@ -4,6 +4,7 @@ import { errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { firebaseGoogleEnabled, firebaseGoogleIdToken } from '../lib/firebase'
 import { useLocale } from '../i18n/LocaleProvider'
+import { useTheme } from '../theme/ThemeProvider'
 import { ErrorText, Spinner } from './ui'
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim() ?? ''
@@ -54,6 +55,7 @@ export function GoogleSignInButton({ onSignedIn, showTerms = true }: { onSignedI
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [ready, setReady] = useState(useFirebase)
+  const { isDark: dark } = useTheme()
 
   const finish = async (idToken: string, viaFirebase: boolean) => {
     setBusy(true)
@@ -80,6 +82,7 @@ export function GoogleSignInButton({ onSignedIn, showTerms = true }: { onSignedI
     loadGsi()
       .then((g) => {
         if (cancelled || !box.current) return
+        box.current.replaceChildren()
         g.accounts.id.initialize({
           client_id: CLIENT_ID,
           callback: (r) => handler.current(r),
@@ -88,7 +91,7 @@ export function GoogleSignInButton({ onSignedIn, showTerms = true }: { onSignedI
         })
         g.accounts.id.renderButton(box.current, {
           type: 'standard',
-          theme: 'filled_black',
+          theme: dark ? 'filled_black' : 'outline',
           size: 'large',
           shape: 'pill',
           text: 'continue_with',
@@ -102,12 +105,12 @@ export function GoogleSignInButton({ onSignedIn, showTerms = true }: { onSignedI
     return () => {
       cancelled = true
     }
-  }, [locale, t.welcome.googleFailed])
+  }, [dark, locale, t.welcome.googleFailed])
 
   if (!googleSignInEnabled) return null
 
   const terms = showTerms && (
-    <p className="text-center text-xs text-[#9aa3ae]">
+    <p className="text-center text-xs text-ink-2">
       {t.welcome.googleTerms}{' '}
       <Link to="/terms" className="font-semibold text-brand hover:underline">
         {t.welcome.terms}
@@ -131,9 +134,13 @@ export function GoogleSignInButton({ onSignedIn, showTerms = true }: { onSignedI
               .then((token) => finish(token, true))
               .catch((e) => setError(errorMessage(e)))
           }}
-          className="flex min-h-11 w-full items-center justify-center gap-3 rounded-full bg-[#131314] px-4 text-[15px] font-semibold text-[#E3E3E3] ring-1 ring-[#8E918F] disabled:opacity-50"
+          className={
+            dark
+              ? 'flex min-h-11 w-full items-center justify-center gap-3 rounded-full bg-[#131314] px-4 text-[15px] font-semibold text-[#E3E3E3] ring-1 ring-[#8E918F] disabled:opacity-50'
+              : 'flex min-h-11 w-full items-center justify-center gap-3 rounded-full border border-line bg-surface px-4 text-[15px] font-semibold text-ink shadow-sm disabled:opacity-50'
+          }
         >
-          {busy ? <Spinner className="text-[#E3E3E3]" /> : <GoogleGIcon />}
+          {busy ? <Spinner className={dark ? 'text-[#E3E3E3]' : 'text-ink-2'} /> : <GoogleGIcon />}
           Continue with Google
         </button>
         <ErrorText>{error}</ErrorText>

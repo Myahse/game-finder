@@ -6,9 +6,9 @@ import { AuthProvider } from './lib/auth'
 import { LocaleProvider } from './i18n/LocaleProvider'
 import { router } from './router'
 import './index.css'
-import { Toaster } from 'sonner'
 import { registerSW } from 'virtual:pwa-register'
 import { initMonitoring } from './lib/monitoring'
+import { ThemeProvider } from './theme/ThemeProvider'
 
 initMonitoring()
 
@@ -24,24 +24,14 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <LocaleProvider>
-          <RouterProvider router={router} />
-        </LocaleProvider>
-        <Toaster
-          position="top-center"
-          closeButton
-          richColors
-          toastOptions={{
-            classNames: {
-              toast: 'ftg-sonner-toast',
-              title: 'font-semibold',
-              description: 'text-ink-2',
-            },
-          }}
-        />
-      </AuthProvider>
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <LocaleProvider>
+            <RouterProvider router={router} />
+          </LocaleProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   </StrictMode>,
 )

@@ -4,29 +4,12 @@ import Supercluster, { type ClusterProperties } from 'supercluster'
 import type { Coords } from '../lib/location'
 import { UserLocationPulse } from './UserLocationPulse'
 import { configureEarthMap } from '../lib/mapboxEarth'
-import {
-  MAPBOX_ACCESS_TOKEN,
-  MAPBOX_MAP_PROPS,
-  MAP_STYLE_DARK,
-  MAP_STYLE_LIGHT,
-  mapboxConfigured,
-  mapboxTokenSetupError,
-} from '../lib/mapbox'
+import { MAPBOX_ACCESS_TOKEN, MAPBOX_MAP_PROPS, mapboxConfigured, mapboxTokenSetupError } from '../lib/mapbox'
+import { mapStyleForTheme } from '../theme/mapStyle'
+import { useTheme } from '../theme/ThemeProvider'
 import { SportIcon, Users } from './icons'
 import { courtPhotoUrl } from '../lib/mediaUrl'
 import type { Activity, Court } from '../lib/types'
-
-function useDark() {
-  const [dark, setDark] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches)
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    const on = () => setDark(mq.matches)
-    mq.addEventListener('change', on)
-    return () => mq.removeEventListener('change', on)
-  }, [])
-  return dark
-}
-
 type Props = {
   courts: Court[]
   center: Coords
@@ -41,7 +24,7 @@ type ClusterProps = { players: number; live: number }
 
 export function CourtMap({ courts, center, me, sportSlug, selectedId, onSelect }: Props) {
   const mapRef = useRef<MapRef>(null)
-  const dark = useDark()
+  const { isDark } = useTheme()
   const [view, setView] = useState({ zoom: 13, bounds: null as [number, number, number, number] | null })
   const centeredOnUser = useRef(false)
 
@@ -100,7 +83,7 @@ export function CourtMap({ courts, center, me, sportSlug, selectedId, onSelect }
     const apply = () => configureEarthMap(map)
     if (map.isStyleLoaded()) apply()
     else map.once('style.load', apply)
-  }, [dark])
+  }, [isDark])
 
   const sync = () => {
     const m = mapRef.current
@@ -142,7 +125,7 @@ export function CourtMap({ courts, center, me, sportSlug, selectedId, onSelect }
         initialViewState={{ longitude: center.longitude, latitude: center.latitude, zoom: 13, bearing: 0, pitch: 0 }}
         minZoom={2}
         maxZoom={18}
-        mapStyle={dark ? MAP_STYLE_DARK : MAP_STYLE_LIGHT}
+        mapStyle={mapStyleForTheme(isDark)}
         onLoad={onMapReady}
         onMoveEnd={sync}
         dragRotate={false}

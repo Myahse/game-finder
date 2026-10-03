@@ -5,6 +5,7 @@ import { LoginBottomSheet } from '../components/LoginBottomSheet'
 import { useLocale } from '../i18n/LocaleProvider'
 import { LegalFooter } from './LegalPage'
 
+/** Landing at `/` — follows system light/dark via app theme tokens. */
 export function WelcomePage() {
   const { t } = useLocale()
   const [params, setParams] = useSearchParams()
@@ -26,8 +27,15 @@ export function WelcomePage() {
 
   return (
     <>
-      <div className="relative flex min-h-full flex-col overflow-hidden bg-[#0b0e12] text-[#f3f1ec]">
-        <svg className="pointer-events-none absolute -right-32 -top-24 h-[640px] w-[640px] text-brand/25" viewBox="0 0 400 400" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden>
+      <div className="relative flex min-h-full flex-col overflow-hidden bg-bg text-ink">
+        <svg
+          className="pointer-events-none absolute -right-32 -top-24 h-[640px] w-[640px] text-brand/25"
+          viewBox="0 0 400 400"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3"
+          aria-hidden
+        >
           <circle cx="200" cy="200" r="190" />
           <circle cx="200" cy="200" r="60" />
           <path d="M10 200h380M200 10v380" />
@@ -35,8 +43,8 @@ export function WelcomePage() {
         </svg>
 
         <div className="relative mx-auto flex w-full max-w-md flex-1 flex-col justify-end px-6 pb-10 pt-24">
-          <div className="mb-6 flex items-center gap-2 text-sm font-semibold text-[#9aa3ae]">
-            <span className="relative inline-flex size-2.5 text-[#22c55e]">
+          <div className="mb-6 flex items-center gap-2 text-sm font-semibold text-ink-2">
+            <span className="relative inline-flex size-2.5 text-live">
               <span className="pulse relative size-2.5 rounded-full bg-current" />
             </span>
             {t.welcome.live}
@@ -46,26 +54,29 @@ export function WelcomePage() {
             <br />
             <span className="text-brand">{t.welcome.titleLine2}</span>
           </h1>
-          <p className="mt-5 text-xl text-[#c9ced6]">
+          <p className="mt-5 text-xl text-ink-2">
             {t.welcome.tagline1}
             <br />
-            <b className="text-white">{t.welcome.tagline2}</b>
+            <b className="text-ink">{t.welcome.tagline2}</b>
           </p>
 
           <div className="mt-10 grid gap-3">
             <GoogleSignInButton />
-            <OrDivider className="my-1 text-[#9aa3ae]" />
-            <Link to="/register" className="display flex min-h-14 items-center justify-center rounded-2xl bg-brand text-2xl font-bold text-white">
+            <OrDivider className="my-1 text-ink-2" />
+            <Link
+              to="/register"
+              className="display flex min-h-14 items-center justify-center rounded-2xl bg-brand text-2xl font-bold text-brand-ink"
+            >
               {t.welcome.createAccount}
             </Link>
             <button
               type="button"
               onClick={openLogin}
-              className="display flex min-h-14 items-center justify-center rounded-2xl border border-white/20 text-2xl font-bold"
+              className="display flex min-h-14 items-center justify-center rounded-2xl border border-line bg-surface/50 text-2xl font-bold backdrop-blur-sm"
             >
               {t.welcome.logIn}
             </button>
-            <LegalFooter className="mt-4 text-[#9aa3ae] [&_a]:text-brand" />
+            <LegalFooter className="mt-4 text-ink-2 [&_a]:text-brand" />
           </div>
         </div>
       </div>

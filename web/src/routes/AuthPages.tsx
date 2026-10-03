@@ -6,7 +6,7 @@ import { GoogleSignInButton, OrDivider } from '../components/GoogleSignInButton'
 import { Avatar, Button, ErrorText, Field, Input, PageHeader, PasswordInput } from '../components/ui'
 
 export function LoginPage() {
-  return <Navigate to="/welcome?login=1" replace />
+  return <Navigate to="/?login=1" replace />
 }
 
 export function RegisterPage() {
@@ -47,7 +47,7 @@ export function RegisterPage() {
 
   return (
     <div className="min-h-full">
-      <PageHeader title="Create account" back="/welcome" />
+      <PageHeader title="Create account" back="/" />
       <form onSubmit={submit} className="mx-auto grid max-w-md gap-4 p-5">
         <GoogleSignInButton />
         <OrDivider className="text-ink-2" />
@@ -112,7 +112,7 @@ export function RegisterPage() {
         </Button>
         <p className="text-center text-sm text-ink-2">
           Already playing?{' '}
-          <Link to="/welcome?login=1" className="font-semibold text-brand">
+          <Link to="/?login=1" className="font-semibold text-brand">
             Log in
           </Link>
         </p>

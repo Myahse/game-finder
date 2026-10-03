@@ -23,17 +23,26 @@ import { AdminUsers } from './routes/admin/AdminUsers'
 import { AdminReports } from './routes/admin/AdminReports'
 import { AdminSettings } from './routes/admin/AdminSettings'
 
-function RequireAuth() {
+const GUEST_PATHS = new Set(['/register', '/terms', '/privacy', '/login'])
+
+/** Logged-out: welcome at `/` (and `/welcome`). Logged-in: app shell or onboarding. */
+function RootAuthLayout() {
   const { user } = useAuth()
   const loc = useLocation()
-  if (!user) return <Navigate to="/welcome" replace state={{ from: loc.pathname }} />
-  if (!user.onboarded && loc.pathname !== '/onboarding') return <Navigate to="/onboarding" replace />
-  return <Outlet />
-}
+  const path = loc.pathname
 
-function GuestOnly() {
-  const { user } = useAuth()
-  return user ? <Navigate to="/" replace /> : <Outlet />
+  if (!user) {
+    if (path === '/' || path === '/welcome') return <WelcomePage />
+    if (GUEST_PATHS.has(path)) return <Outlet />
+    return <Navigate to="/" replace state={{ from: path }} />
+  }
+
+  if (['/register', '/login', '/welcome'].includes(path)) return <Navigate to="/" replace />
+
+  if (!user.onboarded && path !== '/onboarding') return <Navigate to="/onboarding" replace />
+  if (user.onboarded && path === '/onboarding') return <Navigate to="/" replace />
+
+  return <Outlet />
 }
 
 function RequireAdmin() {
@@ -43,38 +52,34 @@ function RequireAdmin() {
 
 export const router = createBrowserRouter([
   {
-    element: <GuestOnly />,
+    path: '/',
+    element: <RootAuthLayout />,
     children: [
-      { path: '/welcome', element: <WelcomePage /> },
-      { path: '/terms', element: <TermsPage /> },
-      { path: '/privacy', element: <PrivacyPage /> },
-      { path: '/login', element: <LoginPage /> },
-      { path: '/register', element: <RegisterPage /> },
-    ],
-  },
-  {
-    element: <RequireAuth />,
-    children: [
-      { path: '/onboarding', element: <OnboardingPage /> },
+      { path: 'welcome', element: <Navigate to="/" replace /> },
+      { path: 'terms', element: <TermsPage /> },
+      { path: 'privacy', element: <PrivacyPage /> },
+      { path: 'login', element: <LoginPage /> },
+      { path: 'register', element: <RegisterPage /> },
+      { path: 'onboarding', element: <OnboardingPage /> },
       {
         element: <AppShell />,
         children: [
-          { path: '/', element: <MapPage /> },
-          { path: '/play', element: <PlayPage /> },
-          { path: '/my-games', element: <MyGamesPage /> },
-          { path: '/notifications', element: <NotificationsPage /> },
-          { path: '/profile', element: <ProfilePage /> },
-          { path: '/users/:id', element: <UserPage /> },
-          { path: '/courts/new', element: <AddCourtPage /> },
-          { path: '/courts/:id', element: <CourtPage /> },
-          { path: '/courts/:id/report', element: <ReportCourtPage /> },
-          { path: '/games/new', element: <CreateGamePage /> },
-          { path: '/games/:id', element: <GamePage /> },
+          { index: true, element: <MapPage /> },
+          { path: 'play', element: <PlayPage /> },
+          { path: 'my-games', element: <MyGamesPage /> },
+          { path: 'notifications', element: <NotificationsPage /> },
+          { path: 'profile', element: <ProfilePage /> },
+          { path: 'users/:id', element: <UserPage /> },
+          { path: 'courts/new', element: <AddCourtPage /> },
+          { path: 'courts/:id', element: <CourtPage /> },
+          { path: 'courts/:id/report', element: <ReportCourtPage /> },
+          { path: 'games/new', element: <CreateGamePage /> },
+          { path: 'games/:id', element: <GamePage /> },
           {
             element: <RequireAdmin />,
             children: [
               {
-                path: '/admin',
+                path: 'admin',
                 element: <AdminLayout />,
                 children: [
                   { index: true, element: <AdminDashboard /> },

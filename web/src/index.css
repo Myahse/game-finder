@@ -20,7 +20,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --bg: #0b0e12;
     --surface: #151a21;
     --surface-2: #1d232c;
@@ -34,6 +34,38 @@
     --danger: #f87171;
     color-scheme: dark;
   }
+}
+
+/* Theme adapter (`ThemeProvider` + index.html boot script) */
+:root[data-theme='dark'] {
+  --bg: #0b0e12;
+  --surface: #151a21;
+  --surface-2: #1d232c;
+  --ink: #f3f1ec;
+  --ink-2: #9aa3ae;
+  --line: #262d37;
+  --brand: #ff6a2b;
+  --live: #22c55e;
+  --players: #facc15;
+  --idle: #6b7380;
+  --danger: #f87171;
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --bg: #f6f4f0;
+  --surface: #ffffff;
+  --surface-2: #efece6;
+  --ink: #12151a;
+  --ink-2: #5b616b;
+  --line: #e2ded6;
+  --brand: #ff5a1f;
+  --brand-ink: #ffffff;
+  --live: #16a34a;
+  --players: #eab308;
+  --idle: #9aa0a8;
+  --danger: #dc2626;
+  color-scheme: light;
 }
 
 @theme inline {

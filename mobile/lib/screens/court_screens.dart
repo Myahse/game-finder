@@ -1081,6 +1081,131 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
     }
   }
 
+  Widget _courtMapStack(LocationState loc) {
+    final loadingOverlay = Theme.of(context).colorScheme.surface.withValues(alpha: 0.72);
+    return Stack(
+      children: [
+        IgnorePointer(
+          ignoring: !_courtMapReady,
+          child: FlutterMap(
+            key: const ValueKey('add-court-map'),
+            mapController: _courtMap,
+            options: MapOptions(
+              initialCenter: _where ?? loc.position ?? loc.center,
+              initialZoom: 16,
+              minZoom: _mapMinZoom,
+              maxZoom: _mapMaxZoom,
+              initialRotation: 0,
+              onMapReady: () {
+                if (!mounted) return;
+                final p = loc.position;
+                final autoPin = _where == null && p != null;
+                setState(() => _courtMapReady = true);
+                if (autoPin) unawaited(_setCourtPin(p));
+              },
+              onTap: (_, p) => unawaited(_setCourtPin(p)),
+              interactionOptions: InteractionOptions(
+                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+                cursorKeyboardRotationOptions: CursorKeyboardRotationOptions.disabled(),
+              ),
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: mapboxTileUrl(dark: Theme.of(context).brightness == Brightness.dark),
+                userAgentPackageName: 'com.findthegame.find_the_game',
+                retinaMode: RetinaMode.isHighDensity(context),
+              ),
+              if (loc.position != null)
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: loc.position!,
+                      width: 22,
+                      height: 22,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF3B82F6),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 3),
+                          boxShadow: const [BoxShadow(blurRadius: 6, color: Colors.black26)],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              if (_where != null)
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: _where!,
+                      width: CourtMapPin.size + 12,
+                      height: CourtMapPin.totalHeight,
+                      alignment: Alignment.topCenter,
+                      child: CourtMapPin.placement(
+                        placementSportSlug: _placementSportSlug(),
+                        placementPhotoUrl: _photos.firstOrNull,
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        ),
+        if (!_courtMapReady)
+          Positioned.fill(
+            child: ColoredBox(
+              color: loadingOverlay,
+              child: const Center(
+                child: SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 2)),
+              ),
+            ),
+          ),
+        Positioned(
+          left: 10,
+          bottom: 10,
+          child: Material(
+            elevation: 2,
+            borderRadius: BorderRadius.circular(12),
+            color: Theme.of(context).colorScheme.surface,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: 'Zoom in',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: _courtMapReady ? () => _zoomCourtMap(1) : null,
+                  icon: const Icon(Icons.add),
+                ),
+                Divider(height: 1, color: Theme.of(context).dividerColor),
+                IconButton(
+                  tooltip: 'Zoom out',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: _courtMapReady ? () => _zoomCourtMap(-1) : null,
+                  icon: const Icon(Icons.remove),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (loc.position != null)
+          Positioned(
+            right: 10,
+            bottom: 10,
+            child: Material(
+              elevation: 2,
+              borderRadius: BorderRadius.circular(12),
+              color: Theme.of(context).colorScheme.surface,
+              child: IconButton(
+                tooltip: 'Pin my position',
+                onPressed: () => _pinMyPosition(loc.position!),
+                icon: const Icon(Icons.my_location),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final loc = context.watch<LocationState>();
@@ -1140,9 +1265,41 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
         ),
       );
     }
-    final mapHeight = _mapExpanded
-        ? MediaQuery.sizeOf(context).height * 0.58
-        : 220.0;
+
+    if (_mapExpanded) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('PLACE COURT'),
+          leading: IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () => setState(() => _mapExpanded = false),
+          ),
+        ),
+        body: Column(
+          children: [
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: _courtMapStack(loc),
+                ),
+              ),
+            ),
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: PrimaryButton(
+                  onPressed: () => setState(() => _mapExpanded = false),
+                  child: const Text('DONE'),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text('ADD A COURT')),
@@ -1159,11 +1316,9 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
                 ),
                 const Spacer(),
                 TextButton.icon(
-                  onPressed: () => setState(() => _mapExpanded = !_mapExpanded),
-                  icon: Icon(
-                    _mapExpanded ? Icons.fullscreen_exit : Icons.fullscreen,
-                  ),
-                  label: Text(_mapExpanded ? 'Smaller map' : 'Expand map'),
+                  onPressed: () => setState(() => _mapExpanded = true),
+                  icon: const Icon(Icons.fullscreen),
+                  label: const Text('Expand map'),
                 ),
               ],
             ),
@@ -1172,157 +1327,9 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 280),
-                curve: Curves.easeOutCubic,
-                height: mapHeight,
-                child: Stack(
-                  children: [
-                    IgnorePointer(
-                      ignoring: !_courtMapReady,
-                      child: FlutterMap(
-                        key: const ValueKey('add-court-map'),
-                        mapController: _courtMap,
-                        options: MapOptions(
-                          initialCenter: _where ?? loc.position ?? loc.center,
-                          initialZoom: 16,
-                          minZoom: _mapMinZoom,
-                          maxZoom: _mapMaxZoom,
-                          initialRotation: 0,
-                          onMapReady: () {
-                            if (!mounted) return;
-                            final p = loc.position;
-                            final autoPin = _where == null && p != null;
-                            setState(() => _courtMapReady = true);
-                            if (autoPin) unawaited(_setCourtPin(p));
-                          },
-                          onTap: (_, p) => unawaited(_setCourtPin(p)),
-                          interactionOptions: InteractionOptions(
-                            flags:
-                                InteractiveFlag.all & ~InteractiveFlag.rotate,
-                            cursorKeyboardRotationOptions:
-                                CursorKeyboardRotationOptions.disabled(),
-                          ),
-                        ),
-                        children: [
-                          TileLayer(
-                            urlTemplate: mapboxTileUrl(
-                              dark:
-                                  Theme.of(context).brightness ==
-                                  Brightness.dark,
-                            ),
-                            userAgentPackageName:
-                                'com.findthegame.find_the_game',
-                            retinaMode: RetinaMode.isHighDensity(context),
-                          ),
-                          if (loc.position != null)
-                            MarkerLayer(
-                              markers: [
-                                Marker(
-                                  point: loc.position!,
-                                  width: 22,
-                                  height: 22,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF3B82F6),
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: Colors.white,
-                                        width: 3,
-                                      ),
-                                      boxShadow: const [
-                                        BoxShadow(
-                                          blurRadius: 6,
-                                          color: Colors.black26,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          if (_where != null)
-                            MarkerLayer(
-                              markers: [
-                                Marker(
-                                  point: _where!,
-                                  width: CourtMapPin.size + 12,
-                                  height: CourtMapPin.totalHeight,
-                                  alignment: Alignment.topCenter,
-                                  child: CourtMapPin.placement(
-                                    placementSportSlug: _placementSportSlug(),
-                                    placementPhotoUrl: _photos.firstOrNull,
-                                  ),
-                                ),
-                              ],
-                            ),
-                        ],
-                      ),
-                    ),
-                    if (!_courtMapReady)
-                      const Positioned.fill(
-                        child: ColoredBox(
-                          color: Color(0x22FFFFFF),
-                          child: Center(
-                            child: SizedBox(
-                              width: 28,
-                              height: 28,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          ),
-                        ),
-                      ),
-                    Positioned(
-                      left: 10,
-                      bottom: 10,
-                      child: Material(
-                        elevation: 2,
-                        borderRadius: BorderRadius.circular(12),
-                        color: Theme.of(context).colorScheme.surface,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              tooltip: 'Zoom in',
-                              visualDensity: VisualDensity.compact,
-                              onPressed: _courtMapReady
-                                  ? () => _zoomCourtMap(1)
-                                  : null,
-                              icon: const Icon(Icons.add),
-                            ),
-                            Divider(
-                              height: 1,
-                              color: Theme.of(context).dividerColor,
-                            ),
-                            IconButton(
-                              tooltip: 'Zoom out',
-                              visualDensity: VisualDensity.compact,
-                              onPressed: _courtMapReady
-                                  ? () => _zoomCourtMap(-1)
-                                  : null,
-                              icon: const Icon(Icons.remove),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (loc.position != null)
-                      Positioned(
-                        right: 10,
-                        bottom: 10,
-                        child: Material(
-                          elevation: 2,
-                          borderRadius: BorderRadius.circular(12),
-                          color: Theme.of(context).colorScheme.surface,
-                          child: IconButton(
-                            tooltip: 'Pin my position',
-                            onPressed: () => _pinMyPosition(loc.position!),
-                            icon: const Icon(Icons.my_location),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
+              child: SizedBox(
+                height: 220,
+                child: _courtMapStack(loc),
               ),
             ),
           ),

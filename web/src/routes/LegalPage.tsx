@@ -5,7 +5,7 @@ import { PageHeader } from '../components/ui'
 function LegalDoc({ title, sections }: { title: string; sections: { title: string; body: string }[] }) {
   return (
     <div className="pb-12">
-      <PageHeader title={title} back="/welcome" />
+      <PageHeader title={title} back="/" />
       <article className="mx-auto max-w-lg space-y-6 p-5 text-sm leading-relaxed text-ink-2">
         <p className="text-xs text-ink-2">Last updated: {LEGAL_LAST_UPDATED}</p>
         {sections.map((s) => (
