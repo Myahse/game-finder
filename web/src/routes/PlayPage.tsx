@@ -8,7 +8,7 @@ import { useAuth } from '../lib/auth'
 import { useQueryErrorToast } from '../lib/toastErrors'
 import { sortPlayable } from '../lib/sort'
 import { GameCard } from '../components/GameCard'
-import { BasketballIcon, LiveText, SportName } from '../components/icons'
+import { BaseSportIcon, LiveText, SportName } from '../components/icons'
 import { Chip, Empty, PageHeader } from '../components/ui'
 import { Loading } from './CourtPage'
 
@@ -75,7 +75,7 @@ export function PlayPage() {
         {isLoading ? (
           <Loading />
         ) : sorted.length === 0 ? (
-          <Empty icon={<BasketballIcon className="size-14" />} title="No games nearby yet">
+          <Empty icon={<BaseSportIcon className="size-14" />} title="No games nearby yet">
             Be the one who starts it.{' '}
             <Link to="/games/new" className="font-semibold text-brand">
               Create a game

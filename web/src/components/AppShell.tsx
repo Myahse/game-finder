@@ -1,7 +1,7 @@
 import { useCallback, type ReactNode } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Bell, BasketballIcon, CalendarDays, MapPin, User, Wrench } from './icons'
+import { Bell, BaseSportIcon, CalendarDays, MapPin, User, Wrench } from './icons'
 import { useAuth } from '../lib/auth'
 import { useRealtime } from '../lib/realtime'
 import { useNotifications } from '../lib/queries'
@@ -13,7 +13,7 @@ type Tab = { to: string; labelKey: 'map' | 'play' | 'myGames' | 'alerts' | 'prof
 
 const tabs: Tab[] = [
   { to: '/', labelKey: 'map', end: true, navIcon: <MapPin className="size-6 md:size-5" aria-hidden /> },
-  { to: '/play', labelKey: 'play', navIcon: <BasketballIcon className="size-6 md:size-5" /> },
+  { to: '/play', labelKey: 'play', navIcon: <BaseSportIcon className="size-6 md:size-5" /> },
   { to: '/my-games', labelKey: 'myGames', navIcon: <CalendarDays className="size-6 md:size-5" aria-hidden /> },
   { to: '/notifications', labelKey: 'alerts', navIcon: <Bell className="size-6 md:size-5" aria-hidden /> },
   { to: '/profile', labelKey: 'profile', navIcon: <User className="size-6 md:size-5" aria-hidden /> },
@@ -73,8 +73,13 @@ export function AppShell() {
       <nav
         className="fixed inset-x-4 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-30 flex shrink-0 rounded-2xl border border-line bg-surface shadow-[0_8px_28px_rgba(0,0,0,0.14)] md:static md:inset-auto md:bottom-auto md:z-auto md:w-56 md:flex-col md:rounded-none md:border-r md:border-t-0 md:p-3 md:shadow-none"
       >
-        <div className="display hidden px-3 pb-6 pt-2 text-3xl font-extrabold md:block">
-          Find the <span className="text-brand">Game</span>
+        <div className="display hidden items-center gap-2 px-3 pb-6 pt-2 text-3xl font-extrabold md:flex">
+          <span className="sport-tint flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand text-brand-ink">
+            <BaseSportIcon className="size-5" />
+          </span>
+          <span>
+            Find the <span className="sport-tint text-brand">Game</span>
+          </span>
         </div>
         {tabs.map((tab) => (
           <NavLink

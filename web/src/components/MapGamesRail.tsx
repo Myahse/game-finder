@@ -5,7 +5,7 @@ import { subscribeLiveGamePulse } from '../lib/liveGames'
 import { sortPlayable } from '../lib/sort'
 import { GameCard } from './GameCard'
 import { MapBottomSheet } from './MapBottomSheet'
-import { BasketballIcon } from './icons'
+import { BaseSportIcon } from './icons'
 import { ChevronRight, Plus } from 'lucide-react'
 
 type Props = {
@@ -70,7 +70,7 @@ export function MapGamesRail({ games, isLoading, sport, viewerIsAdmin = false }:
         ) : sorted.length === 0 ? (
           <div className="mx-1 rounded-2xl border border-line bg-surface-2 p-4">
             <div className="flex items-center gap-3">
-              <BasketballIcon className="size-10 shrink-0 text-brand" />
+              <BaseSportIcon className="size-10 shrink-0 text-brand" />
               <div className="min-w-0">
                 <p className="font-semibold">No open games yet</p>
                 <p className="text-sm text-ink-2">Add a court photo when you create a game.</p>

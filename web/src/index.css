@@ -12,6 +12,8 @@
   --line: #e2ded6;
   --brand: #ff5a1f;
   --brand-ink: #ffffff;
+  --sport-accent: #ffb020;
+  --sport-deep: #7a1f00;
   --live: #16a34a;
   --players: #eab308;
   --idle: #9aa0a8;
@@ -28,6 +30,8 @@
     --ink-2: #9aa3ae;
     --line: #262d37;
     --brand: #ff6a2b;
+    --sport-accent: #ffbe3d;
+    --sport-deep: #3d1200;
     --live: #22c55e;
     --players: #facc15;
     --idle: #6b7380;
@@ -45,6 +49,8 @@
   --ink-2: #9aa3ae;
   --line: #262d37;
   --brand: #ff6a2b;
+  --sport-accent: #ffbe3d;
+  --sport-deep: #3d1200;
   --live: #22c55e;
   --players: #facc15;
   --idle: #6b7380;
@@ -61,11 +67,89 @@
   --line: #e2ded6;
   --brand: #ff5a1f;
   --brand-ink: #ffffff;
+  --sport-accent: #ffb020;
+  --sport-deep: #7a1f00;
   --live: #16a34a;
   --players: #eab308;
   --idle: #9aa0a8;
   --danger: #dc2626;
   color-scheme: light;
+}
+
+/*
+ * Base-sport skins. The user's primary sport sets `data-sport` on <html>
+ * (`SportThemeProvider`); any element can also carry `data-sport` to wear
+ * another sport locally (onboarding cards). Only brand + accents change —
+ * surfaces, ink and layout stay the same across sports.
+ */
+:root[data-sport='basketball'],
+[data-sport='basketball'] {
+  --brand: #ff5a1f;
+  --brand-ink: #ffffff;
+  --sport-accent: #ffb020;
+  --sport-deep: #7a1f00;
+}
+:root[data-sport='football'],
+[data-sport='football'] {
+  --brand: #0f9f4f;
+  --brand-ink: #ffffff;
+  --sport-accent: #b8f13a;
+  --sport-deep: #053d22;
+  /* Keep "live" readable next to a green brand. */
+  --live: #0891b2;
+}
+:root[data-sport='volleyball'],
+[data-sport='volleyball'] {
+  --brand: #2563eb;
+  --brand-ink: #ffffff;
+  --sport-accent: #fbbf24;
+  --sport-deep: #0b2a6b;
+}
+:root[data-sport='tennis'],
+[data-sport='tennis'] {
+  --brand: #7c3aed;
+  --brand-ink: #ffffff;
+  --sport-accent: #d4f53c;
+  --sport-deep: #2e0f66;
+}
+:root[data-sport='badminton'],
+[data-sport='badminton'] {
+  --brand: #0d9488;
+  --brand-ink: #ffffff;
+  --sport-accent: #f472b6;
+  --sport-deep: #04403b;
+}
+
+:root[data-theme='dark'][data-sport='basketball'],
+[data-theme='dark'] [data-sport='basketball'] {
+  --brand: #ff6a2b;
+  --sport-accent: #ffbe3d;
+  --sport-deep: #3d1200;
+}
+:root[data-theme='dark'][data-sport='football'],
+[data-theme='dark'] [data-sport='football'] {
+  --brand: #1fb35c;
+  --sport-accent: #c4f75a;
+  --sport-deep: #052a18;
+  --live: #22d3ee;
+}
+:root[data-theme='dark'][data-sport='volleyball'],
+[data-theme='dark'] [data-sport='volleyball'] {
+  --brand: #4d86ff;
+  --sport-accent: #fcd34d;
+  --sport-deep: #0a1f4d;
+}
+:root[data-theme='dark'][data-sport='tennis'],
+[data-theme='dark'] [data-sport='tennis'] {
+  --brand: #9466ff;
+  --sport-accent: #dcf75e;
+  --sport-deep: #220a4d;
+}
+:root[data-theme='dark'][data-sport='badminton'],
+[data-theme='dark'] [data-sport='badminton'] {
+  --brand: #14a99b;
+  --sport-accent: #f9a8d4;
+  --sport-deep: #032e2a;
 }
 
 @theme inline {
@@ -77,6 +161,8 @@
   --color-line: var(--line);
   --color-brand: var(--brand);
   --color-brand-ink: var(--brand-ink);
+  --color-sport-accent: var(--sport-accent);
+  --color-sport-deep: var(--sport-deep);
   --color-live: var(--live);
   --color-players: var(--players);
   --color-idle: var(--idle);
@@ -195,7 +281,80 @@ body {
 .ftg-game-enter {
   animation: ftg-game-enter 0.75s cubic-bezier(0.34, 1.35, 0.64, 1);
 }
+/* Smooth hand-off when the base sport (and so the brand colour) changes. */
+.sport-tint {
+  transition:
+    background-color 0.45s ease,
+    border-color 0.45s ease,
+    color 0.45s ease;
+}
+
+/* Onboarding sport cards */
+.sport-card {
+  background:
+    radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--sport-accent) 55%, transparent) 0%, transparent 55%),
+    linear-gradient(150deg, var(--brand) 0%, color-mix(in srgb, var(--brand) 55%, var(--sport-deep)) 55%, var(--sport-deep) 100%);
+}
+@keyframes ftg-card-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.ftg-card-progress {
+  transform-origin: left;
+  animation: ftg-card-progress linear forwards;
+}
+@keyframes ftg-sport-pop {
+  0% {
+    transform: scale(0.6) rotate(-25deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.12) rotate(6deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+.ftg-sport-pop {
+  animation: ftg-sport-pop 0.55s cubic-bezier(0.34, 1.35, 0.64, 1);
+}
+@keyframes ftg-ball-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(8deg);
+  }
+}
+.ftg-ball-float {
+  animation: ftg-ball-float 3.2s ease-in-out infinite;
+}
+@keyframes ftg-sport-fade {
+  from {
+    opacity: 0;
+    translate: 0 -8px;
+  }
+}
+.ftg-sport-fade {
+  animation: ftg-sport-fade 0.6s ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .sport-tint {
+    transition: none;
+  }
+  .ftg-card-progress,
+  .ftg-sport-pop,
+  .ftg-sport-fade,
+  .ftg-ball-float {
+    animation: none;
+  }
   .pulse::before {
     animation: none;
   }

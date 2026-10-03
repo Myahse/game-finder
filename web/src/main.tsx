@@ -9,6 +9,7 @@ import './index.css'
 import { registerSW } from 'virtual:pwa-register'
 import { initMonitoring } from './lib/monitoring'
 import { ThemeProvider } from './theme/ThemeProvider'
+import { SportThemeProvider } from './theme/SportThemeProvider'
 
 initMonitoring()
 
@@ -28,7 +29,9 @@ createRoot(document.getElementById('root')!).render(
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <LocaleProvider>
-            <RouterProvider router={router} />
+            <SportThemeProvider>
+              <RouterProvider router={router} />
+            </SportThemeProvider>
           </LocaleProvider>
         </AuthProvider>
       </QueryClientProvider>

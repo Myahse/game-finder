@@ -28,6 +28,7 @@ import {
 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { Activity, AppNotification } from '../lib/types'
+import { useSportTheme } from '../theme/SportThemeProvider'
 
 export type IconProps = { className?: string }
 
@@ -45,28 +46,30 @@ export function BasketballIcon({ className }: IconProps) {
 
 export function FootballIcon({ className }: IconProps) {
   return (
-    <svg className={cn('shrink-0', className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <svg className={cn('shrink-0', className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden>
       <circle cx="12" cy="12" r="9" />
-      <path d="M12 3l2.5 4.5L12 12l-2.5-4.5L12 3zM12 21l-2.5-4.5L12 12l2.5 4.5L12 21z" />
-      <path d="M3 12l4.5-2.5L12 12l-4.5 2.5L3 12zM21 12l-4.5 2.5L12 12l4.5-2.5L21 12z" />
+      <path d="M12 8.2l3.6 2.6-1.4 4.2H9.8l-1.4-4.2L12 8.2z" fill="currentColor" fillOpacity="0.25" />
+      <path d="M12 8.2V3.4M15.6 10.8l4.6-1.5M14.2 15l2.8 3.9M9.8 15L7 18.9M8.4 10.8L3.8 9.3" />
     </svg>
   )
 }
 
 export function TennisIcon({ className }: IconProps) {
   return (
-    <svg className={cn('shrink-0', className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <svg className={cn('shrink-0', className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
       <circle cx="12" cy="12" r="9" />
-      <path d="M4.5 4.5c6 6 9 9 15 15" />
+      <path d="M6 4.6c2.6 2 3.9 4.5 3.9 7.4S8.6 17.4 6 19.4" />
+      <path d="M18 4.6c-2.6 2-3.9 4.5-3.9 7.4s1.3 5.4 3.9 7.4" />
     </svg>
   )
 }
 
 export function BadmintonIcon({ className }: IconProps) {
   return (
-    <svg className={cn('shrink-0', className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M6 18l3-9 9-3-3 9-9 3z" />
-      <circle cx="7" cy="19" r="1.5" fill="currentColor" stroke="none" />
+    <svg className={cn('shrink-0', className)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M9.2 14.8L13 3.6c3.6.6 6.8 3.8 7.4 7.4L9.2 14.8z" />
+      <path d="M9.2 14.8l7.4-9.3" />
+      <circle cx="6.6" cy="17.4" r="3" fill="currentColor" fillOpacity="0.25" />
     </svg>
   )
 }
@@ -82,6 +85,12 @@ const sportBySlug: Record<string, (p: IconProps) => ReactNode> = {
 export function SportIcon({ slug, className = 'size-5' }: { slug: string; className?: string }) {
   const Icon = sportBySlug[slug] ?? MapPin
   return <Icon className={className} />
+}
+
+/** Icon of the user's base sport — the app's sport mark (nav, empty states, prompts). */
+export function BaseSportIcon({ className = 'size-5' }: { className?: string }) {
+  const slug = useSportTheme()
+  return <SportIcon slug={slug ?? 'basketball'} className={className} />
 }
 
 export function SportName({

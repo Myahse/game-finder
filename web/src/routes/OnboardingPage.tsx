@@ -6,11 +6,14 @@ import { useAuth } from '../lib/auth'
 import { playerSkillLevels } from '../lib/format'
 import { useSports, useUpdateMe } from '../lib/queries'
 import type { Me, SkillLevel } from '../lib/types'
-import { SportIcon, SportName } from '../components/icons'
+import { BaseSportIcon, SportIcon, SportName } from '../components/icons'
+import { SportCarousel, SportCarouselSkeleton } from '../components/SportCarousel'
+import { SportMotif } from '../components/SportMotif'
 import { StepIndicator } from '../components/StepIndicator'
 import { useStepFlow } from '../components/StepFlow'
-import { Button, ErrorText, Field, Input, Spinner } from '../components/ui'
+import { Button, ErrorText, Field, Input } from '../components/ui'
 import { useLocale } from '../i18n/LocaleProvider'
+import { useSportTheme, useSportThemePreview } from '../theme/SportThemeProvider'
 
 const usernamePattern = /^[A-Za-z0-9_.]{3,24}$/
 
@@ -23,6 +26,8 @@ function profileCompleteFromUser(user: { first_name?: string; last_name?: string
     usernamePattern.test(u)
   )
 }
+
+type OnboardingStep = 'sport' | 'profile' | 'level'
 
 function initialPlayerSkill(user: Me | null): SkillLevel | null {
   const s = user?.skill_level
@@ -37,9 +42,11 @@ export function OnboardingPage() {
   const { data: sports } = useSports()
   const update = useUpdateMe()
   const needsProfile = useMemo(() => !profileCompleteFromUser(user), [user])
-  const stepCount = needsProfile ? 2 : 1
-  const lastStep = stepCount - 1
+  // Base sport comes first: it dresses every screen that follows.
+  const steps: OnboardingStep[] = needsProfile ? ['sport', 'profile', 'level'] : ['sport', 'level']
+  const lastStep = steps.length - 1
   const { step, setStep } = useStepFlow(0)
+  const current = steps[Math.min(step, lastStep)]
   const [sportId, setSportId] = useState<string | null>(user?.preferred_sport_id ?? null)
   const [extraSportIds, setExtraSportIds] = useState<string[]>(user?.extra_sport_ids ?? [])
   const [skill, setSkill] = useState<SkillLevel | null>(() => initialPlayerSkill(user))
@@ -49,16 +56,23 @@ export function OnboardingPage() {
   const [usernameTaken, setUsernameTaken] = useState(false)
   const [error, setError] = useState('')
   const available = sports?.filter((s) => s.active) ?? []
+  const baseSport = available.find((s) => s.id === sportId) ?? null
+  // Re-skin the app live as soon as a base sport is picked.
+  useSportThemePreview(baseSport?.slug ?? null)
+  const skin = useSportTheme() ?? 'basketball'
 
+  /** Resolves `true` when the username is already taken. */
   const checkUsername = useCallback(async () => {
     const u = username.trim()
-    if (!usernamePattern.test(u)) return
+    if (!usernamePattern.test(u)) return false
     if (u === user?.username) {
       setUsernameTaken(false)
-      return
+      return false
     }
     const r = await api<{ available: boolean }>(`/api/auth/username-available?username=${encodeURIComponent(u)}`).catch(() => null)
-    setUsernameTaken(r ? !r.available : false)
+    const taken = r ? !r.available : false
+    setUsernameTaken(taken)
+    return taken
   }, [username, user?.username])
 
   const profileValid =
@@ -69,11 +83,13 @@ export function OnboardingPage() {
 
   const goNext = async () => {
     setError('')
-    if (step === 0) {
-      await checkUsername()
-      if (usernameTaken) return
-    }
+    if (current === 'profile' && (await checkUsername())) return
     setStep(step + 1)
+  }
+
+  const chooseBase = (id: string) => {
+    setSportId(id)
+    setExtraSportIds((prev) => prev.filter((x) => x !== id))
   }
 
   const toggleExtraSport = (id: string) => {
@@ -109,98 +125,148 @@ export function OnboardingPage() {
     )
   }
 
-  const onSportLevelStep = needsProfile ? step === 1 : step === 0
-  const canNext = onSportLevelStep ? !!sportId && skill !== null : profileValid
+  const canNext =
+    current === 'sport' ? !!sportId : current === 'profile' ? profileValid : !!sportId && skill !== null
 
   const skillLabels = t.skill
 
   return (
-    <div className="mx-auto flex min-h-full max-w-md flex-col px-6 py-10">
-      <div className="mb-4 flex justify-end">
-        <button
-          type="button"
-          className="text-sm font-semibold text-ink-2 hover:text-brand"
-          onClick={() => void logout().then(() => navigate('/', { replace: true }))}
-        >
-          Sign out
-        </button>
+    <div className="relative min-h-full overflow-x-clip">
+      {/* Base-sport backdrop: soft brand glow + faint court lines. */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-80 overflow-hidden">
+        <div className="sport-tint absolute inset-0 bg-gradient-to-b from-brand/15 via-brand/5 to-transparent" />
+        <SportMotif
+          key={skin}
+          slug={skin}
+          className="ftg-sport-fade absolute -right-16 -top-10 h-64 w-[26rem] rotate-[-8deg] text-brand opacity-[0.12] [mask-image:linear-gradient(to_bottom,black,transparent)]"
+        />
       </div>
-      <p className="text-sm font-semibold text-ink-2">
-        {t.onboarding.welcome}
-        {user?.username ? `, @${user.username}` : ''}
-      </p>
-      <h1 className="display mt-1 text-4xl font-extrabold">{t.onboarding.title}</h1>
-      <p className="mt-3 text-ink-2">{t.onboarding.subtitle}</p>
 
-      <form onSubmit={submit} className="mt-8 grid gap-5">
-        <StepIndicator current={step + 1} total={stepCount} />
-
-        {needsProfile && step === 0 && (
-          <div className="grid gap-3">
-            <h2 className="display text-2xl font-bold">{t.onboarding.profile}</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label={t.profile.firstName}>
-                <Input required autoComplete="given-name" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-              </Field>
-              <Field label={t.profile.lastName}>
-                <Input required autoComplete="family-name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
-              </Field>
-            </div>
-            <Field
-              label={t.profile.username}
-              hint={
-                usernameTaken ? (
-                  <span className="text-danger">{t.onboarding.usernameTaken}</span>
-                ) : (
-                  t.onboarding.usernameHint
-                )
-              }
+      <div className="relative mx-auto flex max-w-md flex-col px-6 pb-10 pt-[max(1.5rem,env(safe-area-inset-top))]">
+        <div className="mb-6 flex items-center justify-between">
+          <span className="display inline-flex items-center gap-2 text-xl font-extrabold">
+            <span
+              key={skin}
+              className="ftg-sport-pop sport-tint flex size-9 items-center justify-center rounded-xl bg-brand text-brand-ink shadow-[0_6px_16px_-6px_var(--brand)]"
             >
-              <Input
-                required
-                pattern="[A-Za-z0-9_.]{3,24}"
-                autoComplete="username"
-                value={username}
-                onChange={(e) => {
-                  setUsernameTaken(false)
-                  setUsername(e.target.value)
-                }}
-                onBlur={() => void checkUsername()}
-              />
-            </Field>
-            {user?.email && (
-              <p className="text-sm text-ink-2">
-                {t.onboarding.email}: <span className="font-medium text-ink">{user.email}</span>
-              </p>
-            )}
-          </div>
-        )}
+              <BaseSportIcon className="size-5" />
+            </span>
+            Find the <span className="sport-tint text-brand">Game</span>
+          </span>
+          <button
+            type="button"
+            className="text-sm font-semibold text-ink-2 hover:text-brand"
+            onClick={() => void logout().then(() => navigate('/', { replace: true }))}
+          >
+            Sign out
+          </button>
+        </div>
 
-        {onSportLevelStep && (
-          <div className="grid gap-4">
+        <p className="text-sm font-semibold text-ink-2">
+          {t.onboarding.welcome}
+          {user?.username ? `, @${user.username}` : ''}
+        </p>
+        <h1 className="display mt-1 text-4xl font-extrabold">{t.onboarding.title}</h1>
+        <p className="mt-3 text-ink-2">{t.onboarding.subtitle}</p>
+
+        <form onSubmit={submit} className="mt-7 grid grid-cols-1 gap-5">
+          <StepIndicator current={step + 1} total={steps.length} />
+
+          {current === 'sport' && (
+            <div className="grid grid-cols-1 gap-3">
+              <div>
+                <h2 className="display text-2xl font-bold">{t.onboarding.sport}</h2>
+                <p className="mt-1 text-sm text-ink-2">{t.onboarding.sportHint}</p>
+              </div>
+              {!sports ? (
+                <SportCarouselSkeleton />
+              ) : (
+                <SportCarousel sports={available} selectedId={sportId} onSelect={(s) => chooseBase(s.id)} />
+              )}
+              <p aria-live="polite" className="sport-tint min-h-5 text-center text-sm font-semibold text-brand">
+                {baseSport ? t.onboarding.baseChosen.replace('{sport}', baseSport.name) : null}
+              </p>
+              {sports?.some((s) => !s.active) && (
+                <p className="text-center text-sm text-ink-2">
+                  <span className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+                    {t.onboarding.comingSoon}
+                    {sports
+                      .filter((s) => !s.active)
+                      .map((s) => <SportName key={s.id} sport={s} />)}
+                  </span>
+                </p>
+              )}
+            </div>
+          )}
+
+          {current === 'profile' && (
             <div className="grid gap-3">
-              <h2 className="display text-2xl font-bold">{t.onboarding.sport}</h2>
-              <p className="text-sm text-ink-2">{t.onboarding.sportHint}</p>
-              {!sports && <Spinner />}
-              {available.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => {
-                    setSportId(s.id)
-                    setExtraSportIds((prev) => prev.filter((id) => id !== s.id))
+              <h2 className="display text-2xl font-bold">{t.onboarding.profile}</h2>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label={t.profile.firstName}>
+                  <Input required autoComplete="given-name" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+                </Field>
+                <Field label={t.profile.lastName}>
+                  <Input required autoComplete="family-name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                </Field>
+              </div>
+              <Field
+                label={t.profile.username}
+                hint={
+                  usernameTaken ? (
+                    <span className="text-danger">{t.onboarding.usernameTaken}</span>
+                  ) : (
+                    t.onboarding.usernameHint
+                  )
+                }
+              >
+                <Input
+                  required
+                  pattern="[A-Za-z0-9_.]{3,24}"
+                  autoComplete="username"
+                  value={username}
+                  onChange={(e) => {
+                    setUsernameTaken(false)
+                    setUsername(e.target.value)
                   }}
-                  aria-pressed={sportId === s.id}
-                  className={`flex items-center gap-4 rounded-2xl border-2 p-3 text-left transition ${
-                    sportId === s.id ? 'border-brand bg-brand/10' : 'border-line bg-surface'
-                  }`}
+                  onBlur={() => void checkUsername()}
+                />
+              </Field>
+              {user?.email && (
+                <p className="text-sm text-ink-2">
+                  {t.onboarding.email}: <span className="font-medium text-ink">{user.email}</span>
+                </p>
+              )}
+            </div>
+          )}
+
+          {current === 'level' && (
+            <div className="grid gap-4">
+              {baseSport && (
+                <div
+                  data-sport={baseSport.slug}
+                  className="sport-card relative flex items-center gap-3 overflow-hidden rounded-2xl p-3 text-white"
                 >
-                  <SportIcon slug={s.slug} className="size-9 text-brand" />
-                  <span className="display text-xl font-bold">{s.name}</span>
-                </button>
-              ))}
+                  <SportMotif slug={baseSport.slug} className="pointer-events-none absolute inset-0 size-full opacity-[0.16]" />
+                  <span className="relative flex size-11 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/25">
+                    <SportIcon slug={baseSport.slug} className="size-6 text-sport-accent" />
+                  </span>
+                  <span className="relative min-w-0 flex-1">
+                    <span className="block text-xs font-semibold text-white/75">{t.onboarding.isBase}</span>
+                    <span className="display block text-2xl font-extrabold">{baseSport.name}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setStep(0)}
+                    className="relative rounded-full bg-white/15 px-3 py-1 text-xs font-bold ring-1 ring-white/30 hover:bg-white/25"
+                  >
+                    {t.onboarding.changeBase}
+                  </button>
+                </div>
+              )}
+
               {sportId && available.length > 1 && (
-                <div className="mt-1 grid gap-2">
+                <div className="grid gap-2">
                   <p className="text-sm font-semibold text-ink">{t.onboarding.extraSports}</p>
                   <p className="text-xs text-ink-2">{t.onboarding.extraSportsHint}</p>
                   <div className="flex flex-wrap gap-2">
@@ -228,64 +294,61 @@ export function OnboardingPage() {
                   </div>
                 </div>
               )}
-              {sports?.some((s) => !s.active) && (
-                <p className="text-sm text-ink-2">
-                  <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
-                    {t.onboarding.comingSoon}
-                    {sports
-                      .filter((s) => !s.active)
-                      .map((s) => <SportName key={s.id} sport={s} />)}
-                  </span>
-                </p>
-              )}
-            </div>
-            <div className="grid gap-3 border-t border-line pt-4">
-              <h2 className="display text-2xl font-bold">{t.profile.skillLevel}</h2>
-              <p className="text-sm text-ink-2">{t.onboarding.levelHint}</p>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                {playerSkillLevels.map((k) => (
-                  <button
-                    key={k}
-                    type="button"
-                    onClick={() => setSkill(k)}
-                    aria-pressed={skill === k}
-                    className={`rounded-xl border-2 px-3 py-3 text-sm font-semibold ${skill === k ? 'border-brand bg-brand/10' : 'border-line bg-surface'}`}
-                  >
-                    {skillLabels[k]}
-                  </button>
-                ))}
+
+              <div className="grid gap-3 border-t border-line pt-4">
+                <h2 className="display text-2xl font-bold">{t.profile.skillLevel}</h2>
+                <p className="text-sm text-ink-2">{t.onboarding.levelHint}</p>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  {playerSkillLevels.map((k) => (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => setSkill(k)}
+                      aria-pressed={skill === k}
+                      className={`rounded-xl border-2 px-3 py-3 text-sm font-semibold ${skill === k ? 'border-brand bg-brand/10' : 'border-line bg-surface'}`}
+                    >
+                      {skillLabels[k]}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-center text-xs text-ink-2">{t.onboarding.locationHint}</p>
               </div>
-              <p className="text-center text-xs text-ink-2">{t.onboarding.locationHint}</p>
             </div>
+          )}
+
+          {error ? <ErrorText>{error}</ErrorText> : null}
+
+          <div className="flex gap-2">
+            {step > 0 ? (
+              <Button
+                type="button"
+                variant="secondary"
+                className="min-h-11 flex-1 text-base"
+                onClick={() => setStep(step - 1)}
+                disabled={update.isPending}
+              >
+                Back
+              </Button>
+            ) : (
+              <span className="flex-1" />
+            )}
+            {step < lastStep ? (
+              <Button
+                type="button"
+                className="min-h-11 flex-1 text-base"
+                disabled={!canNext || update.isPending}
+                onClick={() => void goNext()}
+              >
+                Next
+              </Button>
+            ) : (
+              <Button type="submit" className="min-h-11 flex-1 text-base" loading={update.isPending} disabled={!canNext || update.isPending}>
+                {t.onboarding.openMap}
+              </Button>
+            )}
           </div>
-        )}
-
-        {error ? <ErrorText>{error}</ErrorText> : null}
-
-        <div className="flex gap-2">
-          {step > 0 ? (
-            <Button type="button" variant="secondary" className="min-h-11 flex-1 text-base" onClick={() => setStep(step - 1)} disabled={update.isPending}>
-              Back
-            </Button>
-          ) : (
-            <span className="flex-1" />
-          )}
-          {step < lastStep ? (
-            <Button
-              type="button"
-              className="min-h-11 flex-1 text-base"
-              disabled={!canNext || update.isPending}
-              onClick={() => void goNext()}
-            >
-              Next
-            </Button>
-          ) : (
-            <Button type="submit" className="min-h-11 flex-1 text-base" loading={update.isPending} disabled={!canNext || update.isPending}>
-              {t.onboarding.openMap}
-            </Button>
-          )}
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   )
 }
