@@ -96,7 +96,11 @@ class _HomeGlobeMapState extends State<HomeGlobeMap> {
     final map = _map;
     if (map == null || !_styleReady) return;
     try {
-      await map.setProjection(StyleProjection(name: StyleProjectionName.globe));
+      final zoom = (await map.getCameraState()).zoom;
+      final local = zoom >= 10;
+      await map.setProjection(
+        StyleProjection(name: local ? StyleProjectionName.mercator : StyleProjectionName.globe),
+      );
     } catch (_) {
       // Older native SDK builds may ignore projection.
     }
@@ -165,7 +169,10 @@ class _HomeGlobeMapState extends State<HomeGlobeMap> {
             await _applyGlobe();
             _schedulePinSync(immediate: true);
           },
-          onCameraChangeListener: (_) => _schedulePinSync(),
+          onCameraChangeListener: (_) {
+            _schedulePinSync();
+            unawaited(_applyGlobe());
+          },
         ),
         ...widget.courts.map((c) {
           final o = _pinPos[c.id];

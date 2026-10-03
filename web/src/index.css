@@ -133,6 +133,21 @@ body {
   overflow: visible !important;
 }
 
+/* Safari/iOS: reduce marker blur without overriding Mapbox positioning transforms */
+.mapboxgl-marker.ftg-court-marker {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+.mapboxgl-marker .ftg-court-pin {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+.mapboxgl-canvas {
+  outline: none;
+}
+
 @keyframes ftg-loc-ring {
   0% {
     transform: scale(1);

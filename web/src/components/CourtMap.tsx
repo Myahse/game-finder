@@ -87,6 +87,7 @@ export function CourtMap({ courts, center, me, sportSlug, selectedId, onSelect, 
     else map.once('style.load', apply)
   }, [isDark])
 
+  const syncRaf = useRef<number | null>(null)
   const sync = () => {
     const m = mapRef.current
     if (!m) return
@@ -96,9 +97,21 @@ export function CourtMap({ courts, center, me, sportSlug, selectedId, onSelect, 
     setView({ zoom: m.getZoom(), bounds: [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()] })
   }
 
+  const scheduleSync = () => {
+    if (syncRaf.current != null) return
+    syncRaf.current = requestAnimationFrame(() => {
+      syncRaf.current = null
+      sync()
+    })
+  }
+
   useEffect(() => {
     const t = setTimeout(sync, 300)
     return () => clearTimeout(t)
+  }, [])
+
+  useEffect(() => () => {
+    if (syncRaf.current != null) cancelAnimationFrame(syncRaf.current)
   }, [])
 
   const recenter = () => {
@@ -129,7 +142,10 @@ export function CourtMap({ courts, center, me, sportSlug, selectedId, onSelect, 
         maxZoom={18}
         mapStyle={mapStyleForTheme(isDark)}
         onLoad={onMapReady}
+        onMove={scheduleSync}
         onMoveEnd={sync}
+        onResize={sync}
+        antialias
         dragRotate={false}
         pitchWithRotate={false}
         maxPitch={0}
@@ -149,7 +165,7 @@ export function CourtMap({ courts, center, me, sportSlug, selectedId, onSelect, 
           if ('cluster' in f.properties && f.properties.cluster) {
             const p = f.properties as ClusterProperties & ClusterProps
             return (
-              <Marker key={`c${p.cluster_id}`} longitude={lng} latitude={lat}>
+              <Marker key={`c${p.cluster_id}`} longitude={lng} latitude={lat} anchor="center">
                 <button
                   type="button"
                   onClick={() =>
@@ -172,7 +188,7 @@ export function CourtMap({ courts, center, me, sportSlug, selectedId, onSelect, 
           }
           const court = (f.properties as PointProps).court
           return (
-            <Marker key={court.id} longitude={lng} latitude={lat} anchor="bottom">
+            <Marker key={court.id} longitude={lng} latitude={lat} anchor="bottom" className="ftg-court-marker">
               <CourtPin
                 court={court}
                 sportSlug={sportSlug}
@@ -198,6 +214,10 @@ export function CourtMap({ courts, center, me, sportSlug, selectedId, onSelect, 
     </div>
   )
 }
+
+/** Pin body height — geographic anchor is the stick tip (mobile CourtMapPin.totalHeight). */
+const COURT_PIN_HEIGHT = 62
+const COURT_PIN_WIDTH = 54
 
 /** Match mobile [CourtMapPin] ring + stick colors. */
 const ringClass: Record<Activity, string> = {
@@ -306,13 +326,15 @@ export function CourtPin({
         onClick?.()
       }}
       aria-label={label}
-      className={`group relative flex flex-col items-center transition ${selected ? 'z-10 scale-110' : 'hover:scale-105'}`}
-      style={{ width: 88, minHeight: 62 }}
+      className={`ftg-court-pin group relative flex flex-col items-center transition-transform duration-150 ${
+        selected ? 'z-10' : ''
+      }`}
+      style={{ width: COURT_PIN_WIDTH, height: COURT_PIN_HEIGHT }}
     >
-      <div className="relative flex flex-col items-center">
+      <div className="relative flex w-full flex-col items-center">
         <span
           className={`relative size-[46px] overflow-hidden rounded-full border-[2.5px] border-white ${ringShadow[activity]} ${
-            selected ? 'ring-2 ring-ink ring-offset-1 ring-offset-transparent' : ''
+            selected ? 'ring-[3px] ring-brand ring-offset-2 ring-offset-transparent' : ''
           }`}
         >
           <span
@@ -339,7 +361,7 @@ export function CourtPin({
         )}
       </div>
       <span
-        className={`pointer-events-none mt-0.5 max-w-[88px] truncate rounded-md border px-1.5 py-0.5 text-center text-[10px] font-bold leading-tight shadow-sm ${
+        className={`pointer-events-none absolute left-1/2 top-full z-10 mt-0.5 w-max max-w-[96px] -translate-x-1/2 truncate rounded-md border px-1.5 py-0.5 text-center text-[10px] font-bold leading-tight shadow-sm ${
           selected ? 'border-brand bg-surface text-ink' : 'border-line/80 bg-surface/95 text-ink'
         }`}
       >

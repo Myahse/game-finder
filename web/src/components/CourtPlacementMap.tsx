@@ -115,6 +115,7 @@ export function CourtPlacementMap({
           lockMapRotation()
           syncEdge()
         }}
+        antialias
         dragRotate={false}
         pitchWithRotate={false}
         maxPitch={0}

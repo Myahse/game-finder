@@ -28,7 +28,8 @@ export function useLocation() {
         setCoords({ latitude: p.coords.latitude, longitude: p.coords.longitude })
       },
       () => {},
-      { enableHighAccuracy: true, maximumAge: 15_000, timeout: 12_000 },
+      // Fresh fix on load — iOS Safari often serves a coarse cached point first.
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 15_000 },
     )
     const id = navigator.geolocation.watchPosition(
       (p) => {
@@ -42,7 +43,7 @@ export function useLocation() {
         })
       },
       (err) => setStatus(err.code === err.PERMISSION_DENIED ? 'denied' : 'unavailable'),
-      { enableHighAccuracy: true, maximumAge: 15_000, timeout: 20_000 },
+      { enableHighAccuracy: true, maximumAge: 5_000, timeout: 20_000 },
     )
     return () => navigator.geolocation.clearWatch(id)
   }, [])
