@@ -132,7 +132,7 @@ export function MapPage() {
 
       {selectedId && <CourtSheet id={selectedId} coords={coords} onClose={() => update('court', null)} />}
 
-      <PlatformIntroModal open={introOpen} onClose={closeIntro} />
+      <PlatformIntroModal open={introOpen} onClose={closeIntro} variant="member" />
     </div>
   )
 }

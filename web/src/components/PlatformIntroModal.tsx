@@ -5,11 +5,16 @@ import { Button } from './ui'
 type Props = {
   open: boolean
   onClose: () => void
+  /** Guests on `/` vs members on the map after onboarding */
+  variant?: 'guest' | 'member'
 }
 
-export function PlatformIntroModal({ open, onClose }: Props) {
+export function PlatformIntroModal({ open, onClose, variant = 'member' }: Props) {
   const { t } = useLocale()
   if (!open) return null
+
+  const subtitle = variant === 'guest' ? t.intro.guestSubtitle : t.intro.subtitle
+  const cta = variant === 'guest' ? t.intro.guestCta : t.intro.cta
 
   const steps = [
     { icon: MapPin, title: t.intro.step1Title, body: t.intro.step1Body },
@@ -19,10 +24,11 @@ export function PlatformIntroModal({ open, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/45 p-4 sm:items-center"
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 p-4 backdrop-blur-md sm:items-center"
       role="dialog"
       aria-modal="true"
       aria-labelledby="platform-intro-title"
+      onClick={variant === 'guest' ? onClose : undefined}
     >
       <div
         className="w-full max-w-md max-h-[min(90dvh,640px)] overflow-y-auto rounded-2xl border border-line bg-surface p-5 shadow-xl"
@@ -30,7 +36,7 @@ export function PlatformIntroModal({ open, onClose }: Props) {
       >
         <p className="text-xs font-semibold uppercase tracking-wide text-brand">{t.intro.eyebrow}</p>
         <h2 id="platform-intro-title" className="display mt-1 text-3xl font-extrabold">{t.intro.title}</h2>
-        <p className="mt-2 text-sm text-ink-2">{t.intro.subtitle}</p>
+        <p className="mt-2 text-sm text-ink-2">{subtitle}</p>
 
         <ol className="mt-5 grid gap-4">
           {steps.map(({ icon: Icon, title, body }, i) => (
@@ -51,7 +57,7 @@ export function PlatformIntroModal({ open, onClose }: Props) {
         </ol>
 
         <Button type="button" className="mt-6 w-full min-h-11 text-base" onClick={onClose}>
-          {t.intro.cta}
+          {cta}
         </Button>
       </div>
     </div>

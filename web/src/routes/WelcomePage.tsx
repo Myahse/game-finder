@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { MapPin, Plus, Users } from 'lucide-react'
 import { GoogleSignInButton, OrDivider } from '../components/GoogleSignInButton'
 import { LoginBottomSheet } from '../components/LoginBottomSheet'
+import { PlatformIntroModal } from '../components/PlatformIntroModal'
 import { useLocale } from '../i18n/LocaleProvider'
+import { guestIntroSeen, markGuestIntroSeen } from '../lib/platformIntro'
 import { LegalFooter } from './LegalPage'
 
 /** Landing at `/` — follows system light/dark via app theme tokens. */
@@ -11,10 +12,22 @@ export function WelcomePage() {
   const { t } = useLocale()
   const [params, setParams] = useSearchParams()
   const [loginOpen, setLoginOpen] = useState(() => params.get('login') === '1')
+  const [introOpen, setIntroOpen] = useState(false)
 
   useEffect(() => {
     if (params.get('login') === '1') setLoginOpen(true)
   }, [params])
+
+  useEffect(() => {
+    if (guestIntroSeen()) return
+    const timer = window.setTimeout(() => setIntroOpen(true), 400)
+    return () => window.clearTimeout(timer)
+  }, [])
+
+  const closeIntro = () => {
+    markGuestIntroSeen()
+    setIntroOpen(false)
+  }
 
   const openLogin = () => {
     setLoginOpen(true)
@@ -43,7 +56,7 @@ export function WelcomePage() {
           <path d="M60 60c60 60 60 220 0 280M340 60c-60 60-60 220 0 280" />
         </svg>
 
-        <div className="relative mx-auto flex w-full max-w-md flex-1 flex-col justify-end overflow-y-auto px-6 pb-10 pt-16 sm:pt-24">
+        <div className="relative mx-auto flex w-full max-w-md flex-1 flex-col justify-end px-6 pb-10 pt-24">
           <div className="mb-6 flex items-center gap-2 text-sm font-semibold text-ink-2">
             <span className="relative inline-flex size-2.5 text-live">
               <span className="pulse relative size-2.5 rounded-full bg-current" />
@@ -61,28 +74,7 @@ export function WelcomePage() {
             <b className="text-ink">{t.welcome.tagline2}</b>
           </p>
 
-          <section className="mt-8 rounded-2xl border border-line bg-surface/80 p-4 backdrop-blur-sm" aria-labelledby="how-it-works">
-            <h2 id="how-it-works" className="display text-lg font-bold">{t.welcome.howTitle}</h2>
-            <ul className="mt-3 grid gap-3">
-              {[
-                { icon: MapPin, title: t.welcome.how1Title, body: t.welcome.how1Body },
-                { icon: Users, title: t.welcome.how2Title, body: t.welcome.how2Body },
-                { icon: Plus, title: t.welcome.how3Title, body: t.welcome.how3Body },
-              ].map(({ icon: Icon, title, body }) => (
-                <li key={title} className="flex gap-3 text-sm">
-                  <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand/15 text-brand" aria-hidden>
-                    <Icon className="size-4" strokeWidth={2.2} />
-                  </span>
-                  <div>
-                    <p className="font-semibold text-ink">{title}</p>
-                    <p className="text-ink-2">{body}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <div className="mt-8 grid gap-3">
+          <div className="mt-10 grid gap-3">
             <GoogleSignInButton />
             <OrDivider className="my-1 text-ink-2" />
             <Link
@@ -98,11 +90,19 @@ export function WelcomePage() {
             >
               {t.welcome.logIn}
             </button>
+            <button
+              type="button"
+              onClick={() => setIntroOpen(true)}
+              className="text-center text-sm font-semibold text-brand"
+            >
+              {t.welcome.howTitle}
+            </button>
             <LegalFooter className="mt-4 text-ink-2 [&_a]:text-brand" />
           </div>
         </div>
       </div>
 
+      <PlatformIntroModal open={introOpen} onClose={closeIntro} variant="guest" />
       <LoginBottomSheet open={loginOpen} onClose={closeLogin} />
     </>
   )
