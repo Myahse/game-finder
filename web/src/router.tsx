@@ -25,6 +25,7 @@ import { AdminReports } from './routes/admin/AdminReports'
 import { AdminSettings } from './routes/admin/AdminSettings'
 import { FriendInvitePage } from './routes/FriendInvitePage'
 import { PublicProfilePage } from './routes/PublicProfilePage'
+import { VerifyEmailPage } from './routes/VerifyEmailPage'
 
 const GUEST_PATHS = new Set(['/register', '/terms', '/privacy', '/login'])
 
@@ -42,7 +43,7 @@ function RootAuthLayout() {
   const loc = useLocation()
   const path = loc.pathname
 
-  if (isFriendInvitePath(path) || isPublicProfilePath(path)) return <Outlet />
+  if (isFriendInvitePath(path) || isPublicProfilePath(path) || path === '/verify-email') return <Outlet />
 
   if (!user) {
     if (path === '/' || path === '/welcome') return <WelcomePage />
@@ -77,6 +78,7 @@ export const router = createBrowserRouter([
       { path: 'privacy', element: <PrivacyPage /> },
       { path: 'login', element: <LoginPage /> },
       { path: 'register', element: <RegisterPage /> },
+      { path: 'verify-email', element: <VerifyEmailPage /> },
       { path: 'friend/:token', element: <FriendInvitePage /> },
       { path: 'u/:username', element: <PublicProfilePage /> },
       {

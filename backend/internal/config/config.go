@@ -45,6 +45,9 @@ type Config struct {
 	// /api/auth/firebase. Falls back to FCM_PROJECT_ID when empty.
 	FirebaseProjectID string
 	FirebaseJWKSURL   string // tests only
+	ResendAPIKey      string
+	EmailFrom         string // e.g. "Find the Game <onboarding@resend.dev>"
+	WebAppURL         string // verify links, no trailing slash
 }
 
 func (c Config) R2Enabled() bool {
@@ -80,6 +83,9 @@ func Load() (Config, error) {
 		R2PublicURL:           strings.TrimRight(env("R2_PUBLIC_URL", ""), "/"),
 		GoogleClientIDs:       rawList("GOOGLE_CLIENT_IDS"),
 		FirebaseProjectID:     strings.TrimSpace(env("FIREBASE_PROJECT_ID", env("FCM_PROJECT_ID", ""))),
+		ResendAPIKey:          strings.TrimSpace(env("RESEND_API_KEY", "")),
+		EmailFrom:             strings.TrimSpace(env("EMAIL_FROM", "")),
+		WebAppURL:             strings.TrimRight(strings.TrimSpace(env("WEB_APP_URL", "")), "/"),
 	}
 	// PaaS (Render, Railway, …) inject PORT; prefer it over Dockerfile ADDR=:8080.
 	if port := strings.TrimSpace(os.Getenv("PORT")); port != "" {

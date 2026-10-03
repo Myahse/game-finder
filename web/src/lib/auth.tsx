@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { api, getSession, onSessionChange, setSession } from './api'
+import { api, bootstrapSession, getSession, onSessionChange, setSession } from './api'
 import { acceptPendingFriendInvite, clearFriendInviteToken, friendInviteTokenForAuth } from './friendInvite'
 import type { Me, Session } from './types'
 
@@ -30,35 +30,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => onSessionChange((s) => setUser(s?.user ?? null)), [])
 
-  // Refresh the cached profile once on load (role/suspension may have changed).
   useEffect(() => {
-    if (!getSession()) return
-    api<Me>('/api/me')
-      .then((me) => {
-        const s = getSession()
-        if (s) setSession({ ...s, user: me })
-      })
-      .catch(() => {})
+    void bootstrapSession()
   }, [])
 
   const login = useCallback(async (loginId: string, password: string) => {
-    setSession(
-      await api<Session>('/api/auth/login', {
-        method: 'POST',
-        json: { login: loginId.trim(), password },
-      }),
-    )
+    const data = await api<Session>('/api/auth/login', {
+      method: 'POST',
+      json: { login: loginId.trim(), password },
+    })
+    setSession({ user: data.user })
     await acceptPendingFriendInvite()
   }, [])
 
   const register = useCallback<AuthState['register']>(async (input) => {
     const friend_invite_token = input.friend_invite_token ?? friendInviteTokenForAuth()
-    setSession(
-      await api<Session>('/api/auth/register', {
-        method: 'POST',
-        json: { ...input, friend_invite_token },
-      }),
-    )
+    const data = await api<Session>('/api/auth/register', {
+      method: 'POST',
+      json: { ...input, friend_invite_token },
+    })
+    setSession({ user: data.user })
     clearFriendInviteToken()
   }, [])
 
@@ -69,14 +60,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       method: 'POST',
       json: { id_token: idToken, friend_invite_token },
     })
-    setSession(s)
+    setSession({ user: s.user })
     clearFriendInviteToken()
     return !s.user.onboarded
   }, [])
 
   const logout = useCallback(async () => {
-    const s = getSession()
-    if (s) await api('/api/auth/logout', { method: 'POST', json: { refresh_token: s.refresh_token } }).catch(() => {})
+    await api('/api/auth/logout', { method: 'POST' }).catch(() => {})
     setSession(null)
     qc.clear()
   }, [qc])

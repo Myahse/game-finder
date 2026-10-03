@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"regexp"
 	"slices"
 	"strings"
@@ -86,17 +87,21 @@ func (s *Server) register(w http.ResponseWriter, r *http.Request) {
 		role = "admin"
 	}
 
+	needsVerify := s.mailer.Enabled()
 	var userID string
 	err = s.db.Tx(r.Context(), "", func(tx pgx.Tx) error {
 		return tx.QueryRow(r.Context(), `
 			insert into users (email, password_hash, first_name, last_name, username, avatar_url, role, email_verified_at)
-			values ($1, $2, $3, $4, $5, nullif($6, ''), $7, now())
+			values ($1, $2, $3, $4, $5, nullif($6, ''), $7, case when $8::boolean then null else now() end)
 			returning id`,
-			in.Email, hash, in.FirstName, in.LastName, in.Username, in.AvatarURL, role).Scan(&userID)
+			in.Email, hash, in.FirstName, in.LastName, in.Username, in.AvatarURL, role, needsVerify).Scan(&userID)
 	})
 	if err != nil {
 		writeDBError(w, r, err)
 		return
+	}
+	if needsVerify {
+		s.sendVerificationEmail(r.Context(), userID, in.Email)
 	}
 	s.applyFriendInviteToken(r.Context(), userID, in.FriendInviteToken)
 	s.issueSession(w, r, userID, role, http.StatusCreated)
@@ -149,15 +154,14 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 
 // refresh rotates the refresh token: the old one is revoked on use.
 func (s *Server) refresh(w http.ResponseWriter, r *http.Request) {
-	var in struct {
-		RefreshToken string `json:"refresh_token"`
-	}
-	if !readJSON(w, r, &in) {
+	raw := refreshTokenFromRequest(r)
+	if raw == "" {
+		writeError(w, http.StatusUnauthorized, "invalid_refresh_token", "Session expired. Please sign in again.")
 		return
 	}
 	var userID, role string
 	var suspended bool
-	hash := auth.HashToken(in.RefreshToken)
+	hash := auth.HashToken(raw)
 	err := s.db.Pool.QueryRow(r.Context(), `
 		update refresh_tokens t set revoked_at = now()
 		from users u
@@ -184,16 +188,54 @@ func (s *Server) refresh(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
-	var in struct {
-		RefreshToken string `json:"refresh_token"`
+	if raw := refreshTokenFromRequest(r); raw != "" {
+		_, _ = s.db.Pool.Exec(r.Context(),
+			"update refresh_tokens set revoked_at = now() where token_hash = $1 and revoked_at is null",
+			auth.HashToken(raw))
 	}
-	if !readJSON(w, r, &in) {
+	s.clearSessionCookies(w, r)
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) verifyEmail(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		Token string `json:"token"`
+	}
+	if !readJSON(w, r, &in) || strings.TrimSpace(in.Token) == "" {
+		writeError(w, http.StatusBadRequest, "invalid_token", "Verification link is invalid.")
 		return
 	}
-	_, _ = s.db.Pool.Exec(r.Context(),
-		"update refresh_tokens set revoked_at = now() where token_hash = $1 and revoked_at is null",
-		auth.HashToken(in.RefreshToken))
-	w.WriteHeader(http.StatusNoContent)
+	var userID *string
+	err := s.db.Pool.QueryRow(r.Context(),
+		`select public.consume_email_verification($1)`, strings.TrimSpace(in.Token)).Scan(&userID)
+	if err != nil || userID == nil || *userID == "" {
+		writeError(w, http.StatusUnprocessableEntity, "invalid_token", "This verification link is invalid or expired.")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"verified": true})
+}
+
+func (s *Server) sendVerificationEmail(ctx context.Context, userID, email string) {
+	if s.mailer == nil || !s.mailer.Enabled() {
+		return
+	}
+	var raw string
+	if err := s.db.Pool.QueryRow(ctx, `select public.issue_email_verification($1)`, userID).Scan(&raw); err != nil {
+		slog.Warn("issue email verification", "err", err)
+		return
+	}
+	base := strings.TrimRight(s.cfg.WebAppURL, "/")
+	if base == "" && len(s.cfg.CORSOrigins) > 0 {
+		base = strings.TrimRight(s.cfg.CORSOrigins[0], "/")
+	}
+	if base == "" {
+		slog.Warn("WEB_APP_URL unset; cannot send verification email")
+		return
+	}
+	link := base + "/verify-email?token=" + url.QueryEscape(raw)
+	if err := s.mailer.SendVerification(ctx, email, link); err != nil {
+		slog.Warn("send verification email", "err", err, "email", email)
+	}
 }
 
 func (s *Server) usernameAvailable(w http.ResponseWriter, r *http.Request) {
@@ -228,6 +270,7 @@ func (s *Server) issueSession(w http.ResponseWriter, r *http.Request, userID, ro
 		writeDBError(w, r, err)
 		return
 	}
+	s.setSessionCookies(w, r, access, refresh, accessExp, refreshExp)
 	writeJSON(w, status, session{
 		AccessToken: access, AccessExpiresAt: accessExp,
 		RefreshToken: refresh, RefreshExpiresAt: refreshExp,

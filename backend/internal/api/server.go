@@ -21,6 +21,7 @@ import (
 	"findthegame/backend/internal/auth"
 	"findthegame/backend/internal/config"
 	"findthegame/backend/internal/db"
+	"findthegame/backend/internal/mail"
 	"findthegame/backend/internal/realtime"
 	"findthegame/backend/internal/storage"
 )
@@ -39,6 +40,7 @@ type Server struct {
 	media           *storage.Media
 	google          *auth.GoogleVerifier
 	firebase        *auth.FirebaseVerifier
+	mailer          *mail.Resend
 }
 
 func New(cfg config.Config, d *db.DB, hub *realtime.Hub, media *storage.Media) *Server {
@@ -56,6 +58,7 @@ func New(cfg config.Config, d *db.DB, hub *realtime.Hub, media *storage.Media) *
 		media:          media,
 		google:         newGoogleVerifier(cfg),
 		firebase:       newFirebaseVerifier(cfg),
+		mailer:         mail.NewResend(cfg.ResendAPIKey, cfg.EmailFrom),
 	}
 }
 
@@ -102,7 +105,7 @@ func (s *Server) Routes() http.Handler {
 		AllowOriginFunc:  func(_ *http.Request, origin string) bool { return s.corsAllowed(s.cfg.CORSOrigins, origin) },
 		AllowedMethods:   []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Authorization", "Content-Type"},
-		AllowCredentials: false,
+		AllowCredentials: true,
 		MaxAge:           600,
 	}))
 	r.Use(s.authenticate)
@@ -125,6 +128,7 @@ func (s *Server) Routes() http.Handler {
 		r.Route("/auth", func(r chi.Router) {
 			r.With(s.rateLimited).Post("/register", s.register)
 			r.With(s.rateLimited).Post("/login", s.login)
+			r.With(s.rateLimitedPublic).Post("/verify-email", s.verifyEmail)
 			r.With(s.rateLimited).Post("/google", s.googleSignIn)
 			r.With(s.rateLimited).Post("/firebase", s.firebaseSignIn)
 			r.With(s.rateLimited).Post("/refresh", s.refresh)
@@ -242,8 +246,7 @@ func (s *Server) authenticate(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		if h := r.Header.Get("Authorization"); strings.HasPrefix(h, "Bearer ") {
-			tok := strings.TrimPrefix(h, "Bearer ")
+		if tok := accessTokenFromRequest(r); tok != "" {
 			claims, err := s.tokens.Verify(tok)
 			if err != nil {
 				writeError(w, http.StatusUnauthorized, "invalid_token", "Session expired. Please sign in again.")
@@ -528,7 +531,8 @@ func (l *rateLimiter) allow(key string) bool {
 
 func (s *Server) rateLimited(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !s.limit.allow(s.clientIP(r)) {
+		ip := s.clientIP(r)
+		if !s.dbRateLimit(r.Context(), "auth", ip, 12, 60) || !s.limit.allow(ip) {
 			writeError(w, http.StatusTooManyRequests, "rate_limited", "Too many attempts. Try again in a minute.")
 			return
 		}
@@ -538,7 +542,8 @@ func (s *Server) rateLimited(next http.Handler) http.Handler {
 
 func (s *Server) rateLimitedPublic(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !s.browseLimit.allow(s.clientIP(r)) {
+		ip := s.clientIP(r)
+		if !s.dbRateLimit(r.Context(), "browse", ip, 90, 60) || !s.browseLimit.allow(ip) {
 			writeError(w, http.StatusTooManyRequests, "rate_limited", "Too many requests. Try again in a minute.")
 			return
 		}

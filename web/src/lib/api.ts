@@ -1,14 +1,13 @@
-import type { Session } from './types'
+import type { Me, Session } from './types'
 
 /** Production API fallback when VITE_API_URL was not set at build time (set VITE_API_URL on Vercel). */
 export const DEFAULT_REMOTE_API = 'https://game-finder-ddcm.onrender.com'
 
 const LEGACY_API_HOSTS = new Set([
   'game-finder-api.fly.dev',
-  'game-finder-api.onrender.com', // old/wrong Render service (Express placeholder)
+  'game-finder-api.onrender.com',
 ])
 
-/** Vite bakes VITE_API_URL at build time; rewrite retired Fly hosts to Render. */
 function viteApiUrl(): string | undefined {
   const raw = import.meta.env.VITE_API_URL?.trim().replace(/\/$/, '')
   if (!raw) return undefined
@@ -20,7 +19,6 @@ function viteApiUrl(): string | undefined {
   return raw
 }
 
-/** API + upload host. Prefer same-origin (nginx/vite proxy); LAN-safe when env points at localhost. */
 export function apiOrigin(): string {
   const env = viteApiUrl()
   if (typeof window !== 'undefined') {
@@ -39,14 +37,12 @@ export function apiOrigin(): string {
       if (pageHost === 'localhost' || pageHost === '127.0.0.1') {
         return window.location.origin
       }
-      // Vercel: same-origin /api proxy (vercel.json) avoids stale VITE_API_URL builds.
       if (pageHost.endsWith('.vercel.app')) {
         return window.location.origin
       }
       return DEFAULT_REMOTE_API
     }
 
-    // Vite/nginx serve /api and /uploads on the app port; avoid broken :8080 image URLs in dev.
     try {
       const api = new URL(env)
       const page = new URL(window.location.origin)
@@ -61,11 +57,10 @@ export function apiOrigin(): string {
   return env || 'http://localhost:8080'
 }
 
-/** @deprecated use apiOrigin() — kept for imports that expect a string at load time */
 export const API_URL =
   typeof window !== 'undefined' ? apiOrigin() : (viteApiUrl() || 'http://localhost:8080').replace(/\/$/, '')
 
-const STORAGE_KEY = 'ftg.session'
+const LEGACY_STORAGE_KEY = 'ftg.session'
 
 export class ApiError extends Error {
   status: number
@@ -80,30 +75,32 @@ export class ApiError extends Error {
 type Listener = (s: Session | null) => void
 const listeners = new Set<Listener>()
 
-let session: Session | null = load()
+/** In-memory user; auth tokens live in httpOnly cookies on the web. */
+let sessionUser: Me | null = null
+let sessionTokens: { access_token?: string; refresh_token?: string; access_expires_at?: string } | null = null
 
-function load(): Session | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? (JSON.parse(raw) as Session) : null
-  } catch {
-    return null
-  }
+try {
+  localStorage.removeItem(LEGACY_STORAGE_KEY)
+} catch {
+  // ignore
 }
 
-export function getSession() {
-  return session
+export function getSession(): Session | null {
+  if (!sessionUser) return null
+  return { user: sessionUser, ...sessionTokens }
 }
 
 export function setSession(s: Session | null) {
-  session = s
-  try {
-    if (s) localStorage.setItem(STORAGE_KEY, JSON.stringify(s))
-    else localStorage.removeItem(STORAGE_KEY)
-  } catch {
-    // storage unavailable (private mode): keep the in-memory session
-  }
-  listeners.forEach((l) => l(s))
+  sessionUser = s?.user ?? null
+  sessionTokens =
+    s?.access_token || s?.refresh_token
+      ? {
+          access_token: s.access_token,
+          refresh_token: s.refresh_token,
+          access_expires_at: s.access_expires_at,
+        }
+      : null
+  listeners.forEach((l) => l(getSession()))
 }
 
 export function onSessionChange(l: Listener) {
@@ -116,19 +113,19 @@ export function onSessionChange(l: Listener) {
 let refreshing: Promise<boolean> | null = null
 
 async function refreshSession(): Promise<boolean> {
-  if (!session) return false
   refreshing ??= (async () => {
     try {
       const res = await fetch(`${apiOrigin()}/api/auth/refresh`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: session!.refresh_token }),
       })
       if (!res.ok) {
         setSession(null)
         return false
       }
-      setSession((await res.json()) as Session)
+      const data = (await res.json()) as Session
+      setSession(data)
       return true
     } catch {
       return false
@@ -139,13 +136,13 @@ async function refreshSession(): Promise<boolean> {
   return refreshing
 }
 
-/** Returns a valid access token, refreshing it when it is about to expire. */
+/** Bearer token when present (e.g. tests); web relies on cookies. */
 export async function accessToken(): Promise<string | null> {
-  if (!session) return null
-  if (new Date(session.access_expires_at).getTime() - Date.now() < 30_000) {
+  const exp = sessionTokens?.access_expires_at
+  if (exp && new Date(exp).getTime() - Date.now() < 30_000) {
     await refreshSession()
   }
-  return session?.access_token ?? null
+  return sessionTokens?.access_token ?? null
 }
 
 export async function api<T>(path: string, init: RequestInit & { json?: unknown } = {}, retry = true): Promise<T> {
@@ -157,8 +154,8 @@ export async function api<T>(path: string, init: RequestInit & { json?: unknown 
     headers.set('Content-Type', 'application/json')
     body = JSON.stringify(init.json)
   }
-  const res = await fetch(`${apiOrigin()}${path}`, { ...init, headers, body })
-  if (res.status === 401 && retry && session && (await refreshSession())) {
+  const res = await fetch(`${apiOrigin()}${path}`, { ...init, headers, body, credentials: 'include' })
+  if (res.status === 401 && retry && sessionUser && (await refreshSession())) {
     return api<T>(path, init, false)
   }
   if (res.status === 204) return undefined as T
@@ -181,4 +178,16 @@ export function errorMessage(e: unknown): string {
   if (e instanceof ApiError) return e.message
   if (e instanceof TypeError) return "Can't reach the server. Check your connection."
   return 'Something went wrong.'
+}
+
+/** Restore session from httpOnly cookies (web bootstrap). */
+export async function bootstrapSession(): Promise<boolean> {
+  try {
+    const me = await api<Me>('/api/me')
+    setSession({ user: me })
+    return true
+  } catch {
+    setSession(null)
+    return false
+  }
 }

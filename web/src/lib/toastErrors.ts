@@ -34,6 +34,10 @@ const API_TOAST: Record<string, Copy> = {
     title: 'Location needed',
     description: 'Turn on location so we can confirm you are at the court.',
   },
+  email_not_verified: {
+    title: 'Verify your email',
+    description: 'Check your inbox for the verification link, then sign in again.',
+  },
 }
 
 export function toastFromApiError(e: unknown, fallback = 'Something went wrong.') {

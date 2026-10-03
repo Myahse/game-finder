@@ -130,10 +130,11 @@ export interface AppNotification {
 }
 
 export interface Session {
-  access_token: string
-  access_expires_at: string
-  refresh_token: string
-  refresh_expires_at: string
+  /** Mobile clients; web uses httpOnly cookies. */
+  access_token?: string
+  access_expires_at?: string
+  refresh_token?: string
+  refresh_expires_at?: string
   user: Me
 }
 
