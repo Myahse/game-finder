@@ -10,5 +10,9 @@
       ]
     }
   ],
-  "rewrites": [{ "source": "/((?!assets/).*)", "destination": "/index.html" }]
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://game-finder-ddcm.onrender.com/api/$1" },
+    { "source": "/uploads/(.*)", "destination": "https://game-finder-ddcm.onrender.com/uploads/$1" },
+    { "source": "/((?!assets/).*)", "destination": "/index.html" }
+  ]
 }

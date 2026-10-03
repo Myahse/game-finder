@@ -108,7 +108,7 @@ func TestFirebaseSignIn(t *testing.T) {
 	if again["user"].(map[string]any)["id"] != u["id"] {
 		t.Fatal("second sign-in created another account")
 	}
-	_, body, code := e.do("", "POST", "/api/auth/firebase", map[string]string{"id_token": "bad"})
+	code, body, _ := e.do("", "POST", "/api/auth/firebase", map[string]string{"id_token": "bad"})
 	if code != http.StatusUnauthorized || body["error"] != "invalid_firebase_token" {
 		t.Fatalf("bad token: %d %v", code, body)
 	}

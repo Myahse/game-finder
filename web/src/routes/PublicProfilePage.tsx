@@ -1,26 +1,61 @@
-import { Navigate, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
-import { usePublicProfileByUsername } from '../lib/queries'
+import { playerUsernameLabel } from '../lib/format'
+import { useProfileByUsername } from '../lib/queries'
 import { PlayerProfileView } from './ProfilePage'
+import { Button } from '../components/ui'
 import { Loading } from './CourtPage'
 
 export function PublicProfilePage() {
   const { username = '' } = useParams()
   const { user } = useAuth()
   const viewerIsAdmin = user?.role === 'admin'
-  const { data: profile, isLoading, isError } = usePublicProfileByUsername(username)
+  const { data: profile, isLoading, isError, isSelf } = useProfileByUsername(username)
 
   if (isLoading) return <Loading />
-  const resolved = isError ? undefined : profile
 
-  if (user?.onboarded && resolved) {
-    return <Navigate to={`/users/${resolved.id}`} replace />
+  const handle = username.trim().replace(/^@/, '')
+  const title = profile ? playerUsernameLabel(profile) : handle ? `@${handle}` : 'Player'
+
+  if (!profile && isError && !isSelf) {
+    return (
+      <div className="mx-auto max-w-md p-6 text-center">
+        <h1 className="display text-2xl font-bold">Player not found</h1>
+        <p className="mt-2 text-ink-2">
+          {handle ? (
+            <>
+              There is no account <span className="font-semibold text-ink">@{handle}</span> on Find the Game yet.
+            </>
+          ) : (
+            'This profile link is invalid.'
+          )}
+        </p>
+        {!user ? (
+          <div className="mt-6 grid gap-2">
+            <Button type="button" onClick={() => (window.location.href = '/register')}>Create account</Button>
+            <Link to="/?login=1" className="text-sm font-semibold text-brand">Log in</Link>
+          </div>
+        ) : (
+          <div className="mt-6 grid gap-2">
+            {user?.username && user.username.toLowerCase() !== handle.toLowerCase() ? (
+              <Link
+                to={`/u/${encodeURIComponent(user.username)}`}
+                className="text-sm font-semibold text-brand"
+              >
+                View your profile (@{user.username})
+              </Link>
+            ) : null}
+            <Link to="/" className="text-sm font-semibold text-ink-2">Back to map</Link>
+          </div>
+        )}
+      </div>
+    )
   }
 
   return (
     <PlayerProfileView
-      profile={resolved}
-      title={resolved ? `@${resolved.username}` : 'Player'}
+      profile={profile}
+      title={title}
       back="/"
       viewerIsAdmin={viewerIsAdmin}
     />

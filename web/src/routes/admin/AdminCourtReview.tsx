@@ -196,7 +196,7 @@ export function AdminCourtReview() {
             className="min-h-11 flex-1"
             loading={review.isPending}
             onClick={() => {
-              if (confirm('Move this court back to pending review? It stays on the map as pending.')) {
+              if (confirm('Move this court back to pending review? It will be hidden from the public map until approved.')) {
                 review.mutate({ pending: true })
               }
             }}

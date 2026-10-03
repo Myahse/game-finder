@@ -126,18 +126,26 @@ export function AddCourtPage() {
     return (
       <div className="mx-auto flex min-h-full max-w-md flex-col items-center justify-center p-8 text-center">
         <Hourglass className="size-16 text-brand" aria-hidden />
-        <h1 className="display mt-3 text-5xl font-extrabold">{reused ? 'Court already here' : 'Court on the map'}</h1>
+        <h1 className="display mt-3 text-5xl font-extrabold">{reused ? 'Court already here' : 'Submitted for review'}</h1>
         <p className="mt-2 text-ink-2">
           {reused
-            ? 'Nobody was playing at this spot — we linked you to the existing court. Others can start a game here.'
-            : 'Your court is on the map now (pending review). Anyone nearby can create a game when the court is quiet.'}
+            ? 'Nobody was playing at this spot — we linked you to the existing court.'
+            : 'We got your proposal. It stays hidden from the public map until an admin approves it. Check Alerts for updates.'}
         </p>
-        <Button className="mt-4 w-full" variant="live" onClick={() => navigate(`/games/new?court=${doneCourt.id}`)}>
-          Create a game
-        </Button>
-        <Button className="mt-2 w-full" onClick={() => navigate(`/?court=${doneCourt.id}`)}>
-          View on map
-        </Button>
+        {doneCourt.status === 'approved' ? (
+          <>
+            <Button className="mt-4 w-full" variant="live" onClick={() => navigate(`/games/new?court=${doneCourt.id}`)}>
+              Create a game
+            </Button>
+            <Button className="mt-2 w-full" onClick={() => navigate(`/?court=${doneCourt.id}`)}>
+              View on map
+            </Button>
+          </>
+        ) : (
+          <Button className="mt-4 w-full" onClick={() => navigate(`/courts/${doneCourt.id}`)}>
+            View your court
+          </Button>
+        )}
       </div>
     )
   }

@@ -107,7 +107,8 @@ export function AdminCourts() {
                 variant="ghost"
                 className="min-h-9 px-3 text-base"
                 onClick={() => {
-                  if (confirm(`Send "${c.name}" back to pending review?`)) act.mutate({ id: c.id, kind: 'pending' })
+                  if (confirm(`Send "${c.name}" back to pending review? It will be hidden from the public map.`))
+                    act.mutate({ id: c.id, kind: 'pending' })
                 }}
               >
                 Unapprove

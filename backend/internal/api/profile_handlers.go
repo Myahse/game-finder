@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+
+	"findthegame/backend/internal/db"
 )
 
 func normalizeProfileUsername(raw string) string {
@@ -21,8 +23,12 @@ func (s *Server) getPublicProfileByUsername(w http.ResponseWriter, r *http.Reque
 	b, err := s.db.JSON(r.Context(), "", `
 		select user_public_json(u) || jsonb_build_object('stats', (select row_to_json(ps) from profile_stats(u.id) ps))
 		from users u
-		where u.username = $1 and u.suspended_at is null`, username)
+		where u.username = $1::citext and u.suspended_at is null`, username)
 	if err != nil {
+		if db.IsNoRows(err) {
+			writeError(w, http.StatusNotFound, "user_not_found", "No player with that username.")
+			return
+		}
 		writeDBError(w, r, err)
 		return
 	}

@@ -389,8 +389,7 @@ func TestCourtProposalAndAdmin(t *testing.T) {
 	if court["status"] != "pending" {
 		t.Fatalf("proposal status = %v", court["status"])
 	}
-	// Pending courts stay on the map (marked pending) so people can play there
-	// before review; rejected courts disappear.
+	// Pending courts stay off the public map until approved; rejected courts stay hidden.
 	onMap := func(id any) map[string]any {
 		t.Helper()
 		_, arr := e.must(200, "", "GET", "/api/courts/nearby?lat=5.22&lng=-3.74&radius_km=1", nil)
@@ -401,10 +400,22 @@ func TestCourtProposalAndAdmin(t *testing.T) {
 		}
 		return nil
 	}
-	if c := onMap(court["id"]); c == nil || c["status"] != "pending" {
+	if c := onMap(court["id"]); c != nil {
 		t.Fatalf("pending court on map = %v", c)
 	}
 	e.must(200, u.Token, "GET", "/api/courts/"+court["id"].(string), nil)
+	_, notifs := e.must(200, u.Token, "GET", "/api/me/notifications", nil)
+	var foundPendingNote bool
+	for _, n := range notifs {
+		m := n.(map[string]any)
+		if m["type"] == "court_pending_review" {
+			foundPendingNote = true
+			break
+		}
+	}
+	if !foundPendingNote {
+		t.Fatalf("creator missing court_pending_review notification: %v", notifs)
+	}
 
 	rejected, _ := e.must(201, u.Token, "POST", "/api/courts", map[string]any{
 		"name": "Not A Court", "latitude": 5.2201, "longitude": -3.7401, "sport_ids": []any{bb},
@@ -416,7 +427,7 @@ func TestCourtProposalAndAdmin(t *testing.T) {
 	}
 
 	e.must(204, admin.Token, "POST", "/api/admin/courts/"+court["id"].(string)+"/review", map[string]any{"approve": true})
-	_, detail := e.must(200, admin.Token, "GET", "/api/admin/courts/"+court["id"].(string), nil)
+	detail, _ := e.must(200, admin.Token, "GET", "/api/admin/courts/"+court["id"].(string), nil)
 	if detail["status"] != "approved" {
 		t.Fatalf("admin court detail status = %v", detail["status"])
 	}

@@ -110,6 +110,7 @@ export interface AppNotification {
     | 'game_cancelled'
     | 'game_created'
     | 'court_added'
+    | 'court_pending_review'
     | 'admin_new_user'
     | 'admin_court_request'
     | 'friend_request'

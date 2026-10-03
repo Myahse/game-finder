@@ -39,6 +39,10 @@ export function apiOrigin(): string {
       if (pageHost === 'localhost' || pageHost === '127.0.0.1') {
         return window.location.origin
       }
+      // Vercel: same-origin /api proxy (vercel.json) avoids stale VITE_API_URL builds.
+      if (pageHost.endsWith('.vercel.app')) {
+        return window.location.origin
+      }
       return DEFAULT_REMOTE_API
     }
 

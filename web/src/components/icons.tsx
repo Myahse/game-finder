@@ -148,6 +148,7 @@ export const notificationIcons: Record<AppNotification['type'], LucideIcon> = {
   game_activity: Flame,
   game_created: Volleyball,
   court_added: MapPinPlus,
+  court_pending_review: Hourglass,
   admin_new_user: UserPlus,
   admin_court_request: MapPinPlus,
   friend_request: UserPlus,

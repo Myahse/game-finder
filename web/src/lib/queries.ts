@@ -1,5 +1,6 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './api'
+import { useAuth } from './auth'
 import { coarse, type Coords } from './location'
 import { LIST_NEARBY_RADIUS_KM, MAP_NEARBY_RADIUS_KM } from './nearby'
 import type { AppNotification, Court, CourtDetail, Game, Me, Presence, PublicUser, Sport } from './types'
@@ -112,14 +113,43 @@ export function useUser(id: string) {
   return useQuery({ queryKey: qk.user(id), queryFn: () => api<PublicUser>(`/api/users/${id}`) })
 }
 
-export function usePublicProfileByUsername(username: string) {
-  const u = username.trim().replace(/^@/, '')
+function normalizeUsername(username: string) {
+  return username.trim().replace(/^@/, '')
+}
+
+export function usePublicProfileByUsername(username: string, opts?: { enabled?: boolean }) {
+  const u = normalizeUsername(username)
   return useQuery({
     queryKey: qk.profileUsername(u),
-    enabled: u.length >= 3,
+    enabled: (opts?.enabled ?? true) && u.length >= 3,
     queryFn: () => api<PublicUser>(`/api/profiles/${encodeURIComponent(u)}`),
-    retry: false,
+    retry: 1,
   })
+}
+
+/** Share link /u/:username — public API, or /api/me when the viewer is that user. */
+export function useProfileByUsername(username: string) {
+  const u = normalizeUsername(username)
+  const { user } = useAuth()
+  const isSelf = !!user && user.username.toLowerCase() === u.toLowerCase()
+
+  const meQ = useQuery({
+    queryKey: ['me'],
+    queryFn: () => api<Me>('/api/me'),
+    enabled: isSelf,
+  })
+
+  const pubQ = usePublicProfileByUsername(u, { enabled: !isSelf })
+
+  if (isSelf) {
+    return {
+      data: meQ.data ?? user,
+      isLoading: meQ.isLoading,
+      isError: meQ.isError,
+      isSelf: true,
+    }
+  }
+  return { data: pubQ.data, isLoading: pubQ.isLoading, isError: pubQ.isError, isSelf: false }
 }
 
 export function useFriends(enabled = true) {

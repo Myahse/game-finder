@@ -19,6 +19,7 @@ export function NotificationsPage() {
       qc.invalidateQueries({ queryKey: qk.notifications })
     }
     if (n.type === 'admin_court_request' && n.data.court_id) navigate(`/admin/courts/${n.data.court_id}`)
+    else if (n.type === 'court_pending_review' && n.data.court_id) navigate(`/courts/${n.data.court_id}`)
     else if (n.type === 'admin_new_user') navigate('/admin/users')
     else if (n.type === 'friend_request') navigate('/profile')
     else if (n.data.game_id) navigate(`/games/${n.data.game_id}`)
