@@ -1,7 +1,6 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './api'
 import { useAuth } from './auth'
-import type { Coords } from './location'
 import { coarse, type Coords } from './location'
 import { LIST_NEARBY_RADIUS_KM, MAP_NEARBY_RADIUS_KM } from './nearby'
 import type { AppNotification, Court, CourtDetail, Game, Me, Presence, PublicUser, Sport } from './types'
