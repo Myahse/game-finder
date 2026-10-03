@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { syncNotifyArea, type NotifyAreaState } from '../lib/notifyArea'
 import { formatDistance, timeAgo } from '../lib/format'
@@ -16,6 +16,8 @@ import { CourtActions } from '../components/CourtActions'
 import { CourtPhotoStrip } from '../components/CourtPhotoStrip'
 import { GameCard } from '../components/GameCard'
 import { DistanceText, LiveText, SportName } from '../components/icons'
+import { PlatformIntroModal } from '../components/PlatformIntroModal'
+import { markPlatformIntroSeen, platformIntroSeen } from '../lib/platformIntro'
 import { Chip, Spinner, StatusPill } from '../components/ui'
 import { Plus } from 'lucide-react'
 
@@ -55,6 +57,19 @@ export function MapPage() {
   }
 
   const liveCount = courts?.filter((c) => c.activity === 'active').length ?? 0
+  const [introOpen, setIntroOpen] = useState(false)
+
+  useEffect(() => {
+    if (!user?.id || !user.onboarded) return
+    if (platformIntroSeen(user.id)) return
+    const timer = window.setTimeout(() => setIntroOpen(true), 700)
+    return () => window.clearTimeout(timer)
+  }, [user?.id, user?.onboarded])
+
+  const closeIntro = () => {
+    if (user?.id) markPlatformIntroSeen(user.id)
+    setIntroOpen(false)
+  }
 
   return (
     <div className="relative h-full min-h-[480px] overflow-hidden">
@@ -116,6 +131,8 @@ export function MapPage() {
       {!selectedId && <MapGamesRail games={nearbyGames} isLoading={gamesLoading} sport={sport} />}
 
       {selectedId && <CourtSheet id={selectedId} coords={coords} onClose={() => update('court', null)} />}
+
+      <PlatformIntroModal open={introOpen} onClose={closeIntro} />
     </div>
   )
 }
