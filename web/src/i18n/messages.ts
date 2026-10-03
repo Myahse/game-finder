@@ -21,7 +21,6 @@ const en = {
     changePhoto: 'Change photo',
   },
   welcome: {
-    live: 'Games happening near you right now',
     titleLine1: 'Find the',
     titleLine2: 'Game',
     tagline1: "Don't search for a court.",
@@ -121,7 +120,6 @@ const fr: MessageTree = {
     changePhoto: 'Changer la photo',
   },
   welcome: {
-    live: 'Des matchs près de vous en ce moment',
     titleLine1: 'Find the',
     titleLine2: 'Game',
     tagline1: 'Ne cherchez pas un terrain.',

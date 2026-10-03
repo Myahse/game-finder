@@ -87,7 +87,8 @@ export function SportPhotoBackdrop() {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
       {/* Photos fill the top of the screen only, so wide shots crop tight enough to keep the players in view. */}
-      <div aria-hidden className="absolute inset-x-0 top-0 h-[64%] overflow-hidden">
+      {/* Phones: top of the screen. Large screens: a panel on the right, text sits on the left. */}
+      <div aria-hidden className="absolute inset-x-0 top-0 h-[64%] overflow-hidden lg:inset-y-0 lg:left-auto lg:h-full lg:w-[56%]">
         {sportPhotos.map((p, i) => {
           const on = i === index
           return (
@@ -95,7 +96,7 @@ export function SportPhotoBackdrop() {
               key={p.slug}
               src={`/sports/${p.slug}-900.webp`}
               srcSet={`/sports/${p.slug}-900.webp 900w, /sports/${p.slug}-1800.webp 1800w`}
-              sizes="100vw"
+              sizes="(min-width: 1024px) 56vw, 100vw"
               alt=""
               decoding="async"
               fetchPriority={i === 0 ? 'high' : 'low'}
@@ -112,10 +113,11 @@ export function SportPhotoBackdrop() {
 
         {/* Readability: darken the top a touch, then melt into the page background behind the text. */}
         <div className="absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-black/45 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 h-[58%] bg-gradient-to-t from-bg from-20% via-bg/80 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-[58%] bg-gradient-to-t from-bg from-20% via-bg/80 to-transparent lg:hidden" />
+        <div className="absolute inset-y-0 left-0 hidden w-2/5 bg-gradient-to-r from-bg via-bg/60 to-transparent lg:block" />
       </div>
 
-      <div className="absolute inset-x-0 top-[max(1.25rem,env(safe-area-inset-top))] mx-auto flex max-w-md items-start justify-between px-6">
+      <div className="absolute inset-x-0 top-[max(1.25rem,env(safe-area-inset-top))] mx-auto flex max-w-md items-start justify-between px-6 lg:left-auto lg:right-0 lg:top-8 lg:mx-0 lg:w-[56%] lg:max-w-none lg:pl-[22%] lg:pr-10">
         <span key={current.slug} className="ftg-label-in grid gap-0.5 drop-shadow">
           <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-white" aria-hidden>
             <SportIcon slug={current.slug} className="size-4" />

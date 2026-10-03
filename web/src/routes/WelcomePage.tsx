@@ -45,13 +45,7 @@ export function WelcomePage() {
       <div className="relative flex min-h-full flex-col overflow-hidden bg-bg text-ink">
         <SportPhotoBackdrop />
 
-        <div className="relative mx-auto flex w-full max-w-md flex-1 flex-col justify-end px-6 pb-10 pt-[42vh]">
-          <div className="mb-6 flex w-fit items-center gap-2 rounded-full bg-bg/80 px-3 py-1 text-sm font-semibold text-ink-2 backdrop-blur-sm">
-            <span className="relative inline-flex size-2.5 text-live">
-              <span className="pulse relative size-2.5 rounded-full bg-current" />
-            </span>
-            {t.welcome.live}
-          </div>
+        <div className="relative mx-auto flex w-full max-w-md flex-1 flex-col justify-end px-6 pb-10 pt-[46vh] lg:mx-0 lg:ml-[max(3rem,calc(22vw-14rem))] lg:justify-center lg:py-12">
           <h1 className="display text-7xl font-extrabold sm:text-8xl">
             {t.welcome.titleLine1}
             <br />
