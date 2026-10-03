@@ -131,7 +131,7 @@ func (s *Server) Routes() http.Handler {
 			r.With(s.rateLimitedPublic).Post("/verify-email", s.verifyEmail)
 			r.With(s.rateLimited).Post("/google", s.googleSignIn)
 			r.With(s.rateLimited).Post("/firebase", s.firebaseSignIn)
-			r.With(s.rateLimited).Post("/refresh", s.refresh)
+			r.With(s.rateLimitedRefresh).Post("/refresh", s.refresh)
 			r.Post("/logout", s.logout)
 			r.With(s.rateLimitedPublic).Get("/username-available", s.usernameAvailable)
 		})
@@ -533,6 +533,17 @@ func (s *Server) rateLimited(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ip := s.clientIP(r)
 		if !s.dbRateLimit(r.Context(), "auth", ip, 12, 60) || !s.limit.allow(ip) {
+			writeError(w, http.StatusTooManyRequests, "rate_limited", "Too many attempts. Try again in a minute.")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (s *Server) rateLimitedRefresh(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ip := s.clientIP(r)
+		if !s.dbRateLimit(r.Context(), "refresh", ip, 60, 60) {
 			writeError(w, http.StatusTooManyRequests, "rate_limited", "Too many attempts. Try again in a minute.")
 			return
 		}

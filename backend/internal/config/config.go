@@ -29,7 +29,7 @@ type Config struct {
 	// Firebase Cloud Messaging (HTTP v1). Push is disabled when empty.
 	FCMProjectID          string
 	FCMServiceAccountJSON string
-	// Comma-separated CIDRs; X-Real-IP is trusted only from these peers (e.g. nginx in Docker).
+	// Comma-separated CIDRs; X-Forwarded-For / X-Real-IP are trusted only from these peers (Render, Docker nginx).
 	TrustedProxyCIDRs string
 	// Cloudflare R2 (S3-compatible). When set, uploads go to the bucket instead of UPLOAD_DIR.
 	R2AccountID       string
