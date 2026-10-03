@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useFriendRequests, useFriends } from '../lib/queries'
+import { playerDisplayLabel } from '../lib/format'
 import type { PublicUser } from '../lib/types'
 import { Button, ErrorText } from './ui'
 
@@ -25,7 +26,7 @@ function useRelation(target: PublicUser): { relation: Relation; incomingId?: str
   }, [user, friends, requests, target.id])
 }
 
-export function ProfileFriendActions({ user }: { user: PublicUser }) {
+export function ProfileFriendActions({ user, viewerIsAdmin = false }: { user: PublicUser; viewerIsAdmin?: boolean }) {
   const qc = useQueryClient()
   const { relation, incomingId } = useRelation(user)
   const [error, setError] = useState('')
@@ -56,7 +57,7 @@ export function ProfileFriendActions({ user }: { user: PublicUser }) {
     <div className="grid gap-2">
       {relation === 'guest' ? (
         <p className="text-center text-sm text-ink-2">
-          <Link to="/?login=1" className="font-semibold text-brand">Log in</Link> to add {user.first_name} as a friend.
+          <Link to="/?login=1" className="font-semibold text-brand">Log in</Link> to add {playerDisplayLabel(user, viewerIsAdmin)} as a friend.
         </p>
       ) : relation === 'friends' ? (
         <p className="rounded-xl bg-surface-2 py-2 text-center text-sm font-semibold text-brand">Friends</p>

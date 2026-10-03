@@ -1,4 +1,23 @@
-import type { Activity, Game, GameType, ReportType, SkillLevel } from './types'
+import type { Activity, Game, GameType, PublicUser, ReportType, SkillLevel } from './types'
+
+/** Public-facing label for a player (map, game lists) — username only. */
+export function playerUsernameLabel(user: Pick<PublicUser, 'username'>): string {
+  return `@${user.username}`
+}
+
+export function playerFullName(user: Pick<PublicUser, 'first_name' | 'last_name'>): string {
+  return `${user.first_name} ${user.last_name}`.trim()
+}
+
+/** Members see @username; admins also see legal name. */
+export function playerDisplayLabel(
+  user: Pick<PublicUser, 'username' | 'first_name' | 'last_name'>,
+  viewerIsAdmin = false,
+): string {
+  if (!viewerIsAdmin) return playerUsernameLabel(user)
+  const name = playerFullName(user)
+  return name ? `${name} (${playerUsernameLabel(user)})` : playerUsernameLabel(user)
+}
 
 export function formatDistance(m: number | null | undefined): string {
   if (m == null) return ''

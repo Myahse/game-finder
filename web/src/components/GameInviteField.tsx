@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { api, ApiError, errorMessage } from '../lib/api'
+import { useAuth } from '../lib/auth'
+import { playerDisplayLabel } from '../lib/format'
 import { useFriends } from '../lib/queries'
 import { Button, Input } from './ui'
 
@@ -9,6 +11,8 @@ type Props = {
 
 /** Invite by picking a friend or typing any @username. */
 export function GameInviteField({ gameId }: Props) {
+  const { user } = useAuth()
+  const viewerIsAdmin = user?.role === 'admin'
   const { data: friends } = useFriends()
   const [username, setUsername] = useState('')
   const [msg, setMsg] = useState('')
@@ -57,7 +61,7 @@ export function GameInviteField({ gameId }: Props) {
               onClick={() => pickFriend(f.username)}
               className="rounded-full border border-line bg-surface px-3 py-1 text-sm font-semibold hover:border-brand hover:bg-brand/10"
             >
-              @{f.username}
+              {playerDisplayLabel(f, viewerIsAdmin)}
             </button>
           ))}
         </div>
@@ -73,7 +77,7 @@ export function GameInviteField({ gameId }: Props) {
         />
         <datalist id="ftg-invite-friends">
           {friends?.map((f) => (
-            <option key={f.id} value={f.username}>{f.first_name}</option>
+            <option key={f.id} value={f.username}>{playerDisplayLabel(f, viewerIsAdmin)}</option>
           ))}
         </datalist>
         <Button type="submit" variant="secondary" loading={busy}>

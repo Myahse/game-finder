@@ -139,16 +139,30 @@ export function MapPage() {
         )}
       </div>
 
-      {!selectedId && <MapGamesRail games={nearbyGames} isLoading={gamesLoading} sport={sport} />}
+      {!selectedId && (
+        <MapGamesRail games={nearbyGames} isLoading={gamesLoading} sport={sport} viewerIsAdmin={isAdmin} />
+      )}
 
-      {selectedId && <CourtSheet id={selectedId} coords={coords} onClose={() => update('court', null)} />}
+      {selectedId && (
+        <CourtSheet id={selectedId} coords={coords} viewerIsAdmin={isAdmin} onClose={() => update('court', null)} />
+      )}
 
       <PlatformIntroModal open={introOpen} onClose={closeIntro} variant="member" />
     </div>
   )
 }
 
-function CourtSheet({ id, coords, onClose }: { id: string; coords: Coords | null; onClose: () => void }) {
+function CourtSheet({
+  id,
+  coords,
+  viewerIsAdmin,
+  onClose,
+}: {
+  id: string
+  coords: Coords | null
+  viewerIsAdmin: boolean
+  onClose: () => void
+}) {
   const { data: court, isLoading, error } = useCourt(id, coords)
   const games = court?.games ?? []
   const live = games.filter((g) => g.status === 'active')
@@ -213,7 +227,7 @@ function CourtSheet({ id, coords, onClose }: { id: string; coords: Coords | null
               <h3 className="display mb-2 text-2xl font-bold">{live.length ? 'Games now' : 'Upcoming games'}</h3>
               <div className="grid gap-2">
                 {games.slice(0, 4).map((g) => (
-                  <GameCard key={g.id} game={g} showCourt={false} />
+                  <GameCard key={g.id} game={g} showCourt={false} showHost viewerIsAdmin={viewerIsAdmin} />
                 ))}
               </div>
             </div>

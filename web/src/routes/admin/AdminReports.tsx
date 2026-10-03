@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, errorMessage } from '../../lib/api'
-import { reportLabels, timeAgo } from '../../lib/format'
+import { playerDisplayLabel, reportLabels, timeAgo } from '../../lib/format'
 import type { PublicUser, ReportType } from '../../lib/types'
 import { Button, Card, Chip } from '../../components/ui'
 import { Loading } from '../CourtPage'
@@ -53,7 +53,7 @@ export function AdminReports() {
             </p>
             {r.description && <p className="mt-1 text-sm">{r.description}</p>}
             <p className="mt-1 text-xs text-ink-2">
-              {r.reporter ? `@${r.reporter.username}` : 'Deleted user'} · {timeAgo(r.created_at)} · {r.status}
+              {r.reporter ? playerDisplayLabel(r.reporter, true) : 'Deleted user'} · {timeAgo(r.created_at)} · {r.status}
               {r.admin_note && ` · note: ${r.admin_note}`}
             </p>
           </div>

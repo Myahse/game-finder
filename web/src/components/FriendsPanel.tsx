@@ -4,10 +4,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, errorMessage } from '../lib/api'
 import { friendInviteUrl } from '../lib/friendInvite'
 import { useFriendRequests, useFriends } from '../lib/queries'
+import { playerDisplayLabel } from '../lib/format'
 import type { PublicUser } from '../lib/types'
 import { Avatar, Button, Card, ErrorText, Field, Input } from './ui'
 
-export function FriendsPanel() {
+export function FriendsPanel({ viewerIsAdmin = false }: { viewerIsAdmin?: boolean }) {
   const qc = useQueryClient()
   const { data: friends } = useFriends()
   const { data: requests } = useFriendRequests()
@@ -90,7 +91,7 @@ export function FriendsPanel() {
       </form>
       <datalist id="ftg-friend-suggestions">
         {friends?.map((f) => (
-          <option key={f.id} value={f.username}>{f.first_name} {f.last_name}</option>
+          <option key={f.id} value={f.username}>{playerDisplayLabel(f, viewerIsAdmin)}</option>
         ))}
       </datalist>
 
@@ -101,7 +102,7 @@ export function FriendsPanel() {
           <ul className="grid gap-2">
             {incoming.map((r) => (
               <li key={r.id} className="flex items-center justify-between gap-2 rounded-xl border border-line bg-surface-2 p-2">
-                <FriendLine user={r.user} />
+                <FriendLine user={r.user} viewerIsAdmin={viewerIsAdmin} />
                 <div className="flex shrink-0 gap-1">
                   <Button type="button" className="min-h-9 px-3 text-sm" loading={respond.isPending} onClick={() => respond.mutate({ id: r.id, accept: true })}>
                     Accept
@@ -118,7 +119,7 @@ export function FriendsPanel() {
 
       {outgoing.length > 0 && (
         <p className="text-sm text-ink-2">
-          Waiting: {outgoing.map((r) => `@${r.user.username}`).join(', ')}
+          Waiting: {outgoing.map((r) => playerDisplayLabel(r.user, viewerIsAdmin)).join(', ')}
         </p>
       )}
 
@@ -129,7 +130,7 @@ export function FriendsPanel() {
           <ul className="grid gap-2">
             {friends.map((f) => (
               <li key={f.id} className="rounded-xl border border-line bg-surface-2 p-2">
-                <FriendLine user={f} />
+                <FriendLine user={f} viewerIsAdmin={viewerIsAdmin} />
               </li>
             ))}
           </ul>
@@ -139,14 +140,11 @@ export function FriendsPanel() {
   )
 }
 
-function FriendLine({ user, link = true }: { user: PublicUser; link?: boolean }) {
+function FriendLine({ user, link = true, viewerIsAdmin = false }: { user: PublicUser; link?: boolean; viewerIsAdmin?: boolean }) {
   const inner = (
     <>
       <Avatar user={user} size={36} />
-      <span>
-        {user.first_name} {user.last_name}
-        <span className="block text-xs font-medium text-ink-2">@{user.username}</span>
-      </span>
+      <span>{playerDisplayLabel(user, viewerIsAdmin)}</span>
     </>
   )
   if (!link) {

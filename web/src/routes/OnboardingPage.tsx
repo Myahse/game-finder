@@ -125,7 +125,10 @@ export function OnboardingPage() {
           Sign out
         </button>
       </div>
-      <p className="text-sm font-semibold text-ink-2">{t.onboarding.welcome}, {user?.first_name}</p>
+      <p className="text-sm font-semibold text-ink-2">
+        {t.onboarding.welcome}
+        {user?.username ? `, @${user.username}` : ''}
+      </p>
       <h1 className="display mt-1 text-4xl font-extrabold">{t.onboarding.title}</h1>
       <p className="mt-3 text-ink-2">{t.onboarding.subtitle}</p>
 

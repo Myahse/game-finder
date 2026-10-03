@@ -7,6 +7,7 @@ import { Loading } from './CourtPage'
 export function PublicProfilePage() {
   const { username = '' } = useParams()
   const { user } = useAuth()
+  const viewerIsAdmin = user?.role === 'admin'
   const { data: profile, isLoading, isError } = usePublicProfileByUsername(username)
 
   if (isLoading) return <Loading />
@@ -21,6 +22,7 @@ export function PublicProfilePage() {
       profile={resolved}
       title={resolved ? `@${resolved.username}` : 'Player'}
       back="/"
+      viewerIsAdmin={viewerIsAdmin}
     />
   )
 }

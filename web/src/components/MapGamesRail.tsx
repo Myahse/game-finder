@@ -12,6 +12,7 @@ type Props = {
   games: Game[] | undefined
   isLoading: boolean
   sport: string | null
+  viewerIsAdmin?: boolean
 }
 
 /** Nearby games — Maresi-style docked modal with horizontal property cards. */
@@ -24,7 +25,7 @@ function SkeletonCard({ className = '' }: { className?: string }) {
   )
 }
 
-export function MapGamesRail({ games, isLoading, sport }: Props) {
+export function MapGamesRail({ games, isLoading, sport, viewerIsAdmin = false }: Props) {
   const [pulseIds, setPulseIds] = useState<Set<string>>(() => new Set())
   useEffect(() => subscribeLiveGamePulse(setPulseIds), [])
 
@@ -90,7 +91,7 @@ export function MapGamesRail({ games, isLoading, sport }: Props) {
                 key={g.id}
                 className={`shrink-0 snap-center ${pulseIds.has(g.id) ? 'ftg-game-enter' : ''}`}
               >
-                <GameCard game={g} variant="map" className="w-[min(72vw,280px)]" />
+                <GameCard game={g} variant="map" viewerIsAdmin={viewerIsAdmin} className="w-[min(72vw,280px)]" />
               </div>
             ))}
           </div>

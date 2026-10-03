@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, errorMessage } from '../../lib/api'
-import { dayAndClock, gameTypeLabels } from '../../lib/format'
+import { dayAndClock, gameTypeLabels, playerDisplayLabel } from '../../lib/format'
 import type { Game, GameStatus } from '../../lib/types'
 import { SportName } from '../../components/icons'
 import { Button, Card, Chip } from '../../components/ui'
@@ -43,7 +43,7 @@ export function AdminGames() {
             </Link>
             <p className="text-sm text-ink-2">
               {g.status.toUpperCase()} · {dayAndClock(g.start_time)} · {g.player_count}/{g.max_players} players
-              {g.creator && ` · by @${g.creator.username}`}
+              {g.creator && ` · by ${playerDisplayLabel(g.creator, true)}`}
             </p>
           </div>
           {(g.status === 'active' || g.status === 'scheduled') && (

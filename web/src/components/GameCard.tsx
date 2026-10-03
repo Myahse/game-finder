@@ -8,6 +8,7 @@ import {
   gameTimeLabel,
   gameTypeLabels,
   isUnlimitedMaxPlayers,
+  playerDisplayLabel,
   skillLabels,
 } from '../lib/format'
 import { courtPhotoUrl } from '../lib/mediaUrl'
@@ -18,17 +19,23 @@ export function GameCard({
   game,
   showCourt = true,
   variant = 'list',
+  showHost = false,
+  viewerIsAdmin = false,
   className = '',
 }: {
   game: Game
   showCourt?: boolean
   variant?: 'list' | 'map'
+  /** Show host as @username (map / public game discovery). */
+  showHost?: boolean
+  viewerIsAdmin?: boolean
   className?: string
 }) {
   const live = game.status === 'active'
   const full = !gameHasOpenSpots(game)
   const photo = courtPhotoUrl(game.court.photos ?? [])
   const mapLayout = variant === 'map'
+  const hostLine = (showHost || mapLayout) && game.creator?.username
 
   return (
     <Link
@@ -82,6 +89,9 @@ export function GameCard({
             <DistanceText>{game.court.name}</DistanceText>
           </p>
         )}
+        {hostLine ? (
+          <p className="truncate text-sm font-medium text-ink-2">{playerDisplayLabel(game.creator!, viewerIsAdmin)}</p>
+        ) : null}
         <p className="mt-1 flex min-w-0 flex-wrap gap-x-3 gap-y-0.5 text-sm text-ink-2">
           <TimeText className="truncate">{gameTimeLabel(game)}</TimeText>
           <span className="inline-flex items-center gap-1">

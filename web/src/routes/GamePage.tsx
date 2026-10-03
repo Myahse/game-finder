@@ -13,6 +13,7 @@ import {
   gameTypeLabels,
   gameHasOpenSpots,
   isUnlimitedMaxPlayers,
+  playerDisplayLabel,
   skillLabels,
 } from '../lib/format'
 import { useLocation } from '../lib/location'
@@ -40,6 +41,7 @@ export function GamePage() {
 
   const open = game.status === 'active' || game.status === 'scheduled'
   const isCreator = game.creator_id === user?.id
+  const viewerIsAdmin = user?.role === 'admin'
   const unlimited = isUnlimitedMaxPlayers(game.max_players)
   const pct = unlimited ? 0 : Math.min(100, (game.player_count / game.max_players) * 100)
   const { cls: statusCls, text: statusText, Icon: StatusIcon } = statusLabel[game.status]
@@ -143,10 +145,7 @@ export function GamePage() {
             {game.players?.map((p) => (
               <Link key={p.id} to={`/users/${p.id}`} className="flex items-center gap-3 rounded-xl bg-surface p-2.5">
                 <Avatar user={p} size={36} />
-                <span className="flex-1 font-medium">
-                  {p.first_name} {p.last_name}
-                  <span className="ml-1 text-sm text-ink-2">@{p.username}</span>
-                </span>
+                <span className="flex-1 font-medium">{playerDisplayLabel(p, viewerIsAdmin)}</span>
                 {p.id === game.creator_id && <span className="text-xs font-semibold text-brand">HOST</span>}
               </Link>
             ))}

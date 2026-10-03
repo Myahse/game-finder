@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api, errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
+import { playerDisplayLabel } from '../lib/format'
 import {
   acceptPendingFriendInvite,
   friendInviteTokenForAuth,
@@ -21,6 +22,7 @@ type Preview = {
 export function FriendInvitePage() {
   const { token = '' } = useParams()
   const { user } = useAuth()
+  const viewerIsAdmin = user?.role === 'admin'
   const navigate = useNavigate()
   const [acceptError, setAcceptError] = useState('')
   const [accepting, setAccepting] = useState(false)
@@ -76,10 +78,7 @@ export function FriendInvitePage() {
           <>
             <div className="flex flex-col items-center gap-3 text-center">
               <Avatar size={72} user={inviter} />
-              <p className="display text-2xl font-bold">
-                {inviter.first_name} {inviter.last_name}
-              </p>
-              <p className="text-sm text-ink-2">@{inviter.username}</p>
+              <p className="display text-2xl font-bold">{playerDisplayLabel(inviter, viewerIsAdmin)}</p>
               <p className="text-ink-2">wants to be friends on Find the Game.</p>
             </div>
 

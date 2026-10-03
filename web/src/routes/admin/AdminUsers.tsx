@@ -53,7 +53,8 @@ export function AdminUsers() {
           <Avatar user={u} />
           <div className="min-w-0 flex-1">
             <p className="font-semibold">
-              {u.first_name} {u.last_name} <span className="font-normal text-ink-2">@{u.username}</span>
+              {u.first_name} {u.last_name}{' '}
+              <span className="font-normal text-ink-2">@{u.username}</span>
               {u.role === 'admin' && <span className="ml-2 rounded bg-brand/15 px-1.5 text-xs font-bold text-brand">ADMIN</span>}
               {u.suspended_at && <span className="ml-2 rounded bg-danger/15 px-1.5 text-xs font-bold text-danger">SUSPENDED</span>}
             </p>

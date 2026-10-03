@@ -300,8 +300,7 @@ class _GameScreenState extends State<GameScreen> {
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: UserAvatar(p),
-              title: Text(p.fullName, style: const TextStyle(fontWeight: FontWeight.w600)),
-              subtitle: Text('@${p.username}'),
+              title: Text('@${p.username}', style: const TextStyle(fontWeight: FontWeight.w600)),
               trailing: p.id == g.creatorId ? const Text('HOST', style: TextStyle(color: Palette.brand, fontWeight: FontWeight.w900)) : null,
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => UserScreen(userId: p.id))),
             ),

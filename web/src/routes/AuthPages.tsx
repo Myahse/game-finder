@@ -54,7 +54,12 @@ export function RegisterPage() {
         <label className="flex cursor-pointer items-center gap-4">
           <Avatar
             size={64}
-            user={{ first_name: form.first_name || '+', last_name: form.last_name, avatar_url: photo ? URL.createObjectURL(photo) : null }}
+            user={{
+              username: form.username || 'new',
+              first_name: form.first_name || '+',
+              last_name: form.last_name,
+              avatar_url: photo ? URL.createObjectURL(photo) : null,
+            }}
           />
           <span className="text-sm font-semibold text-brand">{photo ? 'Change photo' : 'Add profile photo (optional)'}</span>
           <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} />

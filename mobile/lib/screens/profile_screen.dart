@@ -26,8 +26,7 @@ class _ProfileCard extends StatelessWidget {
         child: Column(children: [
           UserAvatar(user, size: 96),
           const SizedBox(height: 12),
-          Text(user.fullName.toUpperCase(), textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium),
-          Text('@${user.username}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          Text('@${user.username}', textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,

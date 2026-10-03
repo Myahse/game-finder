@@ -11,6 +11,7 @@ func normalizeProfileUsername(raw string) string {
 	return strings.TrimPrefix(strings.TrimSpace(raw), "@")
 }
 
+// Public profile for share links (/u/:username). Username match is case-insensitive (citext).
 func (s *Server) getPublicProfileByUsername(w http.ResponseWriter, r *http.Request) {
 	username := normalizeProfileUsername(chi.URLParam(r, "username"))
 	if username == "" || len(username) > 24 {

@@ -135,8 +135,9 @@ export function StatusPill({ activity, className = '' }: { activity: Activity; c
   )
 }
 
-export function Avatar({ user, size = 40 }: { user: Pick<PublicUser, 'first_name' | 'last_name' | 'avatar_url'>; size?: number }) {
-  const initials = `${user.first_name?.[0] ?? ''}${user.last_name?.[0] ?? ''}`.toUpperCase()
+export function Avatar({ user, size = 40 }: { user: Pick<PublicUser, 'username' | 'first_name' | 'last_name' | 'avatar_url'>; size?: number }) {
+  const handle = user.username?.replace(/^@/, '') ?? ''
+  const initials = (handle.length >= 2 ? handle.slice(0, 2) : handle || `${user.first_name?.[0] ?? ''}${user.last_name?.[0] ?? ''}`).toUpperCase()
   const src = user.avatar_url ? resolveMediaUrl(user.avatar_url) : ''
   const [broken, setBroken] = useState(false)
   const showImg = src && !broken

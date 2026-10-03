@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, errorMessage } from '../../lib/api'
+import { playerDisplayLabel } from '../../lib/format'
 import { DEFAULT_CENTER, type Coords } from '../../lib/location'
 import { useSports } from '../../lib/queries'
 import type { Court, PublicUser } from '../../lib/types'
@@ -88,7 +89,11 @@ export function AdminCourts() {
               </span>
               {c.address ?? `${c.latitude.toFixed(5)}, ${c.longitude.toFixed(5)}`}
             </p>
-            {c.creator && <p className="text-xs text-ink-2">Proposed by @{c.creator.username}</p>}
+            {c.creator && (
+              <p className="text-xs text-ink-2">
+                Proposed by {playerDisplayLabel(c.creator, true)}
+              </p>
+            )}
             {c.description && <p className="mt-1 text-sm">{c.description}</p>}
           </div>
           <div className="flex flex-wrap gap-2">

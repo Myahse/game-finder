@@ -12,11 +12,12 @@ import { Star } from 'lucide-react'
 import { SportIcon, SportName, Wrench } from '../components/icons'
 import { FriendsPanel } from '../components/FriendsPanel'
 import { ProfileFriendActions } from '../components/ProfileFriendActions'
+import { playerDisplayLabel, playerFullName, playerUsernameLabel } from '../lib/format'
 import { profileShareUrl } from '../lib/profileShare'
 import { Avatar, Button, Card, ErrorText, Field, Input, PageHeader, Select } from '../components/ui'
 import { Loading } from './CourtPage'
 
-export function ProfileCard({ user }: { user: PublicUser }) {
+export function ProfileCard({ user, viewerIsAdmin = false }: { user: PublicUser; viewerIsAdmin?: boolean }) {
   const { t } = useLocale()
   const { data: sports } = useSports()
   const sport = sports?.find((s) => s.id === user.preferred_sport_id)
@@ -26,10 +27,14 @@ export function ProfileCard({ user }: { user: PublicUser }) {
       <div className="flex justify-center">
         <Avatar user={user} size={96} />
       </div>
-      <h2 className="display mt-3 text-4xl font-extrabold">
-        {user.first_name} {user.last_name}
-      </h2>
-      <p className="text-ink-2">@{user.username}</p>
+      {viewerIsAdmin && playerFullName(user) ? (
+        <>
+          <h2 className="display mt-3 text-4xl font-extrabold">{playerFullName(user)}</h2>
+          <p className="text-ink-2">{playerUsernameLabel(user)}</p>
+        </>
+      ) : (
+        <h2 className="display mt-3 text-4xl font-extrabold">{playerUsernameLabel(user)}</h2>
+      )}
       <p className="mt-3 flex justify-center gap-4 font-semibold">
         {sport && <SportName sport={sport} />}
         {user.skill_level && (
@@ -82,20 +87,24 @@ export function PlayerProfileView({
   profile,
   title,
   back = '/',
+  viewerIsAdmin = false,
 }: {
   profile: PublicUser | undefined
   title: string
   back?: string
+  viewerIsAdmin?: boolean
 }) {
   const { t } = useLocale()
+  const headerTitle =
+    profile && viewerIsAdmin ? playerDisplayLabel(profile, true) : title
   return (
     <div className="pb-10">
-      <PageHeader title={title} back={back} />
+      <PageHeader title={headerTitle} back={back} />
       <div className="mx-auto grid max-w-md gap-4 p-4">
         {profile ? (
           <>
-            <ProfileCard user={profile} />
-            <ProfileFriendActions user={profile} />
+            <ProfileCard user={profile} viewerIsAdmin={viewerIsAdmin} />
+            <ProfileFriendActions user={profile} viewerIsAdmin={viewerIsAdmin} />
           </>
         ) : (
           <p>{t.common.playerNotFound}</p>
@@ -112,6 +121,7 @@ export function ProfilePage() {
   const [editing, setEditing] = useState(false)
   if (!user) return null
   const current = me ?? user
+  const viewerIsAdmin = user.role === 'admin'
 
   return (
     <div className="pb-10">
@@ -134,9 +144,9 @@ export function ProfilePage() {
           />
         ) : (
           <>
-            <ProfileCard user={current} />
+            <ProfileCard user={current} viewerIsAdmin={viewerIsAdmin} />
             <ShareProfileButton username={current.username} />
-            <FriendsPanel />
+            <FriendsPanel viewerIsAdmin={viewerIsAdmin} />
           </>
         )}
         {user.role === 'admin' && (
@@ -289,9 +299,11 @@ function EditProfile({ me, onSaved }: { me: Me; onSaved: (u: Me) => void }) {
 
 export function UserPage() {
   const { t } = useLocale()
+  const { user: me } = useAuth()
   const { id } = useParams()
   const { data: user, isLoading } = useUser(id!)
+  const viewerIsAdmin = me?.role === 'admin'
   if (isLoading) return <Loading />
-  const title = user ? `${user.first_name} ${user.last_name}` : t.common.player
-  return <PlayerProfileView profile={user} title={title} back="/" />
+  const title = user ? playerUsernameLabel(user) : t.common.player
+  return <PlayerProfileView profile={user} title={title} back="/" viewerIsAdmin={viewerIsAdmin} />
 }

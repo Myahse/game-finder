@@ -7,6 +7,7 @@ import type { CourtDetail, Game, PublicUser } from '../../lib/types'
 import { CourtPhotoStrip } from '../../components/CourtPhotoStrip'
 import { CourtPlacementMap } from '../../components/CourtPlacementMap'
 import { GameCard } from '../../components/GameCard'
+import { playerDisplayLabel } from '../../lib/format'
 import { DistanceText, Lightbulb, SportName } from '../../components/icons'
 import { Button, Card, ErrorText, Spinner } from '../../components/ui'
 
@@ -76,7 +77,7 @@ export function AdminCourtReview() {
       {court.creator && (
         <p className="text-sm text-ink-2">
           Proposed by{' '}
-          <span className="font-semibold text-ink">@{court.creator.username}</span>
+          <span className="font-semibold text-ink">{playerDisplayLabel(court.creator, true)}</span>
           {' · '}
           {new Date(court.created_at).toLocaleString()}
         </p>
@@ -159,7 +160,7 @@ export function AdminCourtReview() {
           <h2 className="display mb-2 text-2xl font-bold">Scheduled games</h2>
           <div className="grid gap-2">
             {court.games.map((g) => (
-              <GameCard key={g.id} game={g} showCourt={false} />
+              <GameCard key={g.id} game={g} showCourt={false} showHost viewerIsAdmin />
             ))}
           </div>
         </section>
