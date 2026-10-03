@@ -14,7 +14,8 @@ func (s *Server) firebaseSignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var in struct {
-		IDToken string `json:"id_token"`
+		IDToken           string `json:"id_token"`
+		FriendInviteToken string `json:"friend_invite_token"`
 	}
 	if !readJSON(w, r, &in) {
 		return
@@ -29,5 +30,5 @@ func (s *Server) firebaseSignIn(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "invalid_firebase_token", "Google sign-in failed. Try again.")
 		return
 	}
-	s.oauthGoogleIdentity(w, r, id)
+	s.oauthGoogleIdentity(w, r, id, in.FriendInviteToken)
 }

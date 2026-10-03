@@ -30,7 +30,8 @@ func (s *Server) googleSignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var in struct {
-		IDToken string `json:"id_token"`
+		IDToken           string `json:"id_token"`
+		FriendInviteToken string `json:"friend_invite_token"`
 	}
 	if !readJSON(w, r, &in) {
 		return
@@ -45,10 +46,10 @@ func (s *Server) googleSignIn(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "invalid_google_token", "Google sign-in failed. Try again.")
 		return
 	}
-	s.oauthGoogleIdentity(w, r, id)
+	s.oauthGoogleIdentity(w, r, id, in.FriendInviteToken)
 }
 
-func (s *Server) oauthGoogleIdentity(w http.ResponseWriter, r *http.Request, id *auth.GoogleIdentity) {
+func (s *Server) oauthGoogleIdentity(w http.ResponseWriter, r *http.Request, id *auth.GoogleIdentity, friendInviteToken string) {
 	if id.Email == "" || !id.EmailVerified {
 		writeError(w, http.StatusUnprocessableEntity, "google_email_unverified", "Your Google account email isn't verified.")
 		return
@@ -123,6 +124,7 @@ func (s *Server) oauthGoogleIdentity(w http.ResponseWriter, r *http.Request, id 
 	if created {
 		status = http.StatusCreated
 	}
+	s.applyFriendInviteToken(r.Context(), userID, friendInviteToken)
 	s.issueSession(w, r, userID, role, status)
 }
 

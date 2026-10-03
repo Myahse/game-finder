@@ -47,7 +47,16 @@ function loadGsi(): Promise<Gsi> {
 const useFirebase = firebaseGoogleEnabled
 export const googleSignInEnabled = useFirebase || CLIENT_ID !== ''
 
-export function GoogleSignInButton({ onSignedIn, showTerms = true }: { onSignedIn?: () => void; showTerms?: boolean }) {
+export function GoogleSignInButton({
+  onSignedIn,
+  showTerms = true,
+  /** Where to go after sign-in; `null` skips navigation (use `onSignedIn`). */
+  navigateAfterSignIn = '/',
+}: {
+  onSignedIn?: () => void
+  showTerms?: boolean
+  navigateAfterSignIn?: string | null
+}) {
   const { googleSignIn } = useAuth()
   const { t, locale } = useLocale()
   const navigate = useNavigate()
@@ -63,7 +72,7 @@ export function GoogleSignInButton({ onSignedIn, showTerms = true }: { onSignedI
     try {
       await googleSignIn(idToken, viaFirebase)
       onSignedIn?.()
-      navigate('/', { replace: true })
+      if (navigateAfterSignIn !== null) navigate(navigateAfterSignIn, { replace: true })
     } catch (e) {
       setError(errorMessage(e))
     } finally {

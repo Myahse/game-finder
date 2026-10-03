@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, errorMessage } from '../lib/api'
+import { acceptPendingFriendInvite } from '../lib/friendInvite'
 import { useAuth } from '../lib/auth'
 import { playerSkillLevels } from '../lib/format'
 import { useSports, useUpdateMe } from '../lib/queries'
@@ -98,8 +99,9 @@ export function OnboardingPage() {
         onboarded: true,
       },
       {
-        onSuccess: (me) => {
+        onSuccess: async (me) => {
           updateUser(me)
+          await acceptPendingFriendInvite()
           navigate('/', { replace: true })
         },
         onError: (err) => setError(errorMessage(err)),

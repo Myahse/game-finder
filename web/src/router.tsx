@@ -23,14 +23,21 @@ import { AdminGames } from './routes/admin/AdminGames'
 import { AdminUsers } from './routes/admin/AdminUsers'
 import { AdminReports } from './routes/admin/AdminReports'
 import { AdminSettings } from './routes/admin/AdminSettings'
+import { FriendInvitePage } from './routes/FriendInvitePage'
 
 const GUEST_PATHS = new Set(['/register', '/terms', '/privacy', '/login'])
+
+function isFriendInvitePath(path: string) {
+  return path.startsWith('/friend/')
+}
 
 /** Logged-out: welcome at `/` (and `/welcome`). Logged-in: app shell or onboarding. */
 function RootAuthLayout() {
   const { user } = useAuth()
   const loc = useLocation()
   const path = loc.pathname
+
+  if (isFriendInvitePath(path)) return <Outlet />
 
   if (!user) {
     if (path === '/' || path === '/welcome') return <WelcomePage />
@@ -65,6 +72,7 @@ export const router = createBrowserRouter([
       { path: 'privacy', element: <PrivacyPage /> },
       { path: 'login', element: <LoginPage /> },
       { path: 'register', element: <RegisterPage /> },
+      { path: 'friend/:token', element: <FriendInvitePage /> },
       {
         element: <AppShell />,
         children: [

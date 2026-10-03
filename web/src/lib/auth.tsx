@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { api, getSession, onSessionChange, setSession } from './api'
+import { acceptPendingFriendInvite, clearFriendInviteToken, friendInviteTokenForAuth } from './friendInvite'
 import type { Me, Session } from './types'
 
 interface AuthState {
@@ -13,6 +14,7 @@ interface AuthState {
     email: string
     password: string
     avatar_url?: string
+    friend_invite_token?: string
   }) => Promise<void>
   /** Exchange a Google / Firebase ID token for a session; returns true for a new account. */
   googleSignIn: (idToken: string, viaFirebase?: boolean) => Promise<boolean>
@@ -46,16 +48,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         json: { login: loginId.trim(), password },
       }),
     )
+    await acceptPendingFriendInvite()
   }, [])
 
   const register = useCallback<AuthState['register']>(async (input) => {
-    setSession(await api<Session>('/api/auth/register', { method: 'POST', json: input }))
+    const friend_invite_token = input.friend_invite_token ?? friendInviteTokenForAuth()
+    setSession(
+      await api<Session>('/api/auth/register', {
+        method: 'POST',
+        json: { ...input, friend_invite_token },
+      }),
+    )
+    clearFriendInviteToken()
   }, [])
 
   const googleSignIn = useCallback(async (idToken: string, viaFirebase = false) => {
     const path = viaFirebase ? '/api/auth/firebase' : '/api/auth/google'
-    const s = await api<Session>(path, { method: 'POST', json: { id_token: idToken } })
+    const friend_invite_token = friendInviteTokenForAuth()
+    const s = await api<Session>(path, {
+      method: 'POST',
+      json: { id_token: idToken, friend_invite_token },
+    })
     setSession(s)
+    clearFriendInviteToken()
     return !s.user.onboarded
   }, [])
 

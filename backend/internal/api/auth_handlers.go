@@ -38,12 +38,13 @@ func (r rawJSON) MarshalJSON() ([]byte, error) {
 
 func (s *Server) register(w http.ResponseWriter, r *http.Request) {
 	var in struct {
-		FirstName string `json:"first_name"`
-		LastName  string `json:"last_name"`
-		Username  string `json:"username"`
-		Email     string `json:"email"`
-		Password  string `json:"password"`
-		AvatarURL string `json:"avatar_url"`
+		FirstName         string `json:"first_name"`
+		LastName          string `json:"last_name"`
+		Username          string `json:"username"`
+		Email             string `json:"email"`
+		Password          string `json:"password"`
+		AvatarURL         string `json:"avatar_url"`
+		FriendInviteToken string `json:"friend_invite_token"`
 	}
 	if !readJSON(w, r, &in) {
 		return
@@ -92,6 +93,7 @@ func (s *Server) register(w http.ResponseWriter, r *http.Request) {
 		writeDBError(w, r, err)
 		return
 	}
+	s.applyFriendInviteToken(r.Context(), userID, in.FriendInviteToken)
 	s.issueSession(w, r, userID, role, http.StatusCreated)
 }
 

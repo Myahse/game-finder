@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, errorMessage } from '../lib/api'
+import { friendInviteUrl } from '../lib/friendInvite'
 import { useFriendRequests, useFriends } from '../lib/queries'
 import type { PublicUser } from '../lib/types'
 import { Avatar, Button, Card, ErrorText, Field, Input } from './ui'
@@ -11,6 +12,7 @@ export function FriendsPanel() {
   const { data: requests } = useFriendRequests()
   const [username, setUsername] = useState('')
   const [error, setError] = useState('')
+  const [copied, setCopied] = useState(false)
 
   const send = useMutation({
     mutationFn: () => api('/api/me/friend-requests', { method: 'POST', json: { username: username.replace(/^@/, '').trim() } }),
@@ -19,6 +21,20 @@ export function FriendsPanel() {
       setError('')
       qc.invalidateQueries({ queryKey: ['friend-requests'] })
       qc.invalidateQueries({ queryKey: ['friends'] })
+    },
+    onError: (e) => setError(errorMessage(e)),
+  })
+
+  const copyInvite = useMutation({
+    mutationFn: async () => {
+      const r = await api<{ token: string }>('/api/me/friend-invite-link', { method: 'POST' })
+      const url = friendInviteUrl(r.token)
+      await navigator.clipboard.writeText(url)
+      return url
+    },
+    onSuccess: () => {
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2500)
     },
     onError: (e) => setError(errorMessage(e)),
   })
@@ -41,6 +57,15 @@ export function FriendsPanel() {
       <div>
         <h2 className="display text-2xl font-bold">Friends</h2>
         <p className="mt-1 text-sm text-ink-2">Add players to invite them to games quickly.</p>
+        <Button
+          type="button"
+          variant="ghost"
+          className="mt-3 w-full sm:w-auto"
+          loading={copyInvite.isPending}
+          onClick={() => copyInvite.mutate()}
+        >
+          {copied ? 'Link copied!' : 'Copy invite link'}
+        </Button>
       </div>
 
       <form

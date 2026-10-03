@@ -135,6 +135,7 @@ func (s *Server) Routes() http.Handler {
 		// Public browsing (the map works before sign-in).
 		r.With(s.rateLimitedPublic).Get("/sports", s.listSports)
 		r.With(s.rateLimitedPublic).Get("/courts/nearby", s.courtsNearby)
+		r.With(s.rateLimitedPublic).Get("/friend-invites/{token}", s.getFriendInvitePreview)
 
 		r.Group(func(r chi.Router) {
 			r.Use(s.requireActiveUser)
@@ -150,6 +151,8 @@ func (s *Server) Routes() http.Handler {
 			r.Post("/me/friend-requests", s.sendFriendRequest)
 			r.Post("/me/friend-requests/{id}/accept", s.acceptFriendRequest)
 			r.Post("/me/friend-requests/{id}/reject", s.rejectFriendRequest)
+			r.Post("/me/friend-invite-link", s.createFriendInviteLink)
+			r.Post("/friend-invites/{token}/accept", s.acceptFriendInviteLink)
 			r.Get("/me/games", s.myGames)
 			r.Get("/me/presence", s.myPresence)
 
@@ -401,6 +404,7 @@ var appErrors = map[string]struct {
 	"user_not_found":             {http.StatusNotFound, "No player with that username."},
 	"already_friends":            {http.StatusConflict, "You're already friends with that player."},
 	"request_pending":            {http.StatusConflict, "Friend request already sent."},
+	"invite_not_found":           {http.StatusNotFound, "This invite link is invalid or expired."},
 	"report_not_found":           {http.StatusNotFound, "Report not found."},
 	"already_joined":             {http.StatusConflict, "You're already in this game."},
 	"game_full":                  {http.StatusConflict, "This game is full."},
