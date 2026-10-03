@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
-import { api, errorMessage, uploadImage } from '../lib/api'
+import { ApiError, api, errorMessage, setSession, uploadImage } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { OrDivider } from '../components/GoogleSignInButton'
 import { SocialSignInButtons } from '../components/SocialSignInButtons'
@@ -19,6 +19,7 @@ export function RegisterPage() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [agreed, setAgreed] = useState(false)
+  const [checkEmail, setCheckEmail] = useState<string | null>(null)
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [k]: e.target.value })
 
   const checkUsername = async () => {
@@ -33,8 +34,18 @@ export function RegisterPage() {
     setError('')
     try {
       await register(form)
+      try {
+        await api('/api/me')
+      } catch (err) {
+        if (err instanceof ApiError && err.code === 'email_not_verified') {
+          await api('/api/auth/logout', { method: 'POST' }).catch(() => {})
+          setSession(null)
+          setCheckEmail(form.email)
+          return
+        }
+        throw err
+      }
       if (photo) {
-        // Upload needs a session, so it happens right after sign-up.
         const url = await uploadImage(photo, 'avatar').catch(() => null)
         if (url) await api('/api/me', { method: 'PATCH', json: { avatar_url: url } }).catch(() => {})
       }
@@ -44,6 +55,26 @@ export function RegisterPage() {
     } finally {
       setBusy(false)
     }
+  }
+
+  if (checkEmail) {
+    return (
+      <div className="min-h-full">
+        <PageHeader title="Check your email" back="/" />
+        <div className="mx-auto max-w-md p-5 text-center">
+          <p className="text-ink">
+            We sent a verification link to <span className="font-semibold">{checkEmail}</span>. Open it, then sign in.
+          </p>
+          <p className="mt-3 text-sm text-ink-2">Email sign-up stays available — Google sign-in works too.</p>
+          <Link
+            to="/?login=1"
+            className="display mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white"
+          >
+            Go to log in
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (
