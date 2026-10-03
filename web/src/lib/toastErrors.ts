@@ -26,6 +26,14 @@ const API_TOAST: Record<string, Copy> = {
     title: 'Court proposals',
     description: 'You already have pending courts waiting for review.',
   },
+  too_far_from_court: {
+    title: "You're not at the court",
+    description: 'Move within about 500 m of the court to check in or join a live game.',
+  },
+  location_required: {
+    title: 'Location needed',
+    description: 'Turn on location so we can confirm you are at the court.',
+  },
 }
 
 export function toastFromApiError(e: unknown, fallback = 'Something went wrong.') {

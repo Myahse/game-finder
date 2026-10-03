@@ -1,12 +1,18 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { errorMessage } from '../lib/api'
-import { directionsUrl, distanceM, gameHasOpenSpots, gamePlayerCountLabel } from '../lib/format'
+import {
+  COURT_AT_RADIUS_M,
+  isAtCourt,
+  NOT_AT_COURT_MESSAGE,
+  NOT_AT_COURT_TITLE,
+} from '../lib/courtProximity'
+import { directionsUrl, gameHasOpenSpots, gamePlayerCountLabel } from '../lib/format'
 import type { Coords } from '../lib/location'
 import { useGameAction, useMyPresence, usePresenceAction } from '../lib/queries'
 import type { Court, Game } from '../lib/types'
 import { Check, Circle, MapPin, Navigation } from 'lucide-react'
-import { Button, ErrorText } from './ui'
+import { AppAlert, Button, ErrorText } from './ui'
 
 /** JOIN GAME · I'M HERE · GET DIRECTIONS — shared by the sheet and the details page. */
 export function CourtActions({ court, games, me }: { court: Court; games: Game[]; me: Coords | null }) {
@@ -15,23 +21,34 @@ export function CourtActions({ court, games, me }: { court: Court; games: Game[]
   const presenceAction = usePresenceAction()
   const gameAction = useGameAction()
   const [error, setError] = useState('')
+  const [farModal, setFarModal] = useState(false)
 
   const live = games.filter((g) => g.status === 'active')
   const joinable = live.find((g) => !g.joined && gameHasOpenSpots(g))
   const myGame = games.find((g) => g.joined && (g.status === 'active' || g.status === 'scheduled'))
   const hereNow = presence?.court_id === court.id
-  const far = me ? distanceM(me.latitude, me.longitude, court.latitude, court.longitude) > 500 : false
+  const atCourt = isAtCourt(me, court)
+
+  const showNotAtCourt = () => setFarModal(true)
 
   const join = () => {
     if (!joinable) return navigate(`/games/new?court=${court.id}`)
+    if (!atCourt) {
+      showNotAtCourt()
+      return
+    }
     setError('')
     gameAction.mutate(
-      { id: joinable.id, action: 'join' },
+      { id: joinable.id, action: 'join', coords: me },
       { onSuccess: (g) => navigate(`/games/${g.id}`), onError: (e) => setError(errorMessage(e)) },
     )
   }
 
   const toggleHere = () => {
+    if (!hereNow && !atCourt) {
+      showNotAtCourt()
+      return
+    }
     setError('')
     presenceAction.mutate(hereNow ? { kind: 'leave' } : { kind: 'checkin', courtId: court.id, coords: me }, {
       onError: (e) => setError(errorMessage(e)),
@@ -40,6 +57,12 @@ export function CourtActions({ court, games, me }: { court: Court; games: Game[]
 
   return (
     <div className="grid gap-2">
+      <AppAlert
+        open={farModal}
+        title={NOT_AT_COURT_TITLE}
+        message={NOT_AT_COURT_MESSAGE}
+        onClose={() => setFarModal(false)}
+      />
       <ErrorText>{error}</ErrorText>
       {myGame ? (
         <Button variant="live" onClick={() => navigate(`/games/${myGame.id}`)}>
@@ -58,12 +81,7 @@ export function CourtActions({ court, games, me }: { court: Court; games: Game[]
         </Button>
       )}
       <div className="grid grid-cols-2 gap-2">
-        <Button
-          variant={hereNow ? 'danger' : 'secondary'}
-          onClick={toggleHere}
-          loading={presenceAction.isPending}
-          title={far && !hereNow ? 'You need to be at the court to check in' : undefined}
-        >
+        <Button variant={hereNow ? 'danger' : 'secondary'} onClick={toggleHere} loading={presenceAction.isPending}>
           <span className="inline-flex items-center gap-2">
             {!hereNow && <MapPin className="size-4 shrink-0" aria-hidden />}
             {hereNow ? "I've left" : "I'm here"}
@@ -85,7 +103,11 @@ export function CourtActions({ court, games, me }: { court: Court; games: Game[]
           You're checked in since {new Date(presence.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </p>
       )}
-      {far && !hereNow && <p className="text-center text-xs text-ink-2">Check-in works when you're at the court.</p>}
+      {!atCourt && !hereNow && (
+        <p className="text-center text-xs text-ink-2">
+          Check-in and live games require you to be within about {COURT_AT_RADIUS_M} m of the court.
+        </p>
+      )}
       <Link to={`/courts/${court.id}/report`} className="mt-1 text-center text-xs text-ink-2 hover:text-ink">
         Report a problem with this court
       </Link>

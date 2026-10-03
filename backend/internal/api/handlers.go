@@ -442,6 +442,8 @@ func (s *Server) createGame(w http.ResponseWriter, r *http.Request) {
 		GameType        string     `json:"game_type"`
 		DurationMinutes int        `json:"duration_minutes"`
 		CourtPhotos     []string   `json:"court_photos"`
+		Latitude        *float64   `json:"latitude"`
+		Longitude       *float64   `json:"longitude"`
 	}
 	if !readJSON(w, r, &in) {
 		return
@@ -500,6 +502,13 @@ func (s *Server) createGame(w http.ResponseWriter, r *http.Request) {
 	if have == 0 && len(in.CourtPhotos) == 0 {
 		writeError(w, http.StatusUnprocessableEntity, "photo_required", "Add a photo of the court so others can find it.")
 		return
+	}
+	// Starting now creates an active game — creator must be at the court.
+	if in.StartTime.Before(time.Now().Add(2 * time.Minute)) {
+		if err := s.db.Exec(r.Context(), uid(r), "select assert_at_court($1, $2, $3)", in.CourtID, in.Latitude, in.Longitude); err != nil {
+			writeDBError(w, r, err)
+			return
+		}
 	}
 	if len(in.CourtPhotos) > 0 {
 		status, code, msg, err := s.appendCourtPhotos(r.Context(), in.CourtID, uid(r), in.CourtPhotos)
@@ -597,6 +606,15 @@ func (s *Server) updateGame(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) joinGame(w http.ResponseWriter, r *http.Request) {
 	gameID := chi.URLParam(r, "id")
+	var in struct {
+		Latitude  *float64 `json:"latitude"`
+		Longitude *float64 `json:"longitude"`
+	}
+	if r.ContentLength > 0 {
+		if !readJSON(w, r, &in) {
+			return
+		}
+	}
 	var sportID string
 	if err := s.db.Pool.QueryRow(r.Context(), `select sport_id::text from games where id = $1`, gameID).Scan(&sportID); err != nil {
 		writeDBError(w, r, err)
@@ -605,7 +623,7 @@ func (s *Server) joinGame(w http.ResponseWriter, r *http.Request) {
 	if !s.enforcePreferredSport(w, r, sportID) {
 		return
 	}
-	if err := s.db.Exec(r.Context(), uid(r), "select join_game($1)", gameID); err != nil {
+	if err := s.db.Exec(r.Context(), uid(r), "select join_game($1, $2, $3)", gameID, in.Latitude, in.Longitude); err != nil {
 		writeDBError(w, r, err)
 		return
 	}

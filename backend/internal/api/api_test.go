@@ -158,6 +158,10 @@ func (e *env) onboardSport(u user, sportID string) {
 
 const iugbLat, iugbLng = 5.2133, -3.7389
 
+func atCourt() map[string]any {
+	return map[string]any{"latitude": iugbLat, "longitude": iugbLng}
+}
+
 func (e *env) court(name string) map[string]any {
 	e.t.Helper()
 	_, arr := e.must(200, "", "GET", fmt.Sprintf("/api/courts/nearby?lat=%f&lng=%f&radius_km=50", iugbLat, iugbLng), nil)
@@ -249,6 +253,7 @@ func TestCoreFlow(t *testing.T) {
 	// Create a game starting now with 3 spots.
 	game, _ := e.must(201, mo.Token, "POST", "/api/games", map[string]any{
 		"court_id": iugb["id"], "sport_id": basketball["id"], "max_players": 3, "skill_level": "intermediate",
+		"latitude": iugbLat, "longitude": iugbLng,
 	})
 	gameID := game["id"].(string)
 	if game["status"] != "active" || game["player_count"].(float64) != 1 || game["joined"] != true {
@@ -259,7 +264,7 @@ func TestCoreFlow(t *testing.T) {
 	})
 
 	// Join updates count in realtime; duplicates and over-capacity are refused.
-	e.must(200, bea.Token, "POST", "/api/games/"+gameID+"/join", nil)
+	e.must(200, bea.Token, "POST", "/api/games/"+gameID+"/join", atCourt())
 	waitFor("2 players", func(ev map[string]any) bool {
 		return ev["type"] == "game" && ev["game_id"] == gameID && ev["player_count"] == 2.0
 	})
@@ -267,9 +272,14 @@ func TestCoreFlow(t *testing.T) {
 	if body["error"] != "already_joined" {
 		t.Fatalf("duplicate join: %v", body)
 	}
-	e.must(200, cal.Token, "POST", "/api/games/"+gameID+"/join", nil)
+	e.must(200, cal.Token, "POST", "/api/games/"+gameID+"/join", atCourt())
+	far := e.register("farplayer")
+	_, body, _ = e.do(far.Token, "POST", "/api/games/"+gameID+"/join", map[string]any{"latitude": 0.0, "longitude": 0.0})
+	if body["error"] != "too_far_from_court" {
+		t.Fatalf("far join active game: %v", body)
+	}
 	extra := e.register("dan")
-	_, body, _ = e.do(extra.Token, "POST", "/api/games/"+gameID+"/join", nil)
+	_, body, _ = e.do(extra.Token, "POST", "/api/games/"+gameID+"/join", atCourt())
 	if body["error"] != "game_full" {
 		t.Fatalf("full game join: %v", body)
 	}
@@ -467,6 +477,7 @@ func TestConcurrentJoinsNeverOverfill(t *testing.T) {
 	_, sports := e.must(200, "", "GET", "/api/sports", nil)
 	game, _ := e.must(201, creator.Token, "POST", "/api/games", map[string]any{
 		"court_id": iugb["id"], "sport_id": sports[0].(map[string]any)["id"], "max_players": 4,
+		"latitude": iugbLat, "longitude": iugbLng,
 	})
 	id := game["id"].(string)
 
@@ -477,7 +488,7 @@ func TestConcurrentJoinsNeverOverfill(t *testing.T) {
 	results := make(chan int, len(players))
 	for _, p := range players {
 		go func() {
-			code, _, _ := e.do(p.Token, "POST", "/api/games/"+id+"/join", nil)
+			code, _, _ := e.do(p.Token, "POST", "/api/games/"+id+"/join", atCourt())
 			results <- code
 		}()
 	}

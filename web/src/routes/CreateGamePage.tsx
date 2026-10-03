@@ -12,6 +12,7 @@ import {
   maxPlayersSliderToApi,
   skillLabels,
 } from '../lib/format'
+import { isAtCourt, NOT_AT_COURT_MESSAGE, NOT_AT_COURT_TITLE } from '../lib/courtProximity'
 import { useLocation } from '../lib/location'
 import { LIST_NEARBY_RADIUS_KM } from '../lib/nearby'
 import { useAuth } from '../lib/auth'
@@ -20,7 +21,7 @@ import { useCourtsNearby, useSports } from '../lib/queries'
 import type { Game, GameType, SkillLevel } from '../lib/types'
 import { Clock, Flame, SportIcon, SportName } from '../components/icons'
 import { Plus } from 'lucide-react'
-import { Button, ErrorText, Field, Input, PageHeader, Select } from '../components/ui'
+import { AppAlert, Button, ErrorText, Field, Input, PageHeader, Select } from '../components/ui'
 
 function localInputValue(d: Date) {
   const pad = (n: number) => String(n).padStart(2, '0')
@@ -33,7 +34,7 @@ export function CreateGamePage() {
   const qc = useQueryClient()
   const { user } = useAuth()
   const mySport = useMySport()
-  const { center } = useLocation()
+  const { center, coords } = useLocation()
   const { data: sports } = useSports()
   const sportSlug = user?.role === 'admin' ? null : mySport?.slug ?? null
   const { data: courts } = useCourtsNearby(center, sportSlug, LIST_NEARBY_RADIUS_KM)
@@ -52,6 +53,7 @@ export function CreateGamePage() {
   const [created, setCreated] = useState<Game | null>(null)
   const [placePhotos, setPlacePhotos] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
+  const [farModal, setFarModal] = useState(false)
 
   const court = courts?.find((c) => c.id === courtId)
   const existingPhotos = court?.photos ?? []
@@ -92,6 +94,10 @@ export function CreateGamePage() {
       setError('Add a photo of the court so others can find the place.')
       return
     }
+    if (when === 'now' && court && !isAtCourt(coords, court)) {
+      setFarModal(true)
+      return
+    }
     setBusy(true)
     setError('')
     try {
@@ -105,6 +111,8 @@ export function CreateGamePage() {
           skill_level: skill,
           game_type: type,
           court_photos: placePhotos,
+          latitude: coords?.latitude ?? null,
+          longitude: coords?.longitude ?? null,
         },
       })
       qc.invalidateQueries({ queryKey: ['court', courtId] })
@@ -136,6 +144,12 @@ export function CreateGamePage() {
 
   return (
     <div className="pb-10">
+      <AppAlert
+        open={farModal}
+        title={NOT_AT_COURT_TITLE}
+        message={NOT_AT_COURT_MESSAGE}
+        onClose={() => setFarModal(false)}
+      />
       <PageHeader title="Create game" back={courtId ? `/?court=${courtId}` : '/'} />
       <form onSubmit={submit} className="mx-auto grid max-w-md gap-5 p-5">
         <Field label="Court" hint={<Link to="/courts/new" className="font-semibold text-brand">Court not listed? Add it →</Link>}>

@@ -16,9 +16,10 @@ import {
   playerDisplayLabel,
   skillLabels,
 } from '../lib/format'
+import { isAtCourt, NOT_AT_COURT_MESSAGE, NOT_AT_COURT_TITLE } from '../lib/courtProximity'
 import { useLocation } from '../lib/location'
 import { useGame, useGameAction } from '../lib/queries'
-import { Avatar, Button, Card, Empty, ErrorText, PageHeader } from '../components/ui'
+import { AppAlert, Avatar, Button, Card, Empty, ErrorText, PageHeader } from '../components/ui'
 import { Loading } from './CourtPage'
 
 const statusLabel = {
@@ -35,6 +36,7 @@ export function GamePage() {
   const { data: game, isLoading } = useGame(id, coords)
   const action = useGameAction()
   const [error, setError] = useState('')
+  const [farModal, setFarModal] = useState(false)
 
   if (isLoading) return <Loading />
   if (!game) return <Empty icon={<SearchX className="size-14" strokeWidth={1.5} />} title="Game not found" />
@@ -48,13 +50,26 @@ export function GamePage() {
   const run = (a: 'join' | 'leave' | 'cancel') => {
     setError('')
     if (a === 'cancel' && !confirm('Cancel this game for everyone?')) return
-    action.mutate({ id: game.id, action: a }, { onError: (e) => setError(errorMessage(e)) })
+    if (a === 'join' && game.status === 'active' && !isAtCourt(coords, game.court)) {
+      setFarModal(true)
+      return
+    }
+    action.mutate(
+      { id: game.id, action: a, coords: a === 'join' ? coords : undefined },
+      { onError: (e) => setError(errorMessage(e)) },
+    )
   }
 
   return (
     <div className="pb-10">
       <PageHeader title={`${gameTypeLabels[game.game_type]} ${game.sport.name}`} back={`/?court=${game.court_id}`} />
       <div className="mx-auto grid max-w-2xl gap-4 p-4">
+        <AppAlert
+          open={farModal}
+          title={NOT_AT_COURT_TITLE}
+          message={NOT_AT_COURT_MESSAGE}
+          onClose={() => setFarModal(false)}
+        />
         <Card>
           <span className={`display inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-lg font-bold ${statusCls}`}>
             <StatusIcon className="size-5 shrink-0" aria-hidden />

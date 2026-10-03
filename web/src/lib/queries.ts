@@ -1,6 +1,7 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './api'
 import { useAuth } from './auth'
+import type { Coords } from './location'
 import { coarse, type Coords } from './location'
 import { LIST_NEARBY_RADIUS_KM, MAP_NEARBY_RADIUS_KM } from './nearby'
 import type { AppNotification, Court, CourtDetail, Game, Me, Presence, PublicUser, Sport } from './types'
@@ -176,8 +177,26 @@ export function useFriendRequests(enabled = true) {
 export function useGameAction() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, action, reason }: { id: string; action: 'join' | 'leave' | 'cancel'; reason?: string }) =>
-      api<Game>(`/api/games/${id}/${action}`, { method: 'POST', json: action === 'cancel' ? { reason } : undefined }),
+    mutationFn: ({
+      id,
+      action,
+      reason,
+      coords,
+    }: {
+      id: string
+      action: 'join' | 'leave' | 'cancel'
+      reason?: string
+      coords?: Coords | null
+    }) =>
+      api<Game>(`/api/games/${id}/${action}`, {
+        method: 'POST',
+        json:
+          action === 'cancel'
+            ? { reason }
+            : action === 'join'
+              ? { latitude: coords?.latitude ?? null, longitude: coords?.longitude ?? null }
+              : undefined,
+      }),
     onSuccess: (game) => {
       qc.setQueryData(qk.game(game.id), (old: Game | undefined) => ({ ...old, ...game }))
       qc.invalidateQueries({ queryKey: qk.court(game.court_id) })
