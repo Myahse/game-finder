@@ -14,6 +14,7 @@ export const qk = {
   presence: ['presence'] as const,
   notifications: ['notifications'] as const,
   user: (id: string) => ['user', id] as const,
+  profileUsername: (username: string) => ['profile-username', username] as const,
 }
 
 const loc = (c: Coords | null) => (c ? `lat=${c.latitude}&lng=${c.longitude}` : '')
@@ -109,6 +110,16 @@ export function useNotifications(enabled = true) {
 
 export function useUser(id: string) {
   return useQuery({ queryKey: qk.user(id), queryFn: () => api<PublicUser>(`/api/users/${id}`) })
+}
+
+export function usePublicProfileByUsername(username: string) {
+  const u = username.trim().replace(/^@/, '')
+  return useQuery({
+    queryKey: qk.profileUsername(u),
+    enabled: u.length >= 3,
+    queryFn: () => api<PublicUser>(`/api/profiles/${encodeURIComponent(u)}`),
+    retry: false,
+  })
 }
 
 export function useFriends(enabled = true) {

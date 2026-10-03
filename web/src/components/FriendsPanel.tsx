@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, errorMessage } from '../lib/api'
 import { friendInviteUrl } from '../lib/friendInvite'
@@ -138,14 +139,22 @@ export function FriendsPanel() {
   )
 }
 
-function FriendLine({ user }: { user: PublicUser }) {
-  return (
-    <span className="flex items-center gap-2 font-semibold">
+function FriendLine({ user, link = true }: { user: PublicUser; link?: boolean }) {
+  const inner = (
+    <>
       <Avatar user={user} size={36} />
       <span>
         {user.first_name} {user.last_name}
         <span className="block text-xs font-medium text-ink-2">@{user.username}</span>
       </span>
-    </span>
+    </>
+  )
+  if (!link) {
+    return <span className="flex items-center gap-2 font-semibold">{inner}</span>
+  }
+  return (
+    <Link to={`/users/${user.id}`} className="flex items-center gap-2 font-semibold hover:text-brand">
+      {inner}
+    </Link>
   )
 }

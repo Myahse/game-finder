@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { useMutation } from '@tanstack/react-query'
 import { useQuery } from '@tanstack/react-query'
 import { api, errorMessage, uploadImage } from '../lib/api'
 import { useAuth } from '../lib/auth'
@@ -10,10 +11,12 @@ import type { Me, PublicUser } from '../lib/types'
 import { Star } from 'lucide-react'
 import { SportIcon, SportName, Wrench } from '../components/icons'
 import { FriendsPanel } from '../components/FriendsPanel'
+import { ProfileFriendActions } from '../components/ProfileFriendActions'
+import { profileShareUrl } from '../lib/profileShare'
 import { Avatar, Button, Card, ErrorText, Field, Input, PageHeader, Select } from '../components/ui'
 import { Loading } from './CourtPage'
 
-function ProfileCard({ user }: { user: PublicUser }) {
+export function ProfileCard({ user }: { user: PublicUser }) {
   const { t } = useLocale()
   const { data: sports } = useSports()
   const sport = sports?.find((s) => s.id === user.preferred_sport_id)
@@ -57,6 +60,51 @@ function Stat({ value, label }: { value: number; label: string }) {
   )
 }
 
+function ShareProfileButton({ username }: { username: string }) {
+  const [copied, setCopied] = useState(false)
+  const copy = useMutation({
+    mutationFn: async () => {
+      await navigator.clipboard.writeText(profileShareUrl(username))
+    },
+    onSuccess: () => {
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2500)
+    },
+  })
+  return (
+    <Button type="button" variant="secondary" loading={copy.isPending} onClick={() => copy.mutate()}>
+      {copied ? 'Profile link copied!' : 'Share my profile'}
+    </Button>
+  )
+}
+
+export function PlayerProfileView({
+  profile,
+  title,
+  back = '/',
+}: {
+  profile: PublicUser | undefined
+  title: string
+  back?: string
+}) {
+  const { t } = useLocale()
+  return (
+    <div className="pb-10">
+      <PageHeader title={title} back={back} />
+      <div className="mx-auto grid max-w-md gap-4 p-4">
+        {profile ? (
+          <>
+            <ProfileCard user={profile} />
+            <ProfileFriendActions user={profile} />
+          </>
+        ) : (
+          <p>{t.common.playerNotFound}</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export function ProfilePage() {
   const { t } = useLocale()
   const { user, logout, updateUser } = useAuth()
@@ -87,6 +135,7 @@ export function ProfilePage() {
         ) : (
           <>
             <ProfileCard user={current} />
+            <ShareProfileButton username={current.username} />
             <FriendsPanel />
           </>
         )}
@@ -243,10 +292,6 @@ export function UserPage() {
   const { id } = useParams()
   const { data: user, isLoading } = useUser(id!)
   if (isLoading) return <Loading />
-  return (
-    <div className="pb-10">
-      <PageHeader title={t.common.player} back="/" />
-      <div className="mx-auto max-w-md p-4">{user ? <ProfileCard user={user} /> : <p>{t.common.playerNotFound}</p>}</div>
-    </div>
-  )
+  const title = user ? `${user.first_name} ${user.last_name}` : t.common.player
+  return <PlayerProfileView profile={user} title={title} back="/" />
 }

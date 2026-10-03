@@ -136,6 +136,7 @@ func (s *Server) Routes() http.Handler {
 		r.With(s.rateLimitedPublic).Get("/sports", s.listSports)
 		r.With(s.rateLimitedPublic).Get("/courts/nearby", s.courtsNearby)
 		r.With(s.rateLimitedPublic).Get("/friend-invites/{token}", s.getFriendInvitePreview)
+		r.With(s.rateLimitedPublic).Get("/profiles/{username}", s.getPublicProfileByUsername)
 
 		r.Group(func(r chi.Router) {
 			r.Use(s.requireActiveUser)
