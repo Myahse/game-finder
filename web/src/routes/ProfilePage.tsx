@@ -9,6 +9,7 @@ import { useSports, useUpdateMe, useUser } from '../lib/queries'
 import type { Me, PublicUser } from '../lib/types'
 import { Star } from 'lucide-react'
 import { SportIcon, SportName, Wrench } from '../components/icons'
+import { FriendsPanel } from '../components/FriendsPanel'
 import { Avatar, Button, Card, ErrorText, Field, Input, PageHeader, Select } from '../components/ui'
 import { Loading } from './CourtPage'
 
@@ -84,7 +85,10 @@ export function ProfilePage() {
             }}
           />
         ) : (
-          <ProfileCard user={current} />
+          <>
+            <ProfileCard user={current} />
+            <FriendsPanel />
+          </>
         )}
         {user.role === 'admin' && (
           <Link to="/admin" className="flex items-center gap-2 rounded-xl bg-surface p-4 font-semibold">

@@ -29,11 +29,20 @@ export function AppShell() {
 
   const onNotification = useCallback(
     (ev: Extract<RealtimeEvent, { type: 'notification' }>) => {
-      const link = ev.data.game_id
-        ? `/games/${ev.data.game_id}`
-        : ev.data.court_id
-          ? `/?court=${ev.data.court_id}`
-          : undefined
+      const link =
+        ev.notification_type === 'admin_court_request' && ev.data.court_id
+          ? `/admin/courts/${ev.data.court_id}`
+          : ev.notification_type === 'admin_new_user'
+            ? '/admin/users'
+            : ev.notification_type === 'friend_request'
+              ? '/profile'
+              : ev.data.game_id
+                ? `/games/${ev.data.game_id}`
+                : ev.data.court_id
+                  ? `/?court=${ev.data.court_id}`
+                  : ev.data.user_id
+                    ? `/users/${ev.data.user_id}`
+                    : undefined
       toast(ev.title, {
         id: ev.id,
         description: ev.body,

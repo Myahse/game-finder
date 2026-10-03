@@ -103,11 +103,32 @@ export function useNotifications(enabled = true) {
     queryKey: qk.notifications,
     queryFn: () => api<{ unread: number; items: AppNotification[] }>('/api/notifications'),
     enabled,
+    refetchInterval: enabled ? 90_000 : false,
   })
 }
 
 export function useUser(id: string) {
   return useQuery({ queryKey: qk.user(id), queryFn: () => api<PublicUser>(`/api/users/${id}`) })
+}
+
+export function useFriends(enabled = true) {
+  return useQuery({
+    queryKey: ['friends'],
+    queryFn: () => api<PublicUser[]>('/api/me/friends'),
+    enabled,
+    staleTime: 60_000,
+  })
+}
+
+export type FriendRequestRow = { id: string; user: PublicUser; created_at: string }
+
+export function useFriendRequests(enabled = true) {
+  return useQuery({
+    queryKey: ['friend-requests'],
+    queryFn: () => api<{ incoming: FriendRequestRow[]; outgoing: FriendRequestRow[] }>('/api/me/friend-requests'),
+    enabled,
+    staleTime: 30_000,
+  })
 }
 
 /** Join / leave / cancel share the same cache updates. */

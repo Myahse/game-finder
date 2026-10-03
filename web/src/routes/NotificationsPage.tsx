@@ -18,8 +18,12 @@ export function NotificationsPage() {
       await api(`/api/notifications/${n.id}/read`, { method: 'POST' }).catch(() => {})
       qc.invalidateQueries({ queryKey: qk.notifications })
     }
-    if (n.data.game_id) navigate(`/games/${n.data.game_id}`)
+    if (n.type === 'admin_court_request' && n.data.court_id) navigate(`/admin/courts/${n.data.court_id}`)
+    else if (n.type === 'admin_new_user') navigate('/admin/users')
+    else if (n.type === 'friend_request') navigate('/profile')
+    else if (n.data.game_id) navigate(`/games/${n.data.game_id}`)
     else if (n.data.court_id) navigate(`/?court=${n.data.court_id}`)
+    else if (n.data.user_id) navigate(`/users/${n.data.user_id}`)
   }
 
   const readAll = async () => {
@@ -44,7 +48,7 @@ export function NotificationsPage() {
           <Loading />
         ) : !data?.items.length ? (
           <Empty icon={<Bell className="size-14" strokeWidth={1.5} />} title="All quiet">
-            Game reminders, invites and games starting near you show up here.
+            Nearby courts and games, invites from friends, and reminders show up here. Allow location on the map and turn on notifications.
           </Empty>
         ) : (
           <ul className="grid gap-2">

@@ -145,6 +145,11 @@ func (s *Server) Routes() http.Handler {
 			r.Post("/me/ws-ticket", s.issueWsTicket)
 			r.Post("/me/push-tokens", s.registerPushToken)
 			r.Delete("/me/push-tokens", s.deletePushToken)
+			r.Get("/me/friends", s.listFriends)
+			r.Get("/me/friend-requests", s.listFriendRequests)
+			r.Post("/me/friend-requests", s.sendFriendRequest)
+			r.Post("/me/friend-requests/{id}/accept", s.acceptFriendRequest)
+			r.Post("/me/friend-requests/{id}/reject", s.rejectFriendRequest)
 			r.Get("/me/games", s.myGames)
 			r.Get("/me/presence", s.myPresence)
 
@@ -394,6 +399,8 @@ var appErrors = map[string]struct {
 	"game_not_found":             {http.StatusNotFound, "Game not found."},
 	"court_not_found":            {http.StatusNotFound, "Court not found."},
 	"user_not_found":             {http.StatusNotFound, "No player with that username."},
+	"already_friends":            {http.StatusConflict, "You're already friends with that player."},
+	"request_pending":            {http.StatusConflict, "Friend request already sent."},
 	"report_not_found":           {http.StatusNotFound, "Report not found."},
 	"already_joined":             {http.StatusConflict, "You're already in this game."},
 	"game_full":                  {http.StatusConflict, "This game is full."},

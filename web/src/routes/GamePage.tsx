@@ -1,8 +1,9 @@
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
+import { GameInviteField } from '../components/GameInviteField'
+import { errorMessage } from '../lib/api'
 import { Clock, Navigation, Star, Timer } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import { Check, DistanceText, Flame, SearchX, SportName, TimeText, X } from '../components/icons'
-import { ApiError, api, errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import {
   directionsUrl,
@@ -16,7 +17,7 @@ import {
 } from '../lib/format'
 import { useLocation } from '../lib/location'
 import { useGame, useGameAction } from '../lib/queries'
-import { AppAlert, Avatar, Button, Card, Empty, ErrorText, Input, PageHeader } from '../components/ui'
+import { Avatar, Button, Card, Empty, ErrorText, PageHeader } from '../components/ui'
 import { Loading } from './CourtPage'
 
 const statusLabel = {
@@ -134,7 +135,7 @@ export function GamePage() {
           </div>
         </Card>
 
-        {open && game.joined && <InviteForm gameId={game.id} />}
+        {open && game.joined && <GameInviteField gameId={game.id} />}
 
         <section>
           <h2 className="display mb-2 text-2xl font-bold">Players</h2>
@@ -156,49 +157,3 @@ export function GamePage() {
   )
 }
 
-function InviteForm({ gameId }: { gameId: string }) {
-  const [username, setUsername] = useState('')
-  const [msg, setMsg] = useState('')
-  const [error, setError] = useState('')
-  const [notFound, setNotFound] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
-  const submit = async (e: FormEvent) => {
-    e.preventDefault()
-    setBusy(true)
-    setError('')
-    setMsg('')
-    setNotFound(null)
-    try {
-      await api(`/api/games/${gameId}/invite`, { method: 'POST', json: { username } })
-      setMsg(`Invited @${username.replace(/^@/, '')}`)
-      setUsername('')
-    } catch (err) {
-      if (err instanceof ApiError && err.code === 'user_not_found') {
-        setNotFound(err.message)
-      } else {
-        setError(errorMessage(err))
-      }
-    } finally {
-      setBusy(false)
-    }
-  }
-  return (
-    <>
-      <form onSubmit={submit} className="flex flex-wrap gap-2">
-        <Input placeholder="Invite by @username" value={username} onChange={(e) => setUsername(e.target.value)} required />
-        <Button type="submit" variant="secondary" loading={busy}>
-          Invite
-        </Button>
-        {(msg || error) && <span className="sr-only" role="status">{msg || error}</span>}
-        {msg && <p className="w-full text-sm text-live">{msg}</p>}
-        {error && <p className="w-full text-sm text-danger">{error}</p>}
-      </form>
-      <AppAlert
-        open={notFound != null}
-        title="Player not found"
-        message={notFound ?? ''}
-        onClose={() => setNotFound(null)}
-      />
-    </>
-  )
-}

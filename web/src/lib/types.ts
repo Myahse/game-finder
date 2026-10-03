@@ -110,10 +110,20 @@ export interface AppNotification {
     | 'game_cancelled'
     | 'game_created'
     | 'court_added'
+    | 'admin_new_user'
+    | 'admin_court_request'
+    | 'friend_request'
+    | 'friend_accepted'
     | 'system'
   title: string
   body: string
-  data: { game_id?: string; court_id?: string; presence_id?: string }
+  data: {
+    game_id?: string
+    court_id?: string
+    presence_id?: string
+    user_id?: string
+    friend_request_id?: string
+  }
   read: boolean
   created_at: string
 }
