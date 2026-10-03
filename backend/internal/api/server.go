@@ -38,6 +38,7 @@ type Server struct {
 	trustedProxies  []*net.IPNet
 	media           *storage.Media
 	google          *auth.GoogleVerifier
+	firebase        *auth.FirebaseVerifier
 }
 
 func New(cfg config.Config, d *db.DB, hub *realtime.Hub, media *storage.Media) *Server {
@@ -54,12 +55,23 @@ func New(cfg config.Config, d *db.DB, hub *realtime.Hub, media *storage.Media) *
 		trustedProxies: parseTrustedCIDRs(cfg.TrustedProxyCIDRs),
 		media:          media,
 		google:         newGoogleVerifier(cfg),
+		firebase:       newFirebaseVerifier(cfg),
 	}
 }
 
 func newGoogleVerifier(cfg config.Config) *auth.GoogleVerifier {
 	v := auth.NewGoogleVerifier(cfg.GoogleClientIDs)
 	if cfg.GoogleJWKSURL != "" {
+		v.WithJWKSURL(cfg.GoogleJWKSURL)
+	}
+	return v
+}
+
+func newFirebaseVerifier(cfg config.Config) *auth.FirebaseVerifier {
+	v := auth.NewFirebaseVerifier(cfg.FirebaseProjectID)
+	if cfg.FirebaseJWKSURL != "" {
+		v.WithJWKSURL(cfg.FirebaseJWKSURL)
+	} else if cfg.GoogleJWKSURL != "" {
 		v.WithJWKSURL(cfg.GoogleJWKSURL)
 	}
 	return v
@@ -114,6 +126,7 @@ func (s *Server) Routes() http.Handler {
 			r.With(s.rateLimited).Post("/register", s.register)
 			r.With(s.rateLimited).Post("/login", s.login)
 			r.With(s.rateLimited).Post("/google", s.googleSignIn)
+			r.With(s.rateLimited).Post("/firebase", s.firebaseSignIn)
 			r.With(s.rateLimited).Post("/refresh", s.refresh)
 			r.Post("/logout", s.logout)
 			r.With(s.rateLimitedPublic).Get("/username-available", s.usernameAvailable)

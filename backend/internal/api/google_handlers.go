@@ -12,6 +12,8 @@ import (
 	"unicode"
 
 	"github.com/jackc/pgx/v5"
+
+	"findthegame/backend/internal/auth"
 )
 
 var errGoogleMismatch = errors.New("google account mismatch")
@@ -43,6 +45,10 @@ func (s *Server) googleSignIn(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "invalid_google_token", "Google sign-in failed. Try again.")
 		return
 	}
+	s.oauthGoogleIdentity(w, r, id)
+}
+
+func (s *Server) oauthGoogleIdentity(w http.ResponseWriter, r *http.Request, id *auth.GoogleIdentity) {
 	if id.Email == "" || !id.EmailVerified {
 		writeError(w, http.StatusUnprocessableEntity, "google_email_unverified", "Your Google account email isn't verified.")
 		return
@@ -50,7 +56,7 @@ func (s *Server) googleSignIn(w http.ResponseWriter, r *http.Request) {
 
 	var userID, role string
 	var suspended, created bool
-	err = s.db.Tx(r.Context(), "", func(tx pgx.Tx) error {
+	err := s.db.Tx(r.Context(), "", func(tx pgx.Tx) error {
 		// 1. Already linked.
 		err := tx.QueryRow(r.Context(),
 			`select id, role::text, suspended_at is not null from users where google_sub = $1`,

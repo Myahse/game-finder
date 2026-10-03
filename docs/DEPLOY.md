@@ -103,9 +103,44 @@ API_URL=https://game-finder-ddcm.onrender.com
 
 ---
 
-## Google Sign-In
+## Firebase Google Sign-In (recommended)
 
-"Continue with Google" appears on web and mobile once these are set. Without them it is hidden and email/password still works.
+Use this when **Google Cloud billing** blocks creating OAuth clients. Firebase **Spark (free)** can enable Google sign-in without a credit card in many regions.
+
+1. [Firebase Console](https://console.firebase.google.com/) → **Create project** (Spark plan).
+2. **Build → Authentication → Sign-in method** → enable **Google** (Firebase creates OAuth config for you).
+3. **Project settings → Your apps** → add a **Web** app → copy the `firebaseConfig` fields into root `.env`:
+
+```env
+FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_APP_ID=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_PROJECT_ID=your-project-id
+```
+
+4. **Authentication → Settings → Authorized domains** — add `localhost`, `game-finder-swart.vercel.app`, and any custom domain.
+5. **Render** — set `FIREBASE_PROJECT_ID` (or reuse `FCM_PROJECT_ID` if push uses the same project). Redeploy API.
+6. **Vercel** — set the `VITE_FIREBASE_*` vars above. Redeploy web.
+7. **Mobile** — run `.\mobile\sync-env.ps1`. For store builds, add Android/iOS apps in Firebase and drop in `google-services.json` / `GoogleService-Info.plist` (optional for dev: env-based `FirebaseOptions` already works).
+
+Web and mobile call `POST /api/auth/firebase` with the Firebase ID token. You do **not** need `GOOGLE_CLIENT_IDS` or `VITE_GOOGLE_CLIENT_ID` when Firebase is configured.
+
+---
+
+## Google Sign-In (direct OAuth)
+
+"Continue with Google" also works via Google Cloud OAuth clients (GIS on web). Without Firebase or direct Google env vars, the button is hidden and email/password still works.
+
+### If Google blocks OAuth (billing / facturation)
+
+Some accounts or regions cannot finish Google Cloud billing verification, and the console may refuse to create OAuth clients until billing is linked. **You can ship without Google Sign-In:**
+
+- Leave `GOOGLE_CLIENT_IDS`, `VITE_GOOGLE_CLIENT_ID`, and `GOOGLE_IOS_CLIENT_ID` **unset** on Render, Vercel, and in root `.env`.
+- Register and sign in with **email + password** only (web and mobile).
+- The Google button stays hidden; the API returns `google_not_configured` only if something calls `/api/auth/google` — normal users never hit that.
+
+**Later options:** a collaborator creates OAuth clients in their GCP project and shares the **client IDs** (not secrets); or add another provider (e.g. Sign in with Apple, magic link) in a future change.
 
 **1. Create OAuth clients** in [Google Cloud Console](https://console.cloud.google.com/apis/credentials) (one project). Configure the **OAuth consent screen** first: app name, support email, scopes `openid email profile`. Then create:
 
@@ -113,21 +148,21 @@ API_URL=https://game-finder-ddcm.onrender.com
 |---|---|---|
 | **Web application** | Authorized JavaScript origins: `https://game-finder-swart.vercel.app`, your custom domain, `http://localhost:5173`, `http://localhost:9099`. No redirect URIs needed. | Web, and Android/iOS as the token audience |
 | **Android** | Package `com.findthegame.find_the_game` + SHA-1 of each signing key (`keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android`, plus your release/Play key) | Android app |
-| **iOS** | Bundle ID from Xcode (`Runner` target) | iOS app |
+| **iOS** | Bundle ID `com.findthegame.findTheGame` (`Runner` target in Xcode) | iOS app |
 
-**2. Set the IDs**
+**2. Set the IDs** (from repo root):
 
-```env
-# Render (API) — accepted token audiences
-GOOGLE_CLIENT_IDS=<web-client-id>,<ios-client-id>
-# Vercel (web) and root .env (synced to mobile by sync-env.ps1)
-VITE_GOOGLE_CLIENT_ID=<web-client-id>
-GOOGLE_IOS_CLIENT_ID=<ios-client-id>
+```powershell
+.\scripts\setup-google-auth.ps1 -WebClientId '<web-client-id>.apps.googleusercontent.com' -IosClientId '<ios-client-id>.apps.googleusercontent.com'
+```
+
+That updates root `.env`, patches iOS `Info.plist` URL scheme, and runs `mobile\sync-env.ps1`. Then paste Render/Vercel values from:
+
+```powershell
+.\scripts\render-env.ps1 -VercelOrigin https://game-finder-swart.vercel.app
 ```
 
 The Android client ID is not set anywhere: Google matches it by package name and SHA-1, and the app asks for tokens issued to the **web** client ID.
-
-**3. iOS only:** add the *reversed* iOS client ID (`com.googleusercontent.apps.…`) as a URL scheme in `mobile/ios/Runner/Info.plist` under `CFBundleURLTypes`.
 
 **How accounts are matched:** the API verifies the ID token's signature against Google's keys, and checks the issuer, the audience (must be in `GOOGLE_CLIENT_IDS`) and expiry. It also requires a verified email.
 - An account already linked to that Google account signs in.

@@ -8,6 +8,7 @@ import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
 import 'api.dart';
+import 'firebase_bootstrap.dart';
 import 'models.dart';
 
 /// Local notifications (the "Are you still playing?" check, scheduled on the
@@ -65,8 +66,7 @@ class Notifications {
     }
 
     try {
-      await Firebase.initializeApp();
-      _firebaseReady = true;
+      if (await ensureFirebaseApp()) _firebaseReady = true;
       FirebaseMessaging.onMessage.listen((m) {
         final n = m.notification;
         if (n != null) show(n.title ?? 'Find the Game', n.body ?? '', payload: m.data['game_id'] ?? m.data['court_id']);

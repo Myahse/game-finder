@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import 'api.dart';
+import 'env.dart';
 import 'google_auth.dart';
 import 'models.dart';
 
@@ -39,7 +40,8 @@ class AuthState extends ChangeNotifier {
   Future<bool?> googleSignIn() async {
     final idToken = await GoogleAuth.idToken();
     if (idToken == null) return null;
-    final s = Session.fromJson(await api.post('/api/auth/google', {'id_token': idToken}));
+    final path = firebaseConfigured ? '/api/auth/firebase' : '/api/auth/google';
+    final s = Session.fromJson(await api.post(path, {'id_token': idToken}));
     await api.setSession(s);
     return s.user['onboarded'] != true;
   }

@@ -37,6 +37,10 @@ type Config struct {
 	// iOS). Empty disables /api/auth/google.
 	GoogleClientIDs []string
 	GoogleJWKSURL   string // override Google's key set URL (tests only)
+	// Firebase Auth (Google via Firebase). Project ID verifies ID tokens on
+	// /api/auth/firebase. Falls back to FCM_PROJECT_ID when empty.
+	FirebaseProjectID string
+	FirebaseJWKSURL   string // tests only
 }
 
 func (c Config) R2Enabled() bool {
@@ -69,6 +73,7 @@ func Load() (Config, error) {
 		R2BucketName:          env("R2_BUCKET_NAME", ""),
 		R2PublicURL:           strings.TrimRight(env("R2_PUBLIC_URL", ""), "/"),
 		GoogleClientIDs:       rawList("GOOGLE_CLIENT_IDS"),
+		FirebaseProjectID:     strings.TrimSpace(env("FIREBASE_PROJECT_ID", env("FCM_PROJECT_ID", ""))),
 	}
 	// PaaS (Render, Railway, …) inject PORT; prefer it over Dockerfile ADDR=:8080.
 	if port := strings.TrimSpace(os.Getenv("PORT")); port != "" {

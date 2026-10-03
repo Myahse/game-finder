@@ -44,6 +44,8 @@ Write-Host "`n=== Paste into Render → game-finder-api → Environment ===`n" -
   @{ Key = 'R2_SECRET_ACCESS_KEY'; Value = Get-DotEnvValue 'R2_SECRET_ACCESS_KEY' }
   @{ Key = 'R2_BUCKET_NAME'; Value = Get-DotEnvValue 'R2_BUCKET_NAME' }
   @{ Key = 'R2_PUBLIC_URL'; Value = Get-DotEnvValue 'R2_PUBLIC_URL' }
+  @{ Key = 'GOOGLE_CLIENT_IDS'; Value = Get-DotEnvValue 'GOOGLE_CLIENT_IDS' }
+  @{ Key = 'FIREBASE_PROJECT_ID'; Value = $(if (Get-DotEnvValue 'FIREBASE_PROJECT_ID') { Get-DotEnvValue 'FIREBASE_PROJECT_ID' } else { Get-DotEnvValue 'FCM_PROJECT_ID' }) }
 ) | ForEach-Object {
   if ($_.Value) {
     Write-Host "$($_.Key)=$($_.Value)"
@@ -65,4 +67,22 @@ if ($mapbox -match '^sk\.') {
 } else {
   Write-Host "# VITE_MAPBOX_ACCESS_TOKEN= (set pk.* from mapbox.com in Vercel)" -ForegroundColor DarkYellow
 }
+$googleWeb = Get-DotEnvValue 'VITE_GOOGLE_CLIENT_ID'
+$googleIos = Get-DotEnvValue 'GOOGLE_IOS_CLIENT_ID'
+if ($googleWeb) {
+  Write-Host "VITE_GOOGLE_CLIENT_ID=$googleWeb"
+  if (-not (Get-DotEnvValue 'GOOGLE_CLIENT_IDS')) {
+    $hint = if ($googleIos) { "$googleWeb,$googleIos" } else { $googleWeb }
+    Write-Host "# GOOGLE_CLIENT_IDS on Render (if unset in .env): $hint" -ForegroundColor DarkYellow
+  }
+}
+if ($googleIos) { Write-Host "GOOGLE_IOS_CLIENT_ID=$googleIos" }
+$fbProject = Get-DotEnvValue 'VITE_FIREBASE_PROJECT_ID'
+if (-not $fbProject) { $fbProject = Get-DotEnvValue 'FIREBASE_PROJECT_ID' }
+if (-not $fbProject) { $fbProject = Get-DotEnvValue 'FCM_PROJECT_ID' }
+foreach ($k in @('VITE_FIREBASE_API_KEY', 'VITE_FIREBASE_APP_ID', 'VITE_FIREBASE_MESSAGING_SENDER_ID', 'VITE_FIREBASE_PROJECT_ID', 'VITE_FIREBASE_AUTH_DOMAIN')) {
+  $v = Get-DotEnvValue $k
+  if ($v) { Write-Host "$k=$v" }
+}
+if ($fbProject) { Write-Host "# Render FIREBASE_PROJECT_ID=$fbProject" -ForegroundColor DarkGray }
 Write-Host "`nRedeploy Vercel after changing VITE_* vars. Run mobile\sync-env.ps1 for the app.`n"

@@ -14,8 +14,8 @@ interface AuthState {
     password: string
     avatar_url?: string
   }) => Promise<void>
-  /** Exchange a Google ID token for a session; returns true for a new account. */
-  googleSignIn: (idToken: string) => Promise<boolean>
+  /** Exchange a Google / Firebase ID token for a session; returns true for a new account. */
+  googleSignIn: (idToken: string, viaFirebase?: boolean) => Promise<boolean>
   logout: () => Promise<void>
   updateUser: (u: Me) => void
 }
@@ -52,8 +52,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(await api<Session>('/api/auth/register', { method: 'POST', json: input }))
   }, [])
 
-  const googleSignIn = useCallback(async (idToken: string) => {
-    const s = await api<Session>('/api/auth/google', { method: 'POST', json: { id_token: idToken } })
+  const googleSignIn = useCallback(async (idToken: string, viaFirebase = false) => {
+    const path = viaFirebase ? '/api/auth/firebase' : '/api/auth/google'
+    const s = await api<Session>(path, { method: 'POST', json: { id_token: idToken } })
     setSession(s)
     return !s.user.onboarded
   }, [])

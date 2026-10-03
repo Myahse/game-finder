@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'core/api.dart';
 import 'core/api_bootstrap.dart';
 import 'core/env.dart';
+import 'core/firebase_bootstrap.dart';
 import 'core/mapbox_init.dart';
 import 'core/monitoring.dart';
 import 'core/auth.dart';
@@ -21,6 +22,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   initMonitoring();
   await loadAppEnv();
+  await ensureFirebaseApp();
   initMapboxAccessToken();
   if (kDebugMode) {
     debugPrint('Find the Game API_URL=$apiUrl mapbox=${mapboxAccessToken.isNotEmpty}');

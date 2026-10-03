@@ -8,7 +8,12 @@ if (-not (Test-Path $assets)) {
   New-Item -ItemType Directory -Path $assets | Out-Null
 }
 
-$wanted = @('API_URL', 'VITE_API_URL', 'PUBLIC_BASE_URL', 'MAPBOX_ACCESS_TOKEN', 'VITE_MAPBOX_ACCESS_TOKEN', 'R2_PUBLIC_URL', 'VITE_GOOGLE_CLIENT_ID', 'GOOGLE_SERVER_CLIENT_ID', 'GOOGLE_IOS_CLIENT_ID')
+$wanted = @(
+  'API_URL', 'VITE_API_URL', 'PUBLIC_BASE_URL', 'MAPBOX_ACCESS_TOKEN', 'VITE_MAPBOX_ACCESS_TOKEN', 'R2_PUBLIC_URL',
+  'VITE_GOOGLE_CLIENT_ID', 'GOOGLE_SERVER_CLIENT_ID', 'GOOGLE_IOS_CLIENT_ID',
+  'VITE_FIREBASE_API_KEY', 'VITE_FIREBASE_APP_ID', 'VITE_FIREBASE_MESSAGING_SENDER_ID', 'VITE_FIREBASE_PROJECT_ID', 'VITE_FIREBASE_AUTH_DOMAIN',
+  'FIREBASE_API_KEY', 'FIREBASE_APP_ID', 'FIREBASE_MESSAGING_SENDER_ID', 'FIREBASE_PROJECT_ID', 'FIREBASE_AUTH_DOMAIN', 'FCM_PROJECT_ID'
+)
 $found = @{}
 
 if (Test-Path $rootEnv) {
@@ -30,6 +35,9 @@ $mapbox = $found['MAPBOX_ACCESS_TOKEN']
 if (-not $mapbox) { $mapbox = $found['VITE_MAPBOX_ACCESS_TOKEN'] }
 if ($mapbox -and -not $found['MAPBOX_ACCESS_TOKEN']) { $found['MAPBOX_ACCESS_TOKEN'] = $mapbox }
 if ($mapbox -and -not $found['VITE_MAPBOX_ACCESS_TOKEN']) { $found['VITE_MAPBOX_ACCESS_TOKEN'] = $mapbox }
+
+$googleWeb = $found['VITE_GOOGLE_CLIENT_ID']
+if ($googleWeb -and -not $found['GOOGLE_SERVER_CLIENT_ID']) { $found['GOOGLE_SERVER_CLIENT_ID'] = $googleWeb }
 
 if (( -not $found['API_URL']) -and (Test-Path $out)) {
   foreach ($line in [System.IO.File]::ReadAllLines($out)) {

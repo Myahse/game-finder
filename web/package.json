@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.104.0",
+    "firebase": "^11.10.0",
     "lucide-react": "^1.49.0",
     "mapbox-gl": "^3.19.0",
     "react": "^19.2.8",
