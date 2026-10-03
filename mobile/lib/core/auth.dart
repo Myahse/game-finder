@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import 'api.dart';
 import 'env.dart';
+import 'apple_auth.dart';
 import 'google_auth.dart';
 import 'models.dart';
 
@@ -37,6 +38,14 @@ class AuthState extends ChangeNotifier {
 
   /// Signs in with Google. Returns null if the user closed the Google sheet,
   /// otherwise whether a new account was created (onboarding follows).
+  Future<bool?> appleSignIn() async {
+    final idToken = await AppleAuth.idToken();
+    if (idToken == null) return null;
+    final s = Session.fromJson(await api.post('/api/auth/firebase', {'id_token': idToken}));
+    await api.setSession(s);
+    return s.user['onboarded'] != true;
+  }
+
   Future<bool?> googleSignIn() async {
     final idToken = await GoogleAuth.idToken();
     if (idToken == null) return null;
@@ -71,7 +80,8 @@ class AuthState extends ChangeNotifier {
       } catch (_) {}
     }
     await api.setSession(null);
-    await GoogleAuth.signOut(); // show the account picker next time
+    await GoogleAuth.signOut();
+    await AppleAuth.signOut();
   }
 
   @override

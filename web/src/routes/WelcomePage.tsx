@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { GoogleSignInButton, OrDivider } from '../components/GoogleSignInButton'
+import { OrDivider } from '../components/GoogleSignInButton'
+import { SocialSignInButtons } from '../components/SocialSignInButtons'
 import { LoginBottomSheet } from '../components/LoginBottomSheet'
 import { SportPhotoBackdrop } from '../components/SportPhotoBackdrop'
 import { PlatformIntroModal } from '../components/PlatformIntroModal'
@@ -58,7 +59,7 @@ export function WelcomePage() {
           </p>
 
           <div className="mt-10 grid gap-3">
-            <GoogleSignInButton />
+            <SocialSignInButtons />
             <OrDivider className="my-1 text-ink-2" />
             <Link
               to="/register"

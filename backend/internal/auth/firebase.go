@@ -79,13 +79,41 @@ func (v *FirebaseVerifier) Verify(ctx context.Context, idToken string) (*GoogleI
 	if !slices.Contains(c.Audience, v.projectID) {
 		return nil, fmt.Errorf("%w: audience not allowed", ErrFirebaseToken)
 	}
+
+	provider := strings.TrimSpace(c.Firebase.SignInProvider)
+	switch provider {
+	case "google.com":
+		provider = "google"
+	case "apple.com":
+		provider = "apple"
+	case "":
+		if len(c.Firebase.Identities["google.com"]) > 0 {
+			provider = "google"
+		} else if len(c.Firebase.Identities["apple.com"]) > 0 {
+			provider = "apple"
+		}
+	default:
+		return nil, fmt.Errorf("%w: sign-in provider %q not supported", ErrFirebaseToken, c.Firebase.SignInProvider)
+	}
+	if provider == "" {
+		return nil, fmt.Errorf("%w: unknown sign-in provider", ErrFirebaseToken)
+	}
+
 	sub := strings.TrimSpace(c.Subject)
+	if provider == "google" {
+		if ids := c.Firebase.Identities["google.com"]; len(ids) > 0 && strings.TrimSpace(ids[0]) != "" {
+			sub = strings.TrimSpace(ids[0])
+		}
+	}
+	if provider == "apple" {
+		if ids := c.Firebase.Identities["apple.com"]; len(ids) > 0 && strings.TrimSpace(ids[0]) != "" {
+			sub = strings.TrimSpace(ids[0])
+		}
+	}
 	if sub == "" {
 		return nil, fmt.Errorf("%w: missing subject", ErrFirebaseToken)
 	}
-	if ids := c.Firebase.Identities["google.com"]; len(ids) > 0 && strings.TrimSpace(ids[0]) != "" {
-		sub = strings.TrimSpace(ids[0])
-	}
+
 	given, family := "", ""
 	if parts := strings.Fields(strings.TrimSpace(c.Name)); len(parts) > 0 {
 		given = parts[0]
@@ -93,7 +121,8 @@ func (v *FirebaseVerifier) Verify(ctx context.Context, idToken string) (*GoogleI
 			family = strings.Join(parts[1:], " ")
 		}
 	}
-	id := &GoogleIdentity{
+	return &GoogleIdentity{
+		Provider:      provider,
 		Subject:       sub,
 		Email:         strings.ToLower(strings.TrimSpace(c.Email)),
 		EmailVerified: c.EmailVerified,
@@ -101,9 +130,5 @@ func (v *FirebaseVerifier) Verify(ctx context.Context, idToken string) (*GoogleI
 		FamilyName:    family,
 		Name:          strings.TrimSpace(c.Name),
 		Picture:       strings.TrimSpace(c.Picture),
-	}
-	if c.Firebase.SignInProvider != "" && c.Firebase.SignInProvider != "google.com" && len(c.Firebase.Identities["google.com"]) == 0 {
-		return nil, fmt.Errorf("%w: sign-in provider %q not supported", ErrFirebaseToken, c.Firebase.SignInProvider)
-	}
-	return id, nil
+	}, nil
 }

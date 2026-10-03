@@ -2,7 +2,8 @@ import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { api, errorMessage, uploadImage } from '../lib/api'
 import { useAuth } from '../lib/auth'
-import { GoogleSignInButton, OrDivider } from '../components/GoogleSignInButton'
+import { OrDivider } from '../components/GoogleSignInButton'
+import { SocialSignInButtons } from '../components/SocialSignInButtons'
 import { Avatar, Button, ErrorText, Field, Input, PageHeader, PasswordInput } from '../components/ui'
 
 export function LoginPage() {
@@ -49,7 +50,7 @@ export function RegisterPage() {
     <div className="min-h-full">
       <PageHeader title="Create account" back="/" />
       <form onSubmit={submit} className="mx-auto grid max-w-md gap-4 p-5">
-        <GoogleSignInButton />
+        <SocialSignInButtons />
         <OrDivider className="text-ink-2" />
         <label className="flex cursor-pointer items-center gap-4">
           <Avatar

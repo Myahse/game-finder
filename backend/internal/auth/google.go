@@ -15,9 +15,10 @@ const googleJWKSURL = "https://www.googleapis.com/oauth2/v3/certs"
 
 var googleIssuers = []string{"accounts.google.com", "https://accounts.google.com"}
 
-// GoogleIdentity is what we trust from a verified Google ID token.
+// GoogleIdentity is what we trust from a verified Google or Apple (Firebase) ID token.
 type GoogleIdentity struct {
-	Subject       string `json:"-"` // from the standard "sub" claim
+	Provider      string `json:"-"` // "google" or "apple"
+	Subject       string `json:"-"` // provider-stable account id
 	Email         string `json:"email"`
 	EmailVerified bool   `json:"email_verified"`
 	GivenName     string `json:"given_name"`
@@ -85,6 +86,7 @@ func (v *GoogleVerifier) Verify(ctx context.Context, idToken string) (*GoogleIde
 		return nil, fmt.Errorf("%w: missing subject", ErrGoogleToken)
 	}
 	id := c.GoogleIdentity
+	id.Provider = "google"
 	id.Email = strings.ToLower(strings.TrimSpace(id.Email))
 	return &id, nil
 }

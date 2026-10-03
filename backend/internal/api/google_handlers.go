@@ -16,8 +16,6 @@ import (
 	"findthegame/backend/internal/auth"
 )
 
-var errGoogleMismatch = errors.New("google account mismatch")
-
 // googleSignIn exchanges a Google ID token (from Google Identity Services on
 // the web or google_sign_in on mobile) for a Find the Game session.
 //
@@ -46,11 +44,21 @@ func (s *Server) googleSignIn(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "invalid_google_token", "Google sign-in failed. Try again.")
 		return
 	}
-	s.oauthGoogleIdentity(w, r, id, in.FriendInviteToken)
+	s.oauthFederatedIdentity(w, r, id, in.FriendInviteToken)
 }
 
-func (s *Server) oauthGoogleIdentity(w http.ResponseWriter, r *http.Request, id *auth.GoogleIdentity, friendInviteToken string) {
-	if id.Email == "" || !id.EmailVerified {
+var errOAuthMismatch = errors.New("oauth account mismatch")
+
+func (s *Server) oauthFederatedIdentity(w http.ResponseWriter, r *http.Request, id *auth.GoogleIdentity, friendInviteToken string) {
+	if id.Provider == "" {
+		id.Provider = "google"
+	}
+	if id.Email == "" {
+		writeError(w, http.StatusUnprocessableEntity, "oauth_email_required",
+			"We need an email from your sign-in provider. Try again and allow email sharing.")
+		return
+	}
+	if id.Provider == "google" && !id.EmailVerified {
 		writeError(w, http.StatusUnprocessableEntity, "google_email_unverified", "Your Google account email isn't verified.")
 		return
 	}
@@ -58,25 +66,41 @@ func (s *Server) oauthGoogleIdentity(w http.ResponseWriter, r *http.Request, id 
 	var userID, role string
 	var suspended, created bool
 	err := s.db.Tx(r.Context(), "", func(tx pgx.Tx) error {
-		// 1. Already linked.
-		err := tx.QueryRow(r.Context(),
-			`select id, role::text, suspended_at is not null from users where google_sub = $1`,
-			id.Subject).Scan(&userID, &role, &suspended)
-		if err == nil || !errors.Is(err, pgx.ErrNoRows) {
-			return err
+		// 1. Already linked to this provider.
+		var linkErr error
+		switch id.Provider {
+		case "google":
+			linkErr = tx.QueryRow(r.Context(),
+				`select id, role::text, suspended_at is not null from users where google_sub = $1`,
+				id.Subject).Scan(&userID, &role, &suspended)
+		case "apple":
+			linkErr = tx.QueryRow(r.Context(),
+				`select id, role::text, suspended_at is not null from users where apple_sub = $1`,
+				id.Subject).Scan(&userID, &role, &suspended)
+		default:
+			return errors.New("unsupported oauth provider")
+		}
+		if linkErr == nil || !errors.Is(linkErr, pgx.ErrNoRows) {
+			return linkErr
 		}
 
-		// 2. Same verified email: link it. Google has verified the address, so
-		//    this is the same person who registered with a password.
-		var existingSub *string
-		err = tx.QueryRow(r.Context(),
-			`select id, role::text, suspended_at is not null, google_sub from users where email = $1 for update`,
-			id.Email).Scan(&userID, &role, &suspended, &existingSub)
+		// 2. Same email: link provider id.
+		var googleSub, appleSub *string
+		err := tx.QueryRow(r.Context(),
+			`select id, role::text, suspended_at is not null, google_sub, apple_sub from users where email = $1 for update`,
+			id.Email).Scan(&userID, &role, &suspended, &googleSub, &appleSub)
 		switch {
-		case err == nil && existingSub != nil:
-			return errGoogleMismatch // email already linked to a different Google account
+		case err == nil && id.Provider == "google" && googleSub != nil && *googleSub != id.Subject:
+			return errOAuthMismatch
+		case err == nil && id.Provider == "apple" && appleSub != nil && *appleSub != id.Subject:
+			return errOAuthMismatch
 		case err == nil:
-			_, err = tx.Exec(r.Context(), `update users set google_sub = $1 where id = $2`, id.Subject, userID)
+			switch id.Provider {
+			case "google":
+				_, err = tx.Exec(r.Context(), `update users set google_sub = $1 where id = $2`, id.Subject, userID)
+			case "apple":
+				_, err = tx.Exec(r.Context(), `update users set apple_sub = $1 where id = $2`, id.Subject, userID)
+			}
 			return err
 		case !errors.Is(err, pgx.ErrNoRows):
 			return err
@@ -90,26 +114,37 @@ func (s *Server) oauthGoogleIdentity(w http.ResponseWriter, r *http.Request, id 
 		}
 		first, last := googleNames(id.GivenName, id.FamilyName, id.Name, id.Email)
 		base := usernameBase(id.Email)
+		var gSub, aSub *string
+		if id.Provider == "google" {
+			gSub = &id.Subject
+		} else {
+			aSub = &id.Subject
+		}
 		for attempt := 0; attempt < 8; attempt++ {
 			candidate := base
 			if attempt > 0 {
 				candidate = fmt.Sprintf("%s%d", trimRunes(base, 19), randDigits(4))
 			}
 			err = tx.QueryRow(r.Context(), `
-				insert into users (email, password_hash, google_sub, first_name, last_name, username, role)
-				values ($1, null, $2, $3, $4, $5, $6)
+				insert into users (email, password_hash, google_sub, apple_sub, first_name, last_name, username, role)
+				values ($1, null, $2, $3, $4, $5, $6, $7)
 				on conflict (username) do nothing
 				returning id`,
-				id.Email, id.Subject, first, last, candidate, role).Scan(&userID)
+				id.Email, gSub, aSub, first, last, candidate, role).Scan(&userID)
 			if !errors.Is(err, pgx.ErrNoRows) {
 				return err
 			}
 		}
 		return errors.New("could not allocate a username")
 	})
-	if errors.Is(err, errGoogleMismatch) {
-		writeError(w, http.StatusConflict, "google_account_mismatch",
-			"This email is linked to a different Google account. Log in with your password.")
+	if errors.Is(err, errOAuthMismatch) {
+		code := "google_account_mismatch"
+		msg := "This email is linked to a different Google account. Log in with your password."
+		if id.Provider == "apple" {
+			code = "apple_account_mismatch"
+			msg = "This email is linked to a different Apple ID. Log in with your password."
+		}
+		writeError(w, http.StatusConflict, code, msg)
 		return
 	}
 	if err != nil {

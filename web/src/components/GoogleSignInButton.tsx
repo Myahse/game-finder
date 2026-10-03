@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { firebaseGoogleEnabled, firebaseGoogleIdToken } from '../lib/firebase'
+import { appleSignInEnabled } from './AppleSignInButton'
 import { useLocale } from '../i18n/LocaleProvider'
 import { useTheme } from '../theme/ThemeProvider'
 import { ErrorText, Spinner } from './ui'
@@ -183,7 +184,7 @@ function GoogleGIcon() {
 
 export function OrDivider({ className = '' }: { className?: string }) {
   const { t } = useLocale()
-  if (!googleSignInEnabled) return null
+  if (!googleSignInEnabled && !appleSignInEnabled) return null
   return (
     <div className={`flex items-center gap-3 text-xs font-semibold uppercase tracking-wide opacity-60 ${className}`}>
       <span className="h-px flex-1 bg-current opacity-30" />

@@ -9,7 +9,8 @@ import {
   friendInviteTokenForAuth,
   stashFriendInviteToken,
 } from '../lib/friendInvite'
-import { GoogleSignInButton, OrDivider } from '../components/GoogleSignInButton'
+import { OrDivider } from '../components/GoogleSignInButton'
+import { SocialSignInButtons } from '../components/SocialSignInButtons'
 import { Avatar, Button, ErrorText, PageHeader, Spinner } from '../components/ui'
 import type { PublicUser } from '../lib/types'
 
@@ -98,7 +99,7 @@ export function FriendInvitePage() {
               </div>
             ) : !user ? (
               <div className="grid gap-3">
-                <GoogleSignInButton showTerms onSignedIn={() => void afterAuth()} navigateAfterSignIn={null} />
+                <SocialSignInButtons showTerms onSignedIn={() => void afterAuth()} navigateAfterSignIn={null} />
                 <OrDivider className="text-ink-2" />
                 <Button type="button" onClick={() => navigate('/register', { replace: true })}>
                   Create account

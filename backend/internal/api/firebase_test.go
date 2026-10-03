@@ -22,6 +22,31 @@ import (
 
 const fakeFirebaseProject = "ftg-firebase-test"
 
+func (f *fakeGoogle) firebaseAppleToken(t *testing.T, appleSub, email string) string {
+	t.Helper()
+	claims := jwt.MapClaims{
+		"iss":            "https://securetoken.google.com/" + fakeFirebaseProject,
+		"aud":            fakeFirebaseProject,
+		"sub":            "firebase-uid-apple-1",
+		"email":          email,
+		"email_verified": true,
+		"name":           "Apple User",
+		"iat":            time.Now().Unix(),
+		"exp":            time.Now().Add(time.Hour).Unix(),
+		"firebase": map[string]any{
+			"identities":       map[string]any{"apple.com": []string{appleSub}},
+			"sign_in_provider": "apple.com",
+		},
+	}
+	tok := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	tok.Header["kid"] = "k1"
+	s, err := tok.SignedString(f.key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return s
+}
+
 func (f *fakeGoogle) firebaseToken(t *testing.T, googleSub, email string) string {
 	t.Helper()
 	claims := jwt.MapClaims{
@@ -111,5 +136,15 @@ func TestFirebaseSignIn(t *testing.T) {
 	code, body, _ := e.do("", "POST", "/api/auth/firebase", map[string]string{"id_token": "bad"})
 	if code != http.StatusUnauthorized || body["error"] != "invalid_firebase_token" {
 		t.Fatalf("bad token: %d %v", code, body)
+	}
+}
+
+func TestFirebaseAppleSignIn(t *testing.T) {
+	e := setupFirebase(t)
+	tok := e.google.firebaseAppleToken(t, "apple-user-1", "apple.player@privaterelay.appleid.com")
+	first, _ := e.must(201, "", "POST", "/api/auth/firebase", map[string]string{"id_token": tok})
+	u := first["user"].(map[string]any)
+	if u["email"] != "apple.player@privaterelay.appleid.com" {
+		t.Fatalf("created user = %v", u)
 	}
 }
