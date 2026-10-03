@@ -3,7 +3,6 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { GoogleSignInButton, OrDivider } from '../components/GoogleSignInButton'
 import { LoginBottomSheet } from '../components/LoginBottomSheet'
 import { SportPhotoBackdrop } from '../components/SportPhotoBackdrop'
-import { sportPhotos } from '../content/sportPhotos'
 import { PlatformIntroModal } from '../components/PlatformIntroModal'
 import { useLocale } from '../i18n/LocaleProvider'
 import { guestIntroSeen, markGuestIntroSeen } from '../lib/platformIntro'
@@ -82,22 +81,6 @@ export function WelcomePage() {
               {t.welcome.howTitle}
             </button>
             <LegalFooter className="mt-4 text-ink-2 [&_a]:text-brand" />
-            <details className="group text-center text-[11px] text-ink-2">
-              <summary className="cursor-pointer list-none font-medium hover:text-ink [&::-webkit-details-marker]:hidden">
-                {t.welcome.photoCredits}
-              </summary>
-              <ul className="mt-2 grid gap-0.5">
-                {sportPhotos.map((p) => (
-                  <li key={p.slug}>
-                    {p.name}:{' '}
-                    <a href={p.credit.href} target="_blank" rel="noreferrer" className="underline hover:text-ink">
-                      {p.credit.author}
-                    </a>{' '}
-                    · {p.credit.license}
-                  </li>
-                ))}
-              </ul>
-            </details>
           </div>
         </div>
       </div>
