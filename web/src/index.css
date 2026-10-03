@@ -289,7 +289,34 @@ body {
     color 0.45s ease;
 }
 
+/* Welcome photos: slow drift that never snaps back between crossfades. */
+@keyframes ftg-kenburns {
+  from {
+    transform: scale(1.02) translate3d(0, 0, 0);
+  }
+  to {
+    transform: scale(1.1) translate3d(-1.5%, -1%, 0);
+  }
+}
+.ftg-kenburns {
+  animation: ftg-kenburns 14s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+@keyframes ftg-label-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+.ftg-label-in {
+  animation: ftg-label-in 0.6s ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .ftg-kenburns,
+  .ftg-label-in {
+    animation: none;
+  }
   .sport-tint {
     transition: none;
   }

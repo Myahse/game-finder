@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { GoogleSignInButton, OrDivider } from '../components/GoogleSignInButton'
 import { LoginBottomSheet } from '../components/LoginBottomSheet'
+import { SportPhotoBackdrop } from '../components/SportPhotoBackdrop'
 import { PlatformIntroModal } from '../components/PlatformIntroModal'
 import { useLocale } from '../i18n/LocaleProvider'
 import { guestIntroSeen, markGuestIntroSeen } from '../lib/platformIntro'
 import { LegalFooter } from './LegalPage'
 
-/** Landing at `/` — follows system light/dark via app theme tokens. */
+/** Landing at `/` — sport photos up top; light/dark still follows the device via theme tokens. */
 export function WelcomePage() {
   const { t } = useLocale()
   const [params, setParams] = useSearchParams()
@@ -42,21 +43,9 @@ export function WelcomePage() {
   return (
     <>
       <div className="relative flex min-h-full flex-col overflow-hidden bg-bg text-ink">
-        <svg
-          className="pointer-events-none absolute -right-32 -top-24 h-[640px] w-[640px] text-brand/25"
-          viewBox="0 0 400 400"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="3"
-          aria-hidden
-        >
-          <circle cx="200" cy="200" r="190" />
-          <circle cx="200" cy="200" r="60" />
-          <path d="M10 200h380M200 10v380" />
-          <path d="M60 60c60 60 60 220 0 280M340 60c-60 60-60 220 0 280" />
-        </svg>
+        <SportPhotoBackdrop />
 
-        <div className="relative mx-auto flex w-full max-w-md flex-1 flex-col justify-end px-6 pb-10 pt-24">
+        <div className="relative mx-auto flex w-full max-w-md flex-1 flex-col justify-end px-6 pb-10 pt-[42vh]">
           <div className="mb-6 flex items-center gap-2 text-sm font-semibold text-ink-2">
             <span className="relative inline-flex size-2.5 text-live">
               <span className="pulse relative size-2.5 rounded-full bg-current" />
