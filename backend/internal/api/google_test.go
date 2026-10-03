@@ -92,14 +92,13 @@ func TestGoogleSignIn(t *testing.T) {
 	// A Google-only account can't be logged into with an empty password.
 	e.must(401, "", "POST", "/api/auth/login", map[string]string{"login": "awa.kone", "password": "anything123"})
 
-	// Existing password account with the same email gets linked, not duplicated.
-	pw := e.register("moussa")
-	linked, _ := e.must(200, "", "POST", "/api/auth/google",
+	// Password accounts are not auto-linked from Google (prevents email preemption).
+	_ = e.register("moussa")
+	linkCode, linkBody, _ := e.do("", "POST", "/api/auth/google",
 		map[string]string{"id_token": e.google.token(t, "google-456", "moussa@example.com", nil)})
-	if linked["user"].(map[string]any)["id"] != pw.ID {
-		t.Fatal("password account was not linked")
+	if linkCode != 409 || linkBody["error"] != "email_password_account" {
+		t.Fatalf("expected email_password_account, got %d %v", linkCode, linkBody)
 	}
-	// ...and its password still works.
 	e.must(200, "", "POST", "/api/auth/login", map[string]string{"login": "moussa", "password": "password123"})
 
 	// That email is now tied to google-456; another Google account can't take it.

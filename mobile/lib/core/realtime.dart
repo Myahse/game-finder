@@ -39,15 +39,10 @@ class Realtime extends ChangeNotifier {
     if (_stopped) return;
     final base = apiUrl.replaceFirst(RegExp(r'^http'), 'ws');
     String qs = '';
-    try {
-      final t = await api.post('/api/me/ws-ticket', {});
-      final ticket = t['ticket'] as String?;
-      if (ticket != null && ticket.isNotEmpty) {
-        qs = '?ticket=${Uri.encodeQueryComponent(ticket)}';
-      }
-    } catch (_) {
-      final token = await api.accessToken();
-      if (token != null) qs = '?token=${Uri.encodeQueryComponent(token)}';
+    final t = await api.post('/api/me/ws-ticket', {});
+    final ticket = t['ticket'] as String?;
+    if (ticket != null && ticket.isNotEmpty) {
+      qs = '?ticket=${Uri.encodeQueryComponent(ticket)}';
     }
     final uri = Uri.parse('$base/api/ws$qs');
     try {

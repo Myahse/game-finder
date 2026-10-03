@@ -37,6 +37,11 @@ func (r rawJSON) MarshalJSON() ([]byte, error) {
 }
 
 func (s *Server) register(w http.ResponseWriter, r *http.Request) {
+	if !s.cfg.PasswordRegistration {
+		writeError(w, http.StatusForbidden, "password_registration_disabled",
+			"Email sign-up is disabled. Use Google sign-in instead.")
+		return
+	}
 	var in struct {
 		FirstName         string `json:"first_name"`
 		LastName          string `json:"last_name"`
@@ -84,8 +89,8 @@ func (s *Server) register(w http.ResponseWriter, r *http.Request) {
 	var userID string
 	err = s.db.Tx(r.Context(), "", func(tx pgx.Tx) error {
 		return tx.QueryRow(r.Context(), `
-			insert into users (email, password_hash, first_name, last_name, username, avatar_url, role)
-			values ($1, $2, $3, $4, $5, nullif($6, ''), $7)
+			insert into users (email, password_hash, first_name, last_name, username, avatar_url, role, email_verified_at)
+			values ($1, $2, $3, $4, $5, nullif($6, ''), $7, now())
 			returning id`,
 			in.Email, hash, in.FirstName, in.LastName, in.Username, in.AvatarURL, role).Scan(&userID)
 	})
@@ -115,15 +120,20 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var id, hash, role string
-	var suspended bool
+	var suspended, emailVerified bool
 	err := s.db.Pool.QueryRow(r.Context(), `
-		select id, coalesce(password_hash, ''), role::text, suspended_at is not null
+		select id, coalesce(password_hash, ''), role::text, suspended_at is not null,
+		       email_verified_at is not null
 		from users
 		where email = lower($1) or username = $1::citext`,
-		ident).Scan(&id, &hash, &role, &suspended)
+		ident).Scan(&id, &hash, &role, &suspended, &emailVerified)
 	if err != nil {
 		auth.BurnPasswordCheck(in.Password)
 		writeError(w, http.StatusUnauthorized, "invalid_credentials", "Wrong username, email, or password.")
+		return
+	}
+	if hash != "" && !emailVerified {
+		writeError(w, http.StatusForbidden, "email_not_verified", "Verify your email before signing in.")
 		return
 	}
 	if !auth.CheckPassword(hash, in.Password) {

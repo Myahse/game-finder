@@ -47,8 +47,8 @@ func New(cfg config.Config, d *db.DB, hub *realtime.Hub, media *storage.Media) *
 		db:             d,
 		tokens:         auth.NewIssuer(cfg.JWTSecret, cfg.AccessTokenTTL),
 		hub:            hub,
-		limit:           newRateLimiter(20, time.Minute),
-		browseLimit:     newRateLimiter(120, time.Minute),
+		limit:           newRateLimiter(12, time.Minute),
+		browseLimit:     newRateLimiter(90, time.Minute),
 		userCourtLimit:  newRateLimiter(10, time.Hour),
 		userGameLimit:   newRateLimiter(40, time.Hour),
 		userNotifyLimit: newRateLimiter(6, time.Hour),
@@ -99,7 +99,7 @@ func (s *Server) Routes() http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID, middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
-		AllowOriginFunc:  func(_ *http.Request, origin string) bool { return corsAllowed(s.cfg.CORSOrigins, origin) },
+		AllowOriginFunc:  func(_ *http.Request, origin string) bool { return s.corsAllowed(s.cfg.CORSOrigins, origin) },
 		AllowedMethods:   []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Authorization", "Content-Type"},
 		AllowCredentials: false,
@@ -239,12 +239,6 @@ func (s *Server) authenticate(next http.Handler) http.Handler {
 					return
 				}
 			}
-			// Legacy clients may still pass ?token= (prefer /api/me/ws-ticket).
-			if tok := strings.TrimSpace(r.URL.Query().Get("token")); tok != "" {
-				if claims, err := s.tokens.Verify(tok); err == nil {
-					r = r.WithContext(context.WithValue(r.Context(), userKey, principal{ID: claims.Subject, Role: claims.Role}))
-				}
-			}
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -282,7 +276,11 @@ func (s *Server) requireActiveUser(next http.Handler) http.Handler {
 			return
 		}
 		var suspended bool
-		err := s.db.Pool.QueryRow(r.Context(), "select suspended_at is not null from users where id = $1", p.ID).Scan(&suspended)
+		var active bool
+		err := s.db.Pool.QueryRow(r.Context(), `
+			select suspended_at is not null,
+			       (email_verified_at is not null or password_hash is null) as active_ok
+			from users where id = $1`, p.ID).Scan(&suspended, &active)
 		switch {
 		case db.IsNoRows(err):
 			writeError(w, http.StatusUnauthorized, "not_authenticated", "Please sign in.")
@@ -292,6 +290,9 @@ func (s *Server) requireActiveUser(next http.Handler) http.Handler {
 			return
 		case suspended:
 			writeError(w, http.StatusForbidden, "suspended", "This account is suspended.")
+			return
+		case !active:
+			writeError(w, http.StatusForbidden, "email_not_verified", "Verify your email before using the app.")
 			return
 		}
 		next.ServeHTTP(w, r)
@@ -315,7 +316,7 @@ func (s *Server) requireAdmin(next http.Handler) http.Handler {
 
 func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-		OriginPatterns: originPatterns(s.cfg.CORSOrigins),
+		OriginPatterns: s.originPatterns(s.cfg.CORSOrigins),
 	})
 	if err != nil {
 		return
@@ -323,9 +324,13 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 	s.hub.Serve(r.Context(), conn, uid(r))
 }
 
-func originPatterns(origins []string) []string {
-	out := []string{"*.vercel.app"}
-	seen := map[string]bool{"*.vercel.app": true}
+func (s *Server) originPatterns(origins []string) []string {
+	var out []string
+	seen := map[string]bool{}
+	if s.cfg.AllowVercelPreviews {
+		out = append(out, "*.vercel.app")
+		seen["*.vercel.app"] = true
+	}
 	for _, o := range origins {
 		o = strings.TrimPrefix(strings.TrimPrefix(o, "https://"), "http://")
 		if o != "" && !seen[o] {
@@ -336,8 +341,8 @@ func originPatterns(origins []string) []string {
 	return out
 }
 
-// corsAllowed matches configured origins and any https://*.vercel.app preview deployment.
-func corsAllowed(allowed []string, origin string) bool {
+// corsAllowed matches configured origins and optionally https://*.vercel.app previews.
+func (s *Server) corsAllowed(allowed []string, origin string) bool {
 	origin = strings.TrimSpace(origin)
 	if origin == "" {
 		return false
@@ -349,6 +354,9 @@ func corsAllowed(allowed []string, origin string) bool {
 	}
 	u, err := url.Parse(origin)
 	if err != nil || u.Scheme != "https" {
+		return false
+	}
+	if !s.cfg.AllowVercelPreviews {
 		return false
 	}
 	host := strings.ToLower(u.Hostname())

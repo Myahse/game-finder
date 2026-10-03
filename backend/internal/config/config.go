@@ -17,6 +17,10 @@ type Config struct {
 	RefreshTokenTTL time.Duration
 	CORSOrigins     []string
 	AdminEmails     []string // accounts registered with these emails become admins
+	// When false, POST /api/auth/register is disabled (use Google/Firebase sign-in).
+	PasswordRegistration bool
+	// When false, only CORS_ORIGINS are allowed (no wildcard *.vercel.app).
+	AllowVercelPreviews bool
 	UploadDir       string
 	PublicBaseURL   string // used to build absolute upload URLs
 	MaxUploadBytes  int64
@@ -59,6 +63,8 @@ func Load() (Config, error) {
 			"http://localhost:5173,http://localhost:9099,https://game-finder-swart.vercel.app",
 		),
 		AdminEmails:           list("ADMIN_EMAILS", ""),
+		PasswordRegistration:  env("PASSWORD_REGISTRATION", "true") == "true",
+		AllowVercelPreviews:   env("ALLOW_VERCEL_PREVIEWS", "true") == "true",
 		UploadDir:             env("UPLOAD_DIR", "./uploads"),
 		PublicBaseURL:         strings.TrimRight(env("PUBLIC_BASE_URL", "http://localhost:8080"), "/"),
 		MaxUploadBytes:        int64(intEnv("MAX_UPLOAD_MB", 8)) << 20,

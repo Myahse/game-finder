@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useQueryClient, type QueryClient } from '@tanstack/react-query'
-import { accessToken, api, apiOrigin } from './api'
+import { api, apiOrigin } from './api'
 import { pulseLiveGames } from './liveGames'
 import { qk } from './queries'
 import type { Court, CourtDetail, Game, RealtimeEvent } from './types'
@@ -29,13 +29,8 @@ export function useRealtime(userId: string | null, onNotification: Notify) {
       if (closed) return
       let qs = ''
       if (userId) {
-        try {
-          const { ticket } = await api<{ ticket: string }>('/api/me/ws-ticket', { method: 'POST' })
-          qs = `?ticket=${encodeURIComponent(ticket)}`
-        } catch {
-          const token = await accessToken()
-          if (token) qs = `?token=${encodeURIComponent(token)}`
-        }
+        const { ticket } = await api<{ ticket: string }>('/api/me/ws-ticket', { method: 'POST' })
+        qs = `?ticket=${encodeURIComponent(ticket)}`
       }
       const url = `${apiOrigin().replace(/^http/, 'ws')}/api/ws${qs}`
       ws = new WebSocket(url)

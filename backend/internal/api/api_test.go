@@ -214,7 +214,8 @@ func TestCoreFlow(t *testing.T) {
 	}
 
 	// Realtime: Bea watches the socket.
-	ws, _, err := websocket.Dial(ctx, strings.Replace(e.srv.URL, "http", "ws", 1)+"/api/ws?token="+bea.Token, nil)
+	ticketBody, _ := e.must(200, bea.Token, "POST", "/api/me/ws-ticket", nil)
+	ws, _, err := websocket.Dial(ctx, strings.Replace(e.srv.URL, "http", "ws", 1)+"/api/ws?ticket="+ticketBody["ticket"].(string), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -427,6 +428,10 @@ func TestCourtProposalAndAdmin(t *testing.T) {
 		t.Fatalf("proposer pending preview on map = %v", c)
 	}
 	e.must(200, u.Token, "GET", "/api/courts/"+court["id"].(string), nil)
+	other := e.register("courtspy")
+	if code, body, _ := e.do(other.Token, "GET", "/api/courts/"+court["id"].(string), nil); code != 404 {
+		t.Fatalf("other user pending court leak: %d %v", code, body)
+	}
 	_, notifs := e.must(200, u.Token, "GET", "/api/me/notifications", nil)
 	var foundPendingNote bool
 	for _, n := range notifs {

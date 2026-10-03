@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -330,7 +331,19 @@ func (s *Server) upload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ct := http.DetectContentType(head[:n])
-	stored, err := s.media.Save(r.Context(), kind, uid(r), ext, ct, f)
+	safe, outCT, err := sanitizeImage(ct, io.MultiReader(bytes.NewReader(head[:n]), f))
+	if err != nil {
+		writeError(w, http.StatusUnsupportedMediaType, "unsupported_type", "Use a JPEG, PNG or WebP image.")
+		return
+	}
+	if outCT == "image/jpeg" {
+		ext = ".jpg"
+		ct = outCT
+	} else if outCT == "image/png" {
+		ext = ".png"
+		ct = outCT
+	}
+	stored, err := s.media.Save(r.Context(), kind, uid(r), ext, ct, safe)
 	if err != nil {
 		if strings.Contains(err.Error(), "writable") || strings.Contains(err.Error(), "permission") {
 			writeError(w, http.StatusInternalServerError, "upload_storage", "Upload storage is not available.")

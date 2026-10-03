@@ -48,6 +48,7 @@ func (s *Server) googleSignIn(w http.ResponseWriter, r *http.Request) {
 }
 
 var errOAuthMismatch = errors.New("oauth account mismatch")
+var errPasswordAccountOAuth = errors.New("password account blocks oauth link")
 
 func (s *Server) oauthFederatedIdentity(w http.ResponseWriter, r *http.Request, id *auth.GoogleIdentity, friendInviteToken string) {
 	if id.Provider == "" {
@@ -58,8 +59,13 @@ func (s *Server) oauthFederatedIdentity(w http.ResponseWriter, r *http.Request, 
 			"We need an email from your sign-in provider. Try again and allow email sharing.")
 		return
 	}
-	if id.Provider == "google" && !id.EmailVerified {
-		writeError(w, http.StatusUnprocessableEntity, "google_email_unverified", "Your Google account email isn't verified.")
+	if !id.EmailVerified {
+		switch id.Provider {
+		case "apple":
+			writeError(w, http.StatusUnprocessableEntity, "apple_email_unverified", "Your Apple account email isn't verified.")
+		default:
+			writeError(w, http.StatusUnprocessableEntity, "google_email_unverified", "Your sign-in email isn't verified.")
+		}
 		return
 	}
 
@@ -84,22 +90,33 @@ func (s *Server) oauthFederatedIdentity(w http.ResponseWriter, r *http.Request, 
 			return linkErr
 		}
 
-		// 2. Same email: link provider id.
+		// 2. Same email: link provider id (never hijack a password-only account).
 		var googleSub, appleSub *string
+		var hasPassword bool
 		err := tx.QueryRow(r.Context(),
-			`select id, role::text, suspended_at is not null, google_sub, apple_sub from users where email = $1 for update`,
-			id.Email).Scan(&userID, &role, &suspended, &googleSub, &appleSub)
+			`select id, role::text, suspended_at is not null, google_sub, apple_sub,
+			        (password_hash is not null and password_hash <> '') as has_password
+			 from users where email = $1 for update`,
+			id.Email).Scan(&userID, &role, &suspended, &googleSub, &appleSub, &hasPassword)
 		switch {
 		case err == nil && id.Provider == "google" && googleSub != nil && *googleSub != id.Subject:
 			return errOAuthMismatch
 		case err == nil && id.Provider == "apple" && appleSub != nil && *appleSub != id.Subject:
 			return errOAuthMismatch
+		case err == nil && hasPassword && id.Provider == "google" && googleSub == nil:
+			return errPasswordAccountOAuth
+		case err == nil && hasPassword && id.Provider == "apple" && appleSub == nil:
+			return errPasswordAccountOAuth
 		case err == nil:
 			switch id.Provider {
 			case "google":
-				_, err = tx.Exec(r.Context(), `update users set google_sub = $1 where id = $2`, id.Subject, userID)
+				_, err = tx.Exec(r.Context(),
+					`update users set google_sub = $1, email_verified_at = coalesce(email_verified_at, now()) where id = $2`,
+					id.Subject, userID)
 			case "apple":
-				_, err = tx.Exec(r.Context(), `update users set apple_sub = $1 where id = $2`, id.Subject, userID)
+				_, err = tx.Exec(r.Context(),
+					`update users set apple_sub = $1, email_verified_at = coalesce(email_verified_at, now()) where id = $2`,
+					id.Subject, userID)
 			}
 			return err
 		case !errors.Is(err, pgx.ErrNoRows):
@@ -126,8 +143,8 @@ func (s *Server) oauthFederatedIdentity(w http.ResponseWriter, r *http.Request, 
 				candidate = fmt.Sprintf("%s%d", trimRunes(base, 19), randDigits(4))
 			}
 			err = tx.QueryRow(r.Context(), `
-				insert into users (email, password_hash, google_sub, apple_sub, first_name, last_name, username, role)
-				values ($1, null, $2, $3, $4, $5, $6, $7)
+				insert into users (email, password_hash, google_sub, apple_sub, first_name, last_name, username, role, email_verified_at)
+				values ($1, null, $2, $3, $4, $5, $6, $7, now())
 				on conflict (username) do nothing
 				returning id`,
 				id.Email, gSub, aSub, first, last, candidate, role).Scan(&userID)
@@ -145,6 +162,11 @@ func (s *Server) oauthFederatedIdentity(w http.ResponseWriter, r *http.Request, 
 			msg = "This email is linked to a different Apple ID. Log in with your password."
 		}
 		writeError(w, http.StatusConflict, code, msg)
+		return
+	}
+	if errors.Is(err, errPasswordAccountOAuth) {
+		writeError(w, http.StatusConflict, "email_password_account",
+			"An account with this email already uses a password. Sign in with your password first.")
 		return
 	}
 	if err != nil {

@@ -100,7 +100,11 @@ func (s *Server) getCourt(w http.ResponseWriter, r *http.Request) {
 			)
 		)
 		from courts c
-		where c.id = $1 and (c.status in ('approved', 'pending') or c.created_by = app_uid() or is_admin())`,
+		where c.id = $1 and (
+			c.status = 'approved'
+			or c.created_by = app_uid()
+			or is_admin()
+		)`,
 		chi.URLParam(r, "id"), optFloat(r, "lat"), optFloat(r, "lng"))
 	if err != nil {
 		writeDBError(w, r, err)
