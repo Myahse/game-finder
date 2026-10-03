@@ -8,7 +8,7 @@ import type { SkillLevel } from '../lib/types'
 import { useSports, useUpdateMe, useUser } from '../lib/queries'
 import type { Me, PublicUser } from '../lib/types'
 import { Star } from 'lucide-react'
-import { SportName, Wrench } from '../components/icons'
+import { SportIcon, SportName, Wrench } from '../components/icons'
 import { Avatar, Button, Card, ErrorText, Field, Input, PageHeader, Select } from '../components/ui'
 import { Loading } from './CourtPage'
 
@@ -112,9 +112,20 @@ function EditProfile({ me, onSaved }: { me: Me; onSaved: (u: Me) => void }) {
     last_name: me.last_name,
     username: me.username,
     preferred_sport_id: me.preferred_sport_id ?? '',
+    extra_sport_ids: me.extra_sport_ids ?? [],
     skill_level: me.skill_level ?? 'all_levels',
     avatar_url: me.avatar_url ?? '',
   })
+
+  const toggleExtraSport = (id: string) => {
+    if (id === form.preferred_sport_id) return
+    setForm((f) => {
+      const has = f.extra_sport_ids.includes(id)
+      if (has) return { ...f, extra_sport_ids: f.extra_sport_ids.filter((x) => x !== id) }
+      if (f.extra_sport_ids.length >= 2) return f
+      return { ...f, extra_sport_ids: [...f.extra_sport_ids, id] }
+    })
+  }
   const [error, setError] = useState('')
   const [uploading, setUploading] = useState(false)
 
@@ -141,6 +152,7 @@ function EditProfile({ me, onSaved }: { me: Me; onSaved: (u: Me) => void }) {
           {
             ...form,
             skill_level: form.skill_level as SkillLevel,
+            extra_sport_ids: form.extra_sport_ids,
             ...(sportLocked ? {} : { preferred_sport_id: form.preferred_sport_id || undefined }),
           },
           { onSuccess: onSaved, onError: (err) => setError(errorMessage(err)) },
@@ -178,6 +190,33 @@ function EditProfile({ me, onSaved }: { me: Me; onSaved: (u: Me) => void }) {
           </Select>
         )}
       </Field>
+      {sportLocked && sports && (sports.filter((s) => s.active).length ?? 0) > 1 && (
+        <Field label={t.profile.extraSports} hint={t.profile.extraSportsHint}>
+          <div className="flex flex-wrap gap-2">
+            {sports
+              ?.filter((s) => s.active && s.id !== form.preferred_sport_id)
+              .map((s) => {
+                const on = form.extra_sport_ids.includes(s.id)
+                const disabled = !on && form.extra_sport_ids.length >= 2
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => toggleExtraSport(s.id)}
+                    aria-pressed={on}
+                    className={`inline-flex items-center gap-2 rounded-full border-2 px-3 py-1.5 text-sm font-semibold ${
+                      on ? 'border-brand bg-brand/10' : disabled ? 'border-line opacity-40' : 'border-line bg-surface'
+                    }`}
+                  >
+                    <SportIcon slug={s.slug} className="size-4 text-brand" />
+                    {s.name}
+                  </button>
+                )
+              })}
+          </div>
+        </Field>
+      )}
       <Field label={t.profile.skillLevel}>
         <Select value={form.skill_level} onChange={(e) => setForm({ ...form, skill_level: e.target.value as SkillLevel })}>
           {(Object.keys(skillLabels) as SkillLevel[]).map((k) => (

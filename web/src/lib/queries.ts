@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './api'
 import { coarse, type Coords } from './location'
 import { LIST_NEARBY_RADIUS_KM, MAP_NEARBY_RADIUS_KM } from './nearby'
@@ -32,6 +32,31 @@ export function useCourtsNearby(center: Coords, sport: string | null, radiusKm =
       ),
     placeholderData: (prev) => prev,
   })
+}
+
+/** Merge nearby courts for several sport slugs (deduped by id). */
+export function useCourtsNearbySports(center: Coords, slugs: string[], radiusKm = MAP_NEARBY_RADIUS_KM) {
+  const c = coarse(center)
+  const keys = slugs.length ? slugs : [null as string | null]
+  const results = useQueries({
+    queries: keys.map((sport) => ({
+      queryKey: [...qk.courts(c.lat, c.lng, sport), radiusKm, 'multi'],
+      queryFn: () =>
+        api<Court[]>(
+          `/api/courts/nearby?lat=${center.latitude}&lng=${center.longitude}&radius_km=${radiusKm}${sport ? `&sport=${sport}` : ''}`,
+        ),
+      placeholderData: (prev: Court[] | undefined) => prev,
+    })),
+  })
+  const merged = new Map<string, Court>()
+  for (const r of results) {
+    for (const court of r.data ?? []) merged.set(court.id, court)
+  }
+  return {
+    data: [...merged.values()],
+    isLoading: results.some((r) => r.isLoading),
+    error: results.find((r) => r.error)?.error,
+  }
 }
 
 export function useCourt(id: string | undefined, coords: Coords | null) {
@@ -124,6 +149,7 @@ export function usePresenceAction() {
 
 export function useUpdateMe() {
   return useMutation({
-    mutationFn: (patch: Partial<Me> & { onboarded?: boolean }) => api<Me>('/api/me', { method: 'PATCH', json: patch }),
+    mutationFn: (patch: Partial<Me> & { onboarded?: boolean; extra_sport_ids?: string[] }) =>
+      api<Me>('/api/me', { method: 'PATCH', json: patch }),
   })
 }

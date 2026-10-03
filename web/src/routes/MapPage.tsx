@@ -4,7 +4,7 @@ import { syncNotifyArea, type NotifyAreaState } from '../lib/notifyArea'
 import { formatDistance, timeAgo } from '../lib/format'
 import { useLocation, type Coords } from '../lib/location'
 import { MAP_NEARBY_RADIUS_KM } from '../lib/nearby'
-import { useBrowseSportSlug, useMySport } from '../lib/mySport'
+import { useBrowseSportSlug, useMySports } from '../lib/mySport'
 import { useCourt, useCourtsNearby, useGamesNearby, useSports } from '../lib/queries'
 import { useAuth } from '../lib/auth'
 import { useQueryErrorToast } from '../lib/toastErrors'
@@ -12,6 +12,8 @@ import { MapBottomSheet } from '../components/MapBottomSheet'
 import { MapGamesRail } from '../components/MapGamesRail'
 import type { Court } from '../lib/types'
 import { CourtMap } from '../components/CourtMap'
+import { MapSearchBar } from '../components/MapSearchBar'
+import type { MapRef } from 'react-map-gl/mapbox'
 import { CourtActions } from '../components/CourtActions'
 import { CourtPhotoStrip } from '../components/CourtPhotoStrip'
 import { GameCard } from '../components/GameCard'
@@ -25,7 +27,8 @@ export function MapPage() {
   const [params, setParams] = useSearchParams()
   const { user } = useAuth()
   const sport = useBrowseSportSlug()
-  const mySport = useMySport()
+  const mySports = useMySports()
+  const mapRef = useRef<MapRef>(null)
   const isAdmin = user?.role === 'admin'
   const selectedId = params.get('court')
   const { coords, status, center } = useLocation()
@@ -74,6 +77,7 @@ export function MapPage() {
   return (
     <div className="relative h-full min-h-[480px] overflow-hidden">
       <CourtMap
+        mapRef={mapRef}
         courts={courts ?? []}
         center={center}
         me={coords}
@@ -92,6 +96,13 @@ export function MapPage() {
             <LiveText>{liveCount} live</LiveText>
           </span>
         </div>
+        <MapSearchBar
+          className="mt-2"
+          mapRef={mapRef}
+          proximity={center}
+          courts={courts ?? []}
+          onSelectCourt={(c) => update('court', c.id)}
+        />
         <div className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
           {isAdmin ? (
             <>
@@ -107,11 +118,11 @@ export function MapPage() {
                 ))}
             </>
           ) : (
-            mySport && (
-              <Chip active>
-                <SportName sport={mySport} iconClassName="size-4" />
+            mySports.map((s) => (
+              <Chip key={s.id} active={sport === s.slug} onClick={() => update('sport', s.slug)}>
+                <SportName sport={s} iconClassName="size-4" />
               </Chip>
-            )
+            ))
           )}
           <Link to="/courts/new">
             <Chip>

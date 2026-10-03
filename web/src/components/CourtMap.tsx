@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import Map, { AttributionControl, Marker, type MapRef } from 'react-map-gl/mapbox'
 import Supercluster, { type ClusterProperties } from 'supercluster'
 import type { Coords } from '../lib/location'
@@ -17,13 +17,15 @@ type Props = {
   sportSlug: string | null
   selectedId: string | null
   onSelect: (court: Court) => void
+  mapRef?: RefObject<MapRef | null>
 }
 
 type PointProps = { court: Court }
 type ClusterProps = { players: number; live: number }
 
-export function CourtMap({ courts, center, me, sportSlug, selectedId, onSelect }: Props) {
-  const mapRef = useRef<MapRef>(null)
+export function CourtMap({ courts, center, me, sportSlug, selectedId, onSelect, mapRef: mapRefProp }: Props) {
+  const innerRef = useRef<MapRef>(null)
+  const mapRef = mapRefProp ?? innerRef
   const { isDark } = useTheme()
   const [view, setView] = useState({ zoom: 13, bounds: null as [number, number, number, number] | null })
   const centeredOnUser = useRef(false)
@@ -305,7 +307,7 @@ export function CourtPin({
       }}
       aria-label={label}
       className={`group relative flex flex-col items-center transition ${selected ? 'z-10 scale-110' : 'hover:scale-105'}`}
-      style={{ width: 54, height: 62 }}
+      style={{ width: 88, minHeight: 62 }}
     >
       <div className="relative flex flex-col items-center">
         <span
@@ -336,6 +338,13 @@ export function CourtPin({
           </span>
         )}
       </div>
+      <span
+        className={`pointer-events-none mt-0.5 max-w-[88px] truncate rounded-md border px-1.5 py-0.5 text-center text-[10px] font-bold leading-tight shadow-sm ${
+          selected ? 'border-brand bg-surface text-ink' : 'border-line/80 bg-surface/95 text-ink'
+        }`}
+      >
+        {court.name}
+      </span>
     </button>
   )
 }

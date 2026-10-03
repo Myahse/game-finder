@@ -40,6 +40,7 @@ export function OnboardingPage() {
   const lastStep = stepCount - 1
   const { step, setStep } = useStepFlow(0)
   const [sportId, setSportId] = useState<string | null>(user?.preferred_sport_id ?? null)
+  const [extraSportIds, setExtraSportIds] = useState<string[]>(user?.extra_sport_ids ?? [])
   const [skill, setSkill] = useState<SkillLevel | null>(() => initialPlayerSkill(user))
   const [firstName, setFirstName] = useState(user?.first_name ?? '')
   const [lastName, setLastName] = useState(user?.last_name ?? '')
@@ -74,6 +75,15 @@ export function OnboardingPage() {
     setStep(step + 1)
   }
 
+  const toggleExtraSport = (id: string) => {
+    if (id === sportId) return
+    setExtraSportIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id)
+      if (prev.length >= 2) return prev
+      return [...prev, id]
+    })
+  }
+
   const submit = (e: FormEvent) => {
     e.preventDefault()
     if (!sportId || !skill) return
@@ -83,6 +93,7 @@ export function OnboardingPage() {
         last_name: lastName.trim(),
         username: username.trim(),
         preferred_sport_id: sportId,
+        extra_sport_ids: extraSportIds,
         skill_level: skill,
         onboarded: true,
       },
@@ -170,7 +181,10 @@ export function OnboardingPage() {
                 <button
                   key={s.id}
                   type="button"
-                  onClick={() => setSportId(s.id)}
+                  onClick={() => {
+                    setSportId(s.id)
+                    setExtraSportIds((prev) => prev.filter((id) => id !== s.id))
+                  }}
                   aria-pressed={sportId === s.id}
                   className={`flex items-center gap-4 rounded-2xl border-2 p-3 text-left transition ${
                     sportId === s.id ? 'border-brand bg-brand/10' : 'border-line bg-surface'
@@ -180,6 +194,35 @@ export function OnboardingPage() {
                   <span className="display text-xl font-bold">{s.name}</span>
                 </button>
               ))}
+              {sportId && available.length > 1 && (
+                <div className="mt-1 grid gap-2">
+                  <p className="text-sm font-semibold text-ink">{t.onboarding.extraSports}</p>
+                  <p className="text-xs text-ink-2">{t.onboarding.extraSportsHint}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {available
+                      .filter((s) => s.id !== sportId)
+                      .map((s) => {
+                        const on = extraSportIds.includes(s.id)
+                        const disabled = !on && extraSportIds.length >= 2
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            disabled={disabled}
+                            onClick={() => toggleExtraSport(s.id)}
+                            aria-pressed={on}
+                            className={`inline-flex items-center gap-2 rounded-full border-2 px-3 py-1.5 text-sm font-semibold transition ${
+                              on ? 'border-brand bg-brand/10' : disabled ? 'border-line opacity-40' : 'border-line bg-surface'
+                            }`}
+                          >
+                            <SportIcon slug={s.slug} className="size-4 text-brand" />
+                            {s.name}
+                          </button>
+                        )
+                      })}
+                  </div>
+                </div>
+              )}
               {sports?.some((s) => !s.active) && (
                 <p className="text-sm text-ink-2">
                   <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">

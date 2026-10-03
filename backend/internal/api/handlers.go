@@ -722,13 +722,14 @@ func (s *Server) getMe(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) updateMe(w http.ResponseWriter, r *http.Request) {
 	var in struct {
-		FirstName        *string `json:"first_name"`
-		LastName         *string `json:"last_name"`
-		Username         *string `json:"username"`
-		AvatarURL        *string `json:"avatar_url"`
-		PreferredSportID *string `json:"preferred_sport_id"`
-		SkillLevel       *string `json:"skill_level"`
-		Onboarded        *bool   `json:"onboarded"`
+		FirstName        *string   `json:"first_name"`
+		LastName         *string   `json:"last_name"`
+		Username         *string   `json:"username"`
+		AvatarURL        *string   `json:"avatar_url"`
+		PreferredSportID *string   `json:"preferred_sport_id"`
+		ExtraSportIDs    *[]string `json:"extra_sport_ids"`
+		SkillLevel       *string   `json:"skill_level"`
+		Onboarded        *bool     `json:"onboarded"`
 	}
 	if !readJSON(w, r, &in) {
 		return
@@ -774,7 +775,70 @@ func (s *Server) updateMe(w http.ResponseWriter, r *http.Request) {
 		writeDBError(w, r, err)
 		return
 	}
+	if in.ExtraSportIDs != nil {
+		if err := s.replaceUserExtraSports(w, r, *in.ExtraSportIDs); err != nil {
+			return
+		}
+	}
 	s.getMe(w, r)
+}
+
+func dedupeSportIDs(ids []string) []string {
+	seen := map[string]bool{}
+	out := make([]string, 0, len(ids))
+	for _, id := range ids {
+		id = strings.TrimSpace(id)
+		if id == "" || seen[id] {
+			continue
+		}
+		seen[id] = true
+		out = append(out, id)
+	}
+	return out
+}
+
+// replaceUserExtraSports returns false after writing an HTTP error response.
+func (s *Server) replaceUserExtraSports(w http.ResponseWriter, r *http.Request, ids []string) error {
+	ids = dedupeSportIDs(ids)
+	if len(ids) > 2 {
+		writeError(w, http.StatusUnprocessableEntity, "too_many_sports", "You can add up to 2 extra sports.")
+		return errors.New("too_many_sports")
+	}
+	var preferred *string
+	if err := s.db.Pool.QueryRow(r.Context(), `select preferred_sport_id::text from users where id = $1`, uid(r)).Scan(&preferred); err != nil {
+		writeDBError(w, r, err)
+		return err
+	}
+	for _, id := range ids {
+		if preferred != nil && *preferred != "" && id == *preferred {
+			writeError(w, http.StatusUnprocessableEntity, "invalid_sport", "Extra sports must be different from your main sport.")
+			return errors.New("invalid_sport")
+		}
+		var active bool
+		if err := s.db.Pool.QueryRow(r.Context(), `select active from sports where id = $1::uuid`, id).Scan(&active); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				writeError(w, http.StatusUnprocessableEntity, "invalid_sport", "Unknown sport.")
+				return err
+			}
+			writeDBError(w, r, err)
+			return err
+		}
+		if !active {
+			writeError(w, http.StatusUnprocessableEntity, "invalid_sport", "That sport is not available yet.")
+			return errors.New("invalid_sport")
+		}
+	}
+	if err := s.db.Exec(r.Context(), uid(r), `delete from user_extra_sports where user_id = app_uid()`); err != nil {
+		writeDBError(w, r, err)
+		return err
+	}
+	for _, id := range ids {
+		if err := s.db.Exec(r.Context(), uid(r), `insert into user_extra_sports (user_id, sport_id) values (app_uid(), $1::uuid)`, id); err != nil {
+			writeDBError(w, r, err)
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *Server) setNotifyArea(w http.ResponseWriter, r *http.Request) {

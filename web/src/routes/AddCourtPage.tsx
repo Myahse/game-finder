@@ -1,15 +1,17 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import type { MapRef } from 'react-map-gl/mapbox'
 import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
 import { api, errorMessage, uploadImage } from '../lib/api'
 import { resolveMediaUrl } from '../lib/mediaUrl'
 import { useLocation, type Coords } from '../lib/location'
 import { useAuth } from '../lib/auth'
-import { useMySport } from '../lib/mySport'
+import { useMySports } from '../lib/mySport'
 import { LIST_NEARBY_RADIUS_KM } from '../lib/nearby'
-import { useCourtsNearby, useSports } from '../lib/queries'
+import { useCourtsNearbySports, useSports } from '../lib/queries'
 import type { Court } from '../lib/types'
 import { CourtPlacementMap } from '../components/CourtPlacementMap'
+import { MapSearchBar } from '../components/MapSearchBar'
 import { Hourglass, Plus, SportName, X } from '../components/icons'
 import { formatOpeningHours } from '../lib/openingHours'
 import { reverseGeocode } from '../lib/reverseGeocode'
@@ -20,12 +22,14 @@ export function AddCourtPage() {
   const navigate = useNavigate()
   const { coords, center } = useLocation()
   const { user } = useAuth()
-  const mySport = useMySport()
-  const sportSlug = user?.role === 'admin' ? null : mySport?.slug ?? null
-  const mapCenter = coords ?? center
-  const { data: nearbyCourts } = useCourtsNearby(mapCenter, sportSlug, LIST_NEARBY_RADIUS_KM)
-  const { data: sports } = useSports()
   const isAdmin = user?.role === 'admin'
+  const mySports = useMySports()
+  const mapRef = useRef<MapRef>(null)
+  const mapCenter = coords ?? center
+  const sportSlugs = isAdmin ? [] : mySports.map((s) => s.slug)
+  const nearbyQ = useCourtsNearbySports(mapCenter, sportSlugs, LIST_NEARBY_RADIUS_KM)
+  const nearbyCourts = nearbyQ.data
+  const { data: sports } = useSports()
   const [step, setStep] = useState(0)
   const [name, setName] = useState('')
   const [where, setWhere] = useState<Coords | null>(null)
@@ -47,8 +51,8 @@ export function AddCourtPage() {
   const toggleSport = (id: string) => setSportIds((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))
 
   useEffect(() => {
-    if (mySport && !isAdmin) setSportIds([mySport.id])
-  }, [mySport?.id, isAdmin])
+    if (!isAdmin && mySports.length) setSportIds([mySports[0].id])
+  }, [mySports.map((s) => s.id).join(','), isAdmin])
 
   useEffect(() => {
     if (step !== 0) return
@@ -159,6 +163,7 @@ export function AddCourtPage() {
 
         <div className="relative h-0 min-h-0 flex-1">
           <CourtPlacementMap
+            mapRef={mapRef}
             value={where}
             initial={mapInitial}
             onChange={onPickLocation}
@@ -166,6 +171,13 @@ export function AddCourtPage() {
             courts={nearbyCourts ?? []}
             className="absolute inset-0 size-full min-h-[12rem]"
             edgePinHint
+          />
+          <MapSearchBar
+            className="absolute inset-x-3 top-3 z-10"
+            mapRef={mapRef}
+            proximity={mapCenter}
+            courts={nearbyCourts ?? []}
+            placeholder="Search address or existing court…"
           />
         </div>
 
@@ -229,11 +241,25 @@ export function AddCourtPage() {
             Adjust on map
           </button>
         </p>
-        <Field label="Sport" hint={!isAdmin ? 'Your account sport — courts are tagged for your game type only.' : undefined}>
-          {mySport && !isAdmin ? (
-            <p className="flex items-center gap-2 rounded-xl border border-brand bg-brand/10 px-4 py-3 font-semibold">
-              <SportName sport={mySport} />
-            </p>
+        <Field
+          label="Sport"
+          hint={!isAdmin ? 'Pick which of your sports this court is for.' : undefined}
+        >
+          {!isAdmin && mySports.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {mySports.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => toggleSport(s.id)}
+                  className={`inline-flex items-center gap-2 rounded-xl border-2 px-3 py-2 text-sm font-semibold ${
+                    sportIds.includes(s.id) ? 'border-brand bg-brand/10' : 'border-line bg-surface'
+                  }`}
+                >
+                  <SportName sport={s} iconClassName="size-4" />
+                </button>
+              ))}
+            </div>
           ) : (
             <div className="flex flex-wrap gap-2">
               {sports?.map((s) => (

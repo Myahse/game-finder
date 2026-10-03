@@ -35,6 +35,8 @@ export interface Me extends PublicUser {
   email: string
   role: 'user' | 'admin'
   onboarded: boolean
+  /** Up to 2 sports in addition to preferred_sport_id. */
+  extra_sport_ids?: string[]
 }
 
 export interface Court {

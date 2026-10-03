@@ -228,6 +228,10 @@ const meSQL = `
 		'id', u.id, 'email', u.email, 'first_name', u.first_name, 'last_name', u.last_name,
 		'username', u.username, 'avatar_url', u.avatar_url,
 		'preferred_sport_id', u.preferred_sport_id, 'skill_level', u.skill_level,
+		'extra_sport_ids', coalesce((
+			select json_agg(ues.sport_id::text order by ues.created_at)
+			from user_extra_sports ues where ues.user_id = u.id
+		), '[]'::json),
 		'role', u.role, 'onboarded', u.onboarded_at is not null, 'created_at', u.created_at,
 		'stats', (select row_to_json(ps) from profile_stats(u.id) ps)
 	)
