@@ -9,6 +9,7 @@ import '../core/auth.dart';
 import '../core/env.dart';
 import '../core/format.dart';
 import '../core/models.dart';
+import '../core/notifications.dart';
 import '../ui/theme.dart';
 import '../ui/app_icons.dart';
 import '../ui/google_button.dart';
@@ -314,6 +315,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _busy = false;
   bool _agreedTerms = false;
 
+  @override
+  void dispose() {
+    _first.dispose();
+    _last.dispose();
+    _username.dispose();
+    _email.dispose();
+    _password.dispose();
+    super.dispose();
+  }
+
   Future<void> _submit() async {
     if (!_form.currentState!.validate()) return;
     if (!_agreedTerms) {
@@ -443,20 +454,23 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
+  static const _steps = 3;
+  static final _usernameRe = RegExp(r'^[A-Za-z0-9_.]{3,24}$');
+
   final _formKey = GlobalKey<FormState>();
+  final _page = PageController();
   final _first = TextEditingController();
   final _last = TextEditingController();
   final _username = TextEditingController();
   List<Sport>? _sports;
   String? _sportId;
   String _skill = 'intermediate';
+  int _step = 0;
   String? _error;
   bool _busy = false;
   bool _usernameTaken = false;
   String? _initialUsername;
   bool _profileSeeded = false;
-
-  static final _usernameRe = RegExp(r'^[A-Za-z0-9_.]{3,24}$');
 
   @override
   void initState() {
@@ -471,6 +485,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   void dispose() {
+    _page.dispose();
     _first.dispose();
     _last.dispose();
     _username.dispose();
@@ -501,6 +516,56 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     } catch (_) {}
   }
 
+  bool _profileValid() =>
+      _first.text.trim().isNotEmpty &&
+      _last.text.trim().isNotEmpty &&
+      _usernameRe.hasMatch(_username.text.trim()) &&
+      !_usernameTaken;
+
+  bool _canAdvance() {
+    switch (_step) {
+      case 0:
+        return _profileValid();
+      case 1:
+        return _sportId != null;
+      case 2:
+        return _sportId != null && _profileValid();
+      default:
+        return false;
+    }
+  }
+
+  Future<void> _back() async {
+    if (_step == 0) {
+      Navigator.pop(context);
+      return;
+    }
+    setState(() {
+      _error = null;
+      _step--;
+    });
+    await _page.previousPage(duration: const Duration(milliseconds: 280), curve: Curves.easeOutCubic);
+  }
+
+  Future<void> _next() async {
+    setState(() => _error = null);
+    if (_step == 0) {
+      if (!_formKey.currentState!.validate()) return;
+      await _checkUsername();
+      if (_usernameTaken) return;
+    } else if (_step == 1) {
+      if (_sportId == null) {
+        setState(() => _error = 'Pick a sport to continue.');
+        return;
+      }
+    } else {
+      await _done(_sportId!);
+      return;
+    }
+    setState(() => _step++);
+    await _page.nextPage(duration: const Duration(milliseconds: 280), curve: Curves.easeOutCubic);
+  }
+
   Future<void> _done(String sportId) async {
     if (!_formKey.currentState!.validate() || _usernameTaken) return;
     setState(() => _busy = true);
@@ -513,12 +578,31 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         'skill_level': _skill,
         'onboarded': true,
       });
+      if (mounted) await context.read<Notifications>().registerDevice();
     } catch (e) {
       if (mounted) setState(() => _error = errorText(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
+
+  Widget _onboardingDots() => Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: List.generate(_steps, (i) {
+          final active = i == _step;
+          final done = i < _step;
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            margin: const EdgeInsets.symmetric(horizontal: 3),
+            height: 6,
+            width: active ? 28 : (done ? 14 : 14),
+            decoration: BoxDecoration(
+              color: active ? Palette.brand : (done ? Palette.brand.withValues(alpha: 0.5) : Theme.of(context).dividerColor),
+              borderRadius: BorderRadius.circular(99),
+            ),
+          );
+        }),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -527,95 +611,152 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final active = _sports?.where((s) => s.active).toList() ?? const <Sport>[];
     final soon = _sports?.where((s) => !s.active).toList() ?? const <Sport>[];
     return Scaffold(
+      appBar: AppBar(leading: BackButton(onPressed: () => _back())),
       body: SafeArea(
         child: Form(
           key: _formKey,
-          child: ListView(padding: const EdgeInsets.all(24), children: [
-          Text('Welcome, ${user?.firstName ?? ''}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-          Text('SET UP YOUR COURT RADAR', style: Theme.of(context).textTheme.displaySmall),
-          const SizedBox(height: 8),
-          Text(
-            'Confirm your profile, then pick your sport.',
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 20),
-          Text('YOUR PROFILE', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 10),
-          Row(children: [
-            Expanded(child: TextFormField(controller: _first, decoration: const InputDecoration(labelText: 'First name'), validator: _required)),
-            const SizedBox(width: 12),
-            Expanded(child: TextFormField(controller: _last, decoration: const InputDecoration(labelText: 'Last name'), validator: _required)),
-          ]),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _username,
-            decoration: InputDecoration(
-              labelText: 'Username',
-              helperText: _usernameTaken ? 'That username is taken.' : '3–24 letters, numbers, _ or .',
-              helperStyle: TextStyle(color: _usernameTaken ? Theme.of(context).colorScheme.error : null),
-            ),
-            onChanged: (_) => setState(() => _usernameTaken = false),
-            onFieldSubmitted: (_) => _checkUsername(),
-            onEditingComplete: _checkUsername,
-            validator: (v) => _usernameRe.hasMatch(v ?? '') ? null : '3–24 letters, numbers, _ or .',
-          ),
-          if (user != null && user.email.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text('Email: ${user.email}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
-          ],
-          const SizedBox(height: 24),
-          Text('YOUR SPORT', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 8),
-          Text(
-            'Pick the one sport you play. The map and games stay on that sport — it can\'t be changed later.',
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 12),
-          if (_sports == null && _error == null) const Center(child: CircularProgressIndicator()),
-          for (final s in active)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: ChoiceTile(
-                leading: SportIcon(s.slug, size: 22, color: Palette.brand),
-                label: s.name.toUpperCase(),
-                selected: _sportId == s.id,
-                onTap: () => setState(() => _sportId = s.id),
-              ),
-            ),
-          if (soon.isNotEmpty)
-            Wrap(
-              spacing: 10,
-              runSpacing: 6,
-              crossAxisAlignment: WrapCrossAlignment.center,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Coming soon:', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                for (final s in soon) SportInline(s, iconSize: 14, textStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                Text('Welcome, ${user?.firstName ?? ''}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                Text('SET UP YOUR COURT RADAR', style: Theme.of(context).textTheme.displaySmall),
+                const SizedBox(height: 12),
+                _onboardingDots(),
+                const SizedBox(height: 6),
+                Text(
+                  'Step ${_step + 1} of $_steps',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: Card(
+                    margin: EdgeInsets.zero,
+                    child: PageView(
+                      controller: _page,
+                      physics: const NeverScrollableScrollPhysics(),
+                      children: [
+                        _stepPanel(
+                          title: 'YOUR PROFILE',
+                          subtitle: 'How other players will see you.',
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(children: [
+                                Expanded(child: TextFormField(controller: _first, decoration: const InputDecoration(labelText: 'First name'), validator: _required)),
+                                const SizedBox(width: 12),
+                                Expanded(child: TextFormField(controller: _last, decoration: const InputDecoration(labelText: 'Last name'), validator: _required)),
+                              ]),
+                              const SizedBox(height: 12),
+                              TextFormField(
+                                controller: _username,
+                                decoration: InputDecoration(
+                                  labelText: 'Username',
+                                  helperText: _usernameTaken ? 'That username is taken.' : '3–24 letters, numbers, _ or .',
+                                  helperStyle: TextStyle(color: _usernameTaken ? Theme.of(context).colorScheme.error : null),
+                                ),
+                                onChanged: (_) => setState(() => _usernameTaken = false),
+                                onEditingComplete: _checkUsername,
+                                validator: (v) => _usernameRe.hasMatch(v ?? '') ? null : '3–24 letters, numbers, _ or .',
+                              ),
+                              if (user != null && user.email.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                Text('Email: ${user.email}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
+                              ],
+                            ],
+                          ),
+                        ),
+                        _stepPanel(
+                          title: 'YOUR SPORT',
+                          subtitle: 'Pick the one sport you play. The map stays on that sport — it can\'t be changed later.',
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (_sports == null && _error == null) const Center(child: CircularProgressIndicator()),
+                              for (final s in active)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 10),
+                                  child: ChoiceTile(
+                                    leading: SportIcon(s.slug, size: 22, color: Palette.brand),
+                                    label: s.name.toUpperCase(),
+                                    selected: _sportId == s.id,
+                                    onTap: () => setState(() => _sportId = s.id),
+                                  ),
+                                ),
+                              if (soon.isNotEmpty)
+                                Wrap(
+                                  spacing: 10,
+                                  runSpacing: 6,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  children: [
+                                    Text('Coming soon:', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                                    for (final s in soon) SportInline(s, iconSize: 14, textStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                                  ],
+                                ),
+                            ],
+                          ),
+                        ),
+                        _stepPanel(
+                          title: 'YOUR LEVEL',
+                          subtitle: 'Games use this as a guide for who joins.',
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Wrap(spacing: 8, runSpacing: 8, children: [
+                                for (final e in skillLabels.entries)
+                                  ChoiceTile(label: e.value, selected: _skill == e.key, onTap: () => setState(() => _skill = e.key)),
+                              ]),
+                              const SizedBox(height: 12),
+                              Text(
+                                'Turn on location on the map for distances and nearby alerts.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ErrorBanner(_error),
+                Row(
+                  children: [
+                    if (_step > 0)
+                      Expanded(
+                        child: OutlinedButton(onPressed: _busy ? null : _back, child: const Text('Back')),
+                      ),
+                    if (_step > 0) const SizedBox(width: 12),
+                    Expanded(
+                      flex: _step == 0 ? 1 : 1,
+                      child: PrimaryButton(
+                        onPressed: _busy || !_canAdvance() ? null : _next,
+                        child: Text(_busy ? '…' : (_step < _steps - 1 ? 'Next' : 'OPEN THE MAP')),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
-          const SizedBox(height: 28),
-          Text('YOUR LEVEL', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 10),
-          Wrap(spacing: 8, runSpacing: 8, children: [
-            for (final e in skillLabels.entries)
-              ChoiceTile(label: e.value, selected: _skill == e.key, onTap: () => setState(() => _skill = e.key)),
-          ]),
-          const SizedBox(height: 32),
-          ErrorBanner(_error),
-          PrimaryButton(
-            onPressed: _busy || _sportId == null || _usernameTaken ? null : () => _done(_sportId!),
-            child: const Text('OPEN THE MAP'),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Turn on location on the map for distances and nearby alerts.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13),
-          ),
-        ]),
         ),
       ),
     );
   }
+
+  Widget _stepPanel({required String title, required String subtitle, required Widget child}) => ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 6),
+          Text(subtitle, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          const SizedBox(height: 16),
+          child,
+        ],
+      );
 
   String? _required(String? v) => (v == null || v.trim().isEmpty) ? 'Required' : null;
 }

@@ -122,7 +122,11 @@ VITE_FIREBASE_PROJECT_ID=your-project-id
 4. **Authentication → Settings → Authorized domains** — add `localhost`, `game-finder-swart.vercel.app`, and any custom domain.
 5. **Render** — set `FIREBASE_PROJECT_ID` (or reuse `FCM_PROJECT_ID` if push uses the same project). Redeploy API.
 6. **Vercel** — set the `VITE_FIREBASE_*` vars above. Redeploy web.
-7. **Mobile** — run `.\mobile\sync-env.ps1`. For store builds, add Android/iOS apps in Firebase and drop in `google-services.json` / `GoogleService-Info.plist` (optional for dev: env-based `FirebaseOptions` already works).
+7. **Mobile** — run `.\mobile\sync-env.ps1`. **Google sign-in** works from env alone; **push (FCM)** needs native config:
+   - Firebase → **Add app** → **Android** (`com.findthegame.find_the_game`) and **iOS** (`com.findthegame.findTheGame`).
+   - Download `google-services.json` and `GoogleService-Info.plist` into repo root, then `.\mobile\scripts\sync-firebase-native.ps1`.
+   - Open the **mobile app**, sign in, allow notifications — admin will show **Push on (1 device)**.
+8. **Render (send push)** — `FCM_PROJECT_ID` + `FCM_SERVICE_ACCOUNT_JSON` (Firebase → Project settings → Service accounts → Generate key). Without these, devices can register but the API only delivers in-app notifications.
 
 Web and mobile call `POST /api/auth/firebase` with the Firebase ID token. You do **not** need `GOOGLE_CLIENT_IDS` or `VITE_GOOGLE_CLIENT_ID` when Firebase is configured.
 

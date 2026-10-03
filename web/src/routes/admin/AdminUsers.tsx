@@ -44,6 +44,9 @@ export function AdminUsers() {
   return (
     <div className="grid gap-3">
       <Input placeholder="Search name, username or email" value={q} onChange={(e) => setQ(e.target.value)} />
+      <p className="text-xs text-ink-2">
+        Push status is from the <strong>mobile app</strong> (notification permission + Firebase). Web sign-in does not register a device.
+      </p>
       {isLoading && <Loading />}
       {data?.map((u) => (
         <Card key={u.id} className={`flex flex-wrap items-center gap-3 ${u.suspended_at ? 'opacity-60' : ''}`}>
@@ -74,7 +77,7 @@ export function AdminUsers() {
                 ) : (
                   <>
                     <BellOff className="size-3.5 opacity-50" aria-hidden />
-                    Push off
+                    No mobile device
                   </>
                 )}
               </span>

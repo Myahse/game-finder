@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:io' show Platform;
 
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
@@ -24,7 +24,7 @@ class Notifications {
   final _local = FlutterLocalNotificationsPlugin();
   final Api api;
   final _responses = StreamController<NotificationResponse>.broadcast();
-  bool _firebaseReady = false;
+  bool _messagingHooked = false;
 
   Notifications(this.api);
 
@@ -65,15 +65,16 @@ class Notifications {
       scheduleMicrotask(() => _responses.add(launch.notificationResponse!));
     }
 
-    try {
-      if (await ensureFirebaseApp()) _firebaseReady = true;
-      FirebaseMessaging.onMessage.listen((m) {
-        final n = m.notification;
-        if (n != null) show(n.title ?? 'Find the Game', n.body ?? '', payload: m.data['game_id'] ?? m.data['court_id']);
-      });
-    } catch (_) {
-      _firebaseReady = false; // no google-services.json / GoogleService-Info.plist
-    }
+    await _hookMessaging();
+  }
+
+  Future<void> _hookMessaging() async {
+    if (_messagingHooked || !await ensureFirebaseApp()) return;
+    _messagingHooked = true;
+    FirebaseMessaging.onMessage.listen((m) {
+      final n = m.notification;
+      if (n != null) show(n.title ?? 'Find the Game', n.body ?? '', payload: m.data['game_id'] ?? m.data['court_id']);
+    });
   }
 
   Future<void> requestPermission() async {
@@ -88,22 +89,31 @@ class Notifications {
     }
   }
 
-  /// Registers this device for remote push after sign-in.
+  /// Registers this device for remote push after sign-in (mobile only; needs native Firebase config).
   Future<void> registerDevice() async {
-    if (!_firebaseReady) return;
+    await _hookMessaging();
+    if (!firebaseAppReady) {
+      if (kDebugMode) debugPrint('FCM: Firebase not initialized (add google-services.json / GoogleService-Info.plist)');
+      return;
+    }
     try {
       final fm = FirebaseMessaging.instance;
       await fm.requestPermission();
       final token = await fm.getToken();
       if (token != null) {
         await api.post('/api/me/push-tokens', {'token': token, 'platform': Platform.operatingSystem});
+        if (kDebugMode) debugPrint('FCM: registered push token');
+      } else if (kDebugMode) {
+        debugPrint('FCM: getToken() returned null');
       }
       fm.onTokenRefresh.listen((t) => api.post('/api/me/push-tokens', {'token': t, 'platform': Platform.operatingSystem}));
-    } catch (_) {}
+    } catch (e, st) {
+      if (kDebugMode) debugPrint('FCM register failed: $e\n$st');
+    }
   }
 
   Future<void> unregisterDevice() async {
-    if (!_firebaseReady) return;
+    if (!firebaseAppReady) return;
     try {
       final token = await FirebaseMessaging.instance.getToken();
       if (token != null) await api.delete('/api/me/push-tokens', {'token': token});
