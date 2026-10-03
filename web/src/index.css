@@ -289,71 +289,9 @@ body {
     color 0.45s ease;
 }
 
-/* Onboarding sport cards */
-.sport-card {
-  background:
-    radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--sport-accent) 55%, transparent) 0%, transparent 55%),
-    linear-gradient(150deg, var(--brand) 0%, color-mix(in srgb, var(--brand) 55%, var(--sport-deep)) 55%, var(--sport-deep) 100%);
-}
-@keyframes ftg-card-progress {
-  from {
-    transform: scaleX(0);
-  }
-  to {
-    transform: scaleX(1);
-  }
-}
-.ftg-card-progress {
-  transform-origin: left;
-  animation: ftg-card-progress linear forwards;
-}
-@keyframes ftg-sport-pop {
-  0% {
-    transform: scale(0.6) rotate(-25deg);
-    opacity: 0;
-  }
-  60% {
-    transform: scale(1.12) rotate(6deg);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1) rotate(0);
-  }
-}
-.ftg-sport-pop {
-  animation: ftg-sport-pop 0.55s cubic-bezier(0.34, 1.35, 0.64, 1);
-}
-@keyframes ftg-ball-float {
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-6px) rotate(8deg);
-  }
-}
-.ftg-ball-float {
-  animation: ftg-ball-float 3.2s ease-in-out infinite;
-}
-@keyframes ftg-sport-fade {
-  from {
-    opacity: 0;
-    translate: 0 -8px;
-  }
-}
-.ftg-sport-fade {
-  animation: ftg-sport-fade 0.6s ease-out;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .sport-tint {
     transition: none;
-  }
-  .ftg-card-progress,
-  .ftg-sport-pop,
-  .ftg-sport-fade,
-  .ftg-ball-float {
-    animation: none;
   }
   .pulse::before {
     animation: none;

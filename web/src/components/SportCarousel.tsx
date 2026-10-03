@@ -2,10 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Check } from 'lucide-react'
 import type { Sport } from '../lib/types'
 import { useLocale } from '../i18n/LocaleProvider'
-import { SportIcon } from './icons'
-import { SportMotif } from './SportMotif'
+import { SportCourt } from './SportCourt'
 
-const AUTO_MS = 3600
+const AUTO_MS = 3200
 /** After a swipe / tap, wait this long before auto-sliding again. */
 const RESUME_MS = 6000
 
@@ -14,8 +13,8 @@ function prefersReducedMotion() {
 }
 
 /**
- * Auto-sliding sport cards. Each card wears its own sport skin (`data-sport`);
- * tapping one makes it the base sport, which locks the carousel on it.
+ * Auto-sliding sport cards. Tapping one makes it the base sport, which stops the slide on it.
+ * Each card carries `data-sport` so its selected state uses that sport's colour.
  */
 export function SportCarousel({
   sports,
@@ -35,7 +34,6 @@ export function SportCarousel({
   const resumeTimer = useRef(0)
   const [reduced] = useState(prefersReducedMotion)
   const [hidden, setHidden] = useState(() => typeof document !== 'undefined' && document.hidden)
-  const taglines = t.onboarding.taglines as Record<string, string>
 
   const autoplay = !selectedId && !reduced && !hovering && !focused && !hidden && !userPaused && sports.length > 1
 
@@ -91,14 +89,13 @@ export function SportCarousel({
     return () => document.removeEventListener('visibilitychange', on)
   }, [])
 
-  // Advance one card per tick; a manual swipe pauses autoplay for RESUME_MS.
   useEffect(() => {
     if (!autoplay) return
     const id = window.setTimeout(() => scrollToIndex((active + 1) % sports.length), AUTO_MS)
     return () => window.clearTimeout(id)
   }, [autoplay, active, sports.length, scrollToIndex])
 
-  // Lock onto the chosen base sport.
+  // Stop on the chosen base sport.
   useEffect(() => {
     if (!selectedId) return
     const i = sports.findIndex((s) => s.id === selectedId)
@@ -120,94 +117,59 @@ export function SportCarousel({
         ref={scroller}
         onPointerDown={pauseForUser}
         onWheel={pauseForUser}
-        className="relative -mx-6 -mb-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-[9%] pb-9 pt-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="relative -mx-6 flex snap-x snap-mandatory gap-3 overflow-x-auto px-[11%] py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {sports.map((s, i) => {
           const isBase = s.id === selectedId
-          const isActive = i === active
           return (
             <button
               key={s.id}
               type="button"
               data-sport={s.slug}
               aria-roledescription="slide"
-              aria-label={`${s.name} — ${i + 1} / ${sports.length}`}
+              aria-label={`${s.name}, ${i + 1} / ${sports.length}`}
               aria-pressed={isBase}
               onClick={() => {
                 pauseForUser()
                 onSelect(s)
               }}
               onFocus={() => scrollToIndex(i)}
-              className={`sport-card relative flex min-h-60 w-[82%] shrink-0 snap-center flex-col overflow-hidden rounded-3xl p-5 text-left text-white shadow-[0_18px_40px_-18px_var(--sport-deep)] outline-none transition duration-500 ease-out focus-visible:ring-4 focus-visible:ring-sport-accent ${
-                isActive ? 'scale-100 opacity-100' : 'scale-[0.92] opacity-70'
-              } ${isBase ? 'ring-4 ring-sport-accent ring-offset-2 ring-offset-bg' : ''}`}
+              className={`w-[78%] shrink-0 snap-center overflow-hidden rounded-2xl border-2 bg-surface text-left transition duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+                isBase ? 'border-brand' : 'border-line'
+              } ${i === active ? 'opacity-100' : 'opacity-55'}`}
             >
-              <SportMotif slug={s.slug} className="pointer-events-none absolute inset-0 size-full text-white opacity-[0.16]" />
-              <SportIcon
-                slug={s.slug}
-                className="pointer-events-none absolute -bottom-8 -right-8 size-44 rotate-[-18deg] text-white opacity-[0.13]"
-              />
-
-              <div className="relative flex items-start justify-between">
-                <span className="flex size-14 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
-                  <SportIcon slug={s.slug} className={`size-8 text-sport-accent ${isActive && !reduced ? 'ftg-ball-float' : ''}`} />
-                </span>
-                <span className="display text-lg font-bold tabular-nums text-white/70">
-                  {String(i + 1).padStart(2, '0')}
-                  <span className="text-white/40"> / {String(sports.length).padStart(2, '0')}</span>
-                </span>
-              </div>
-
-              <div className="relative mt-auto">
-                <p className="display break-words text-[clamp(2.25rem,11vw,3rem)] font-extrabold drop-shadow-sm">{s.name}</p>
-                <p className="mt-1.5 line-clamp-2 text-sm font-medium text-white/85">{taglines[s.slug] ?? ''}</p>
+              <SportCourt slug={s.slug} className="block aspect-[200/110] w-full" />
+              <span className="flex items-center justify-between gap-3 px-4 py-3">
+                <span className="display min-w-0 truncate text-3xl font-extrabold">{s.name}</span>
                 <span
-                  className={`mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition ${
-                    isBase ? 'bg-white text-brand' : 'bg-white/15 text-white ring-1 ring-white/30'
+                  className={`flex size-6 shrink-0 items-center justify-center rounded-full border-2 ${
+                    isBase ? 'border-brand bg-brand text-brand-ink' : 'border-line'
                   }`}
                 >
-                  {isBase && <Check className="size-3.5" strokeWidth={3} aria-hidden />}
-                  {isBase ? t.onboarding.isBase : t.onboarding.makeBase}
+                  {isBase && <Check className="size-3.5" strokeWidth={3.5} aria-hidden />}
                 </span>
-              </div>
-
-              {isActive && autoplay && (
-                <span className="absolute inset-x-5 bottom-0 h-1 overflow-hidden rounded-full bg-white/15">
-                  <span
-                    key={active}
-                    className="ftg-card-progress block h-full rounded-full bg-sport-accent"
-                    style={{ animationDuration: `${AUTO_MS}ms` }}
-                  />
-                </span>
-              )}
+              </span>
             </button>
           )
         })}
       </div>
 
-      <div className="flex flex-wrap items-center justify-center gap-1.5">
-        {sports.map((s, i) => {
-          const on = i === active
-          return (
-            <button
-              key={s.id}
-              type="button"
-              data-sport={s.slug}
-              onClick={() => {
-                pauseForUser()
-                scrollToIndex(i)
-              }}
-              aria-label={s.name}
-              aria-current={on ? 'true' : undefined}
-              className={`inline-flex h-8 items-center gap-1.5 rounded-full text-xs font-bold transition-all duration-300 ${
-                on ? 'bg-brand px-3 text-brand-ink' : 'w-8 justify-center bg-surface-2 text-ink-2 hover:text-brand'
-              }`}
-            >
-              <SportIcon slug={s.slug} className="size-4" />
-              {on && <span className="display text-sm">{s.name}</span>}
-            </button>
-          )
-        })}
+      <div className="mt-3 flex items-center justify-center gap-1.5">
+        {sports.map((s, i) => (
+          <button
+            key={s.id}
+            type="button"
+            onClick={() => {
+              pauseForUser()
+              scrollToIndex(i)
+            }}
+            aria-label={s.name}
+            aria-current={i === active ? 'true' : undefined}
+            className="flex h-6 items-center"
+          >
+            <span className={`block h-1.5 rounded-full transition-all duration-300 ${i === active ? 'w-5 bg-ink' : 'w-1.5 bg-line'}`} />
+          </button>
+        ))}
       </div>
     </section>
   )
@@ -215,9 +177,9 @@ export function SportCarousel({
 
 export function SportCarouselSkeleton() {
   return (
-    <div className="-mx-6 -mb-4 flex gap-3 overflow-hidden px-[9%] pb-9 pt-2" aria-hidden>
-      <div className="h-60 w-[82%] shrink-0 animate-pulse rounded-3xl bg-surface-2" />
-      <div className="aspect-[16/11] w-[82%] shrink-0 scale-[0.92] animate-pulse rounded-3xl bg-surface-2 opacity-70" />
+    <div className="-mx-6 flex gap-3 overflow-hidden px-[11%] py-1" aria-hidden>
+      <div className="aspect-[200/150] w-[78%] shrink-0 animate-pulse rounded-2xl bg-surface-2" />
+      <div className="aspect-[200/150] w-[78%] shrink-0 animate-pulse rounded-2xl bg-surface-2 opacity-55" />
     </div>
   )
 }

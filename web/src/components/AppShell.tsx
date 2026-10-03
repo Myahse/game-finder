@@ -73,12 +73,10 @@ export function AppShell() {
       <nav
         className="fixed inset-x-4 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-30 flex shrink-0 rounded-2xl border border-line bg-surface shadow-[0_8px_28px_rgba(0,0,0,0.14)] md:static md:inset-auto md:bottom-auto md:z-auto md:w-56 md:flex-col md:rounded-none md:border-r md:border-t-0 md:p-3 md:shadow-none"
       >
-        <div className="display hidden items-center gap-2 px-3 pb-6 pt-2 text-3xl font-extrabold md:flex">
-          <span className="sport-tint flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand text-brand-ink">
-            <BaseSportIcon className="size-5" />
-          </span>
+        <div className="display hidden items-center gap-1.5 px-3 pb-6 pt-2 text-3xl font-extrabold md:flex">
+          <BaseSportIcon className="size-6 text-brand" />
           <span>
-            Find the <span className="sport-tint text-brand">Game</span>
+            Find the <span className="text-brand">Game</span>
           </span>
         </div>
         {tabs.map((tab) => (

@@ -8,12 +8,12 @@ import { useSports, useUpdateMe } from '../lib/queries'
 import type { Me, SkillLevel } from '../lib/types'
 import { BaseSportIcon, SportIcon, SportName } from '../components/icons'
 import { SportCarousel, SportCarouselSkeleton } from '../components/SportCarousel'
-import { SportMotif } from '../components/SportMotif'
+import { SportCourt } from '../components/SportCourt'
 import { StepIndicator } from '../components/StepIndicator'
 import { useStepFlow } from '../components/StepFlow'
 import { Button, ErrorText, Field, Input } from '../components/ui'
 import { useLocale } from '../i18n/LocaleProvider'
-import { useSportTheme, useSportThemePreview } from '../theme/SportThemeProvider'
+import { useSportThemePreview } from '../theme/SportThemeProvider'
 
 const usernamePattern = /^[A-Za-z0-9_.]{3,24}$/
 
@@ -59,7 +59,6 @@ export function OnboardingPage() {
   const baseSport = available.find((s) => s.id === sportId) ?? null
   // Re-skin the app live as soon as a base sport is picked.
   useSportThemePreview(baseSport?.slug ?? null)
-  const skin = useSportTheme() ?? 'basketball'
 
   /** Resolves `true` when the username is already taken. */
   const checkUsername = useCallback(async () => {
@@ -131,26 +130,11 @@ export function OnboardingPage() {
   const skillLabels = t.skill
 
   return (
-    <div className="relative min-h-full overflow-x-clip">
-      {/* Base-sport backdrop: soft brand glow + faint court lines. */}
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-80 overflow-hidden">
-        <div className="sport-tint absolute inset-0 bg-gradient-to-b from-brand/15 via-brand/5 to-transparent" />
-        <SportMotif
-          key={skin}
-          slug={skin}
-          className="ftg-sport-fade absolute -right-16 -top-10 h-64 w-[26rem] rotate-[-8deg] text-brand opacity-[0.12] [mask-image:linear-gradient(to_bottom,black,transparent)]"
-        />
-      </div>
-
-      <div className="relative mx-auto flex max-w-md flex-col px-6 pb-10 pt-[max(1.5rem,env(safe-area-inset-top))]">
-        <div className="mb-6 flex items-center justify-between">
-          <span className="display inline-flex items-center gap-2 text-xl font-extrabold">
-            <span
-              key={skin}
-              className="ftg-sport-pop sport-tint flex size-9 items-center justify-center rounded-xl bg-brand text-brand-ink shadow-[0_6px_16px_-6px_var(--brand)]"
-            >
-              <BaseSportIcon className="size-5" />
-            </span>
+    <div className="min-h-full">
+      <div className="mx-auto flex max-w-md flex-col px-6 pb-10 pt-[max(1.5rem,env(safe-area-inset-top))]">
+        <div className="mb-8 flex items-center justify-between">
+          <span className="display inline-flex items-center gap-1.5 text-xl font-extrabold">
+            <BaseSportIcon className="sport-tint size-5 text-brand" />
             Find the <span className="sport-tint text-brand">Game</span>
           </span>
           <button
@@ -183,9 +167,6 @@ export function OnboardingPage() {
               ) : (
                 <SportCarousel sports={available} selectedId={sportId} onSelect={(s) => chooseBase(s.id)} />
               )}
-              <p aria-live="polite" className="sport-tint min-h-5 text-center text-sm font-semibold text-brand">
-                {baseSport ? t.onboarding.baseChosen.replace('{sport}', baseSport.name) : null}
-              </p>
               {sports?.some((s) => !s.active) && (
                 <p className="text-center text-sm text-ink-2">
                   <span className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
@@ -241,25 +222,15 @@ export function OnboardingPage() {
           )}
 
           {current === 'level' && (
-            <div className="grid gap-4">
+            <div className="grid grid-cols-1 gap-4">
               {baseSport && (
-                <div
-                  data-sport={baseSport.slug}
-                  className="sport-card relative flex items-center gap-3 overflow-hidden rounded-2xl p-3 text-white"
-                >
-                  <SportMotif slug={baseSport.slug} className="pointer-events-none absolute inset-0 size-full opacity-[0.16]" />
-                  <span className="relative flex size-11 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/25">
-                    <SportIcon slug={baseSport.slug} className="size-6 text-sport-accent" />
+                <div className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-2 pr-4">
+                  <SportCourt slug={baseSport.slug} className="block h-12 w-[5.5rem] shrink-0 rounded-xl" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-xs font-semibold text-ink-2">{t.onboarding.isBase}</span>
+                    <span className="display block truncate text-2xl font-extrabold">{baseSport.name}</span>
                   </span>
-                  <span className="relative min-w-0 flex-1">
-                    <span className="block text-xs font-semibold text-white/75">{t.onboarding.isBase}</span>
-                    <span className="display block text-2xl font-extrabold">{baseSport.name}</span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setStep(0)}
-                    className="relative rounded-full bg-white/15 px-3 py-1 text-xs font-bold ring-1 ring-white/30 hover:bg-white/25"
-                  >
+                  <button type="button" onClick={() => setStep(0)} className="text-sm font-semibold text-brand hover:underline">
                     {t.onboarding.changeBase}
                   </button>
                 </div>
