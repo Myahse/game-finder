@@ -151,12 +151,6 @@ export function CourtPlacementMap({
         )}
       </Map>
 
-      {!value && (
-        <p className="pointer-events-none absolute inset-x-0 top-3 z-10 mx-auto w-fit max-w-[90%] rounded-full bg-surface/95 px-3 py-1.5 text-center text-xs font-semibold text-ink shadow backdrop-blur">
-          Pinch to zoom, then tap where the court is
-        </p>
-      )}
-
       <div className="absolute left-3 bottom-3 z-10 flex flex-col overflow-hidden rounded-xl border border-line bg-surface/95 shadow backdrop-blur">
         <button type="button" className="flex size-10 items-center justify-center text-ink hover:bg-surface-2" onClick={() => zoomBy(1)} aria-label="Zoom in">
           <Plus className="size-5" />

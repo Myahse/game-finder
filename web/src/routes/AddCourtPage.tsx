@@ -15,14 +15,19 @@ import { formatOpeningHours } from '../lib/openingHours'
 import { reverseGeocode } from '../lib/reverseGeocode'
 import { Button, ErrorText, Field, Input, Textarea } from '../components/ui'
 
-function StepDots({ step, total }: { step: number; total: number }) {
+function StepIndicator({ current }: { current: 1 | 2 }) {
   return (
-    <div className="flex items-center justify-center gap-2" aria-hidden>
-      {Array.from({ length: total }, (_, i) => (
+    <div className="flex shrink-0 items-center gap-1.5" aria-label={`Step ${current} of 2`}>
+      {([1, 2] as const).map((n) => (
         <span
-          key={i}
-          className={`h-1.5 rounded-full transition-all ${i === step ? 'w-8 bg-brand' : i < step ? 'w-4 bg-brand/50' : 'w-4 bg-line'}`}
-        />
+          key={n}
+          className={`flex size-8 items-center justify-center rounded-full text-sm font-extrabold tabular-nums ${
+            n === current ? 'bg-brand text-brand-ink' : n < current ? 'bg-brand/25 text-brand' : 'bg-surface-2 text-ink-2'
+          }`}
+          aria-current={n === current ? 'step' : undefined}
+        >
+          {n}
+        </span>
       ))}
     </div>
   )
@@ -154,8 +159,10 @@ export function AddCourtPage() {
 
   if (step === 0) {
     return createPortal(
-      <div className="fixed inset-0 z-[100] flex h-[100dvh] max-h-[100dvh] flex-col bg-bg">
-        <header className="flex shrink-0 items-center gap-2 border-b border-line bg-surface/95 px-3 py-2.5 backdrop-blur pt-[max(0.5rem,env(safe-area-inset-top))]">
+      <div
+        className="fixed inset-x-0 top-0 z-50 flex flex-col bg-bg bottom-[calc(4.75rem+env(safe-area-inset-bottom))] md:inset-y-0 md:right-0 md:bottom-0 md:left-56"
+      >
+        <header className="flex shrink-0 items-center gap-2 border-b border-line bg-surface/95 px-3 py-2 backdrop-blur pt-[max(0.5rem,env(safe-area-inset-top))]">
           <Link to="/" className="-ml-1 rounded-lg p-2 text-ink-2 hover:text-ink" aria-label="Back to map">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
               <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
@@ -163,9 +170,8 @@ export function AddCourtPage() {
           </Link>
           <div className="min-w-0 flex-1">
             <h1 className="display truncate text-2xl font-extrabold">Place court</h1>
-            <p className="text-xs font-semibold uppercase tracking-wide text-ink-2">Step 1 of 2</p>
           </div>
-          <StepDots step={0} total={2} />
+          <StepIndicator current={1} />
         </header>
 
         <div className="relative h-0 min-h-0 flex-1">
@@ -178,19 +184,24 @@ export function AddCourtPage() {
             className="absolute inset-0 size-full min-h-[12rem]"
             edgePinHint
           />
-          <p className="pointer-events-none absolute inset-x-4 top-14 z-10 rounded-xl bg-surface/90 px-3 py-2 text-center text-xs font-medium text-ink-2 shadow backdrop-blur">
-            Gray dots = courts · blue = you · tap to drop the orange pin
-          </p>
         </div>
 
-        <div className="shrink-0 space-y-2 border-t border-line bg-surface px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="shrink-0 space-y-1.5 border-t border-line bg-surface px-4 py-2">
           {coords && !where && (
-            <button type="button" className="w-full text-center text-sm font-semibold text-brand" onClick={pinMyPosition}>
+            <button type="button" className="w-full py-1 text-center text-sm font-semibold text-brand" onClick={pinMyPosition}>
               I&apos;m at the court — pin my position
             </button>
           )}
           {error ? <ErrorText>{error}</ErrorText> : null}
-          <Button type="button" className="w-full" disabled={!where} onClick={() => { setError(''); setStep(1) }}>
+          <Button
+            type="button"
+            className="w-full min-h-11 px-4 text-base"
+            disabled={!where}
+            onClick={() => {
+              setError('')
+              setStep(1)
+            }}
+          >
             Next: court details
           </Button>
         </div>
@@ -214,9 +225,8 @@ export function AddCourtPage() {
         </button>
         <div className="min-w-0 flex-1">
           <h1 className="display truncate text-3xl font-extrabold">Court details</h1>
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink-2">Step 2 of 2</p>
         </div>
-        <StepDots step={1} total={2} />
+        <StepIndicator current={2} />
       </header>
 
       <div className="mx-auto grid max-w-md gap-5 p-5">
