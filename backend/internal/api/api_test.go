@@ -448,6 +448,14 @@ func TestCourtProposalAndAdmin(t *testing.T) {
 	if c := onMap(rejected["id"]); c != nil {
 		t.Fatalf("rejected court still on map: %v", c)
 	}
+	_, farPublic := e.must(200, "", "GET", "/api/courts/nearby?lat=0&lng=0&radius_km=1", nil)
+	if len(farPublic) != 0 {
+		t.Fatalf("public map at 0,0 should be empty: %v", farPublic)
+	}
+	_, farAdmin := e.must(200, admin.Token, "GET", "/api/courts/nearby?lat=0&lng=0&radius_km=1", nil)
+	if len(farAdmin) == 0 {
+		t.Fatalf("admin map should list all courts without radius")
+	}
 
 	e.must(204, admin.Token, "POST", "/api/admin/courts/"+court["id"].(string)+"/review", map[string]any{"approve": true})
 	detail, _ := e.must(200, admin.Token, "GET", "/api/admin/courts/"+court["id"].(string), nil)

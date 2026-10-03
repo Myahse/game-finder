@@ -17,13 +17,15 @@ type Props = {
   sportSlug: string | null
   selectedId: string | null
   onSelect: (court: Court) => void
+  /** Fires when the user pans/zooms so lists load for the visible map, not only GPS. */
+  onBrowseCenterChange?: (c: Coords) => void
   mapRef?: RefObject<MapRef | null>
 }
 
 type PointProps = { court: Court }
 type ClusterProps = { players: number; live: number }
 
-export function CourtMap({ courts, center, me, sportSlug, selectedId, onSelect, mapRef: mapRefProp }: Props) {
+export function CourtMap({ courts, center, me, sportSlug, selectedId, onSelect, onBrowseCenterChange, mapRef: mapRefProp }: Props) {
   const innerRef = useRef<MapRef>(null)
   const mapRef = mapRefProp ?? innerRef
   const { isDark } = useTheme()
@@ -88,6 +90,7 @@ export function CourtMap({ courts, center, me, sportSlug, selectedId, onSelect, 
   }, [isDark])
 
   const syncRaf = useRef<number | null>(null)
+  const lastBrowseKey = useRef('')
   const sync = () => {
     const m = mapRef.current
     if (!m) return
@@ -95,6 +98,14 @@ export function CourtMap({ courts, center, me, sportSlug, selectedId, onSelect, 
     const b = m.getBounds()
     if (!b) return
     setView({ zoom: m.getZoom(), bounds: [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()] })
+    if (onBrowseCenterChange) {
+      const c = m.getCenter()
+      const key = `${c.lat.toFixed(3)},${c.lng.toFixed(3)}`
+      if (key !== lastBrowseKey.current) {
+        lastBrowseKey.current = key
+        onBrowseCenterChange({ latitude: c.lat, longitude: c.lng })
+      }
+    }
   }
 
   const scheduleSync = () => {

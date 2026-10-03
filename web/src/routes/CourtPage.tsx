@@ -8,6 +8,8 @@ import { useAuth } from '../lib/auth'
 import { useLocation } from '../lib/location'
 import { useCourt } from '../lib/queries'
 import { CourtActions } from '../components/CourtActions'
+import { ShareCourtButton } from '../components/ShareCourtButton'
+import { MAP_NEARBY_RADIUS_KM } from '../lib/nearby'
 import { GameCard } from '../components/GameCard'
 import { DistanceText, Hourglass, Lightbulb, SearchX, SportName, X } from '../components/icons'
 import { Card, Empty, PageHeader, Spinner, StatusPill } from '../components/ui'
@@ -25,7 +27,15 @@ export function CourtPage() {
 
   return (
     <div className="pb-10">
-      <PageHeader title={court.name} back={`/?court=${court.id}`} />
+      <PageHeader
+        title={court.name}
+        back={`/?court=${court.id}`}
+        right={
+          court.status === 'approved' ? (
+            <ShareCourtButton courtId={court.id} courtName={court.name} variant="ghost" className="min-h-9 px-2" />
+          ) : undefined
+        }
+      />
       {canEditCourt ? (
         id ? <CourtAddPhotos courtId={id} photos={court.photos} canManage={canEditCourt} /> : null
       ) : (
@@ -49,6 +59,14 @@ export function CourtPage() {
             )}
           </p>
         )}
+        {court.status === 'approved' &&
+          court.distance_m != null &&
+          court.distance_m > MAP_NEARBY_RADIUS_KM * 1000 && (
+            <p className="rounded-xl bg-surface-2 p-3 text-sm text-ink-2">
+              You opened this court from a link. It only appears on the map when you are within about{' '}
+              {MAP_NEARBY_RADIUS_KM} km.
+            </p>
+          )}
         <Card>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <StatusPill activity={court.activity} />

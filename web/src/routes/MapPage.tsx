@@ -15,6 +15,7 @@ import { CourtMap } from '../components/CourtMap'
 import { MapSearchBar } from '../components/MapSearchBar'
 import type { MapRef } from 'react-map-gl/mapbox'
 import { CourtActions } from '../components/CourtActions'
+import { ShareCourtButton } from '../components/ShareCourtButton'
 import { CourtPhotoStrip } from '../components/CourtPhotoStrip'
 import { GameCard } from '../components/GameCard'
 import { DistanceText, LiveText, SportName } from '../components/icons'
@@ -31,10 +32,12 @@ export function MapPage() {
   const mapRef = useRef<MapRef>(null)
   const isAdmin = user?.role === 'admin'
   const selectedId = params.get('court')
-  const { coords, status, center } = useLocation()
+  const { coords, status, center: gpsCenter } = useLocation()
+  const [browseCenter, setBrowseCenter] = useState<Coords | null>(null)
+  const queryCenter = browseCenter ?? gpsCenter
   const { data: sports } = useSports()
-  const courtsQ = useCourtsNearby(center, sport)
-  const gamesQ = useGamesNearby(center, sport, MAP_NEARBY_RADIUS_KM)
+  const courtsQ = useCourtsNearby(queryCenter, sport)
+  const gamesQ = useGamesNearby(queryCenter, sport, MAP_NEARBY_RADIUS_KM)
   const courts = courtsQ.data
   const nearbyGames = gamesQ.data
   const gamesLoading = gamesQ.isLoading
@@ -79,10 +82,11 @@ export function MapPage() {
       <CourtMap
         mapRef={mapRef}
         courts={courts ?? []}
-        center={center}
+        center={gpsCenter}
         me={coords}
         sportSlug={sport}
         selectedId={selectedId}
+        onBrowseCenterChange={setBrowseCenter}
         onSelect={(c: Court) => update('court', c.id)}
       />
 
@@ -99,7 +103,7 @@ export function MapPage() {
         <MapSearchBar
           className="mt-2"
           mapRef={mapRef}
-          proximity={center}
+          proximity={queryCenter}
           locationBias={coords}
           courts={courts ?? []}
           onSelectCourt={(c) => update('court', c.id)}
@@ -133,6 +137,11 @@ export function MapPage() {
             </Chip>
           </Link>
         </div>
+        {isAdmin && (
+          <p className="mt-2 rounded-lg bg-surface/95 px-3 py-2 text-xs text-ink-2 shadow">
+            Admin map: every court (including pending and rejected), no distance limit. Use sport filter to narrow.
+          </p>
+        )}
         {status === 'denied' && (
           <p className="mt-2 rounded-lg bg-surface/95 px-3 py-2 text-xs text-ink-2 shadow">
             Location is off — showing Grand-Bassam. Allow location to see games near you.
@@ -191,7 +200,17 @@ function CourtSheet({
       {court && (
         <div className="relative p-5 pt-3 md:pt-5">
           <CourtPhotoStrip photos={court.photos} compact />
-          <h2 className="display pr-10 text-4xl font-extrabold">{court.name}</h2>
+          <div className="flex items-start justify-between gap-2 pr-10">
+            <h2 className="display text-4xl font-extrabold">{court.name}</h2>
+            {court.status === 'approved' && (
+              <ShareCourtButton
+                courtId={court.id}
+                courtName={court.name}
+                variant="ghost"
+                className="min-h-9 shrink-0 px-2"
+              />
+            )}
+          </div>
           <p className="mt-1 flex flex-wrap gap-x-3 text-sm text-ink-2">
             <span className="inline-flex flex-wrap gap-x-2 gap-y-1">
               {court.sports.map((s, i) => (
