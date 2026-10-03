@@ -46,7 +46,7 @@ export function WelcomePage() {
         <SportPhotoBackdrop />
 
         <div className="relative mx-auto flex w-full max-w-md flex-1 flex-col justify-end px-6 pb-10 pt-[42vh]">
-          <div className="mb-6 flex items-center gap-2 text-sm font-semibold text-ink-2">
+          <div className="mb-6 flex w-fit items-center gap-2 rounded-full bg-bg/80 px-3 py-1 text-sm font-semibold text-ink-2 backdrop-blur-sm">
             <span className="relative inline-flex size-2.5 text-live">
               <span className="pulse relative size-2.5 rounded-full bg-current" />
             </span>
