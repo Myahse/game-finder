@@ -2,13 +2,17 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { MapRef } from 'react-map-gl/mapbox'
 import { Search, X } from 'lucide-react'
 import { forwardGeocode } from '../lib/forwardGeocode'
+import { geocodeBiasFor, type GeocodeBias } from '../lib/geocodeBias'
 import type { Coords } from '../lib/location'
 import type { Court } from '../lib/types'
 import { SportIcon } from './icons'
 
 type Props = {
   mapRef: React.RefObject<MapRef | null>
+  /** Map center for flying; address bias uses `locationBias` when set. */
   proximity: Coords
+  /** User GPS — country and city bias for address suggestions. */
+  locationBias?: Coords | null
   courts?: Court[]
   onSelectCourt?: (court: Court) => void
   placeholder?: string
@@ -18,6 +22,7 @@ type Props = {
 export function MapSearchBar({
   mapRef,
   proximity,
+  locationBias,
   courts = [],
   onSelectCourt,
   placeholder = 'Search courts or places…',
@@ -27,7 +32,19 @@ export function MapSearchBar({
   const [open, setOpen] = useState(false)
   const [places, setPlaces] = useState<Awaited<ReturnType<typeof forwardGeocode>>>([])
   const [loading, setLoading] = useState(false)
+  const [addressBias, setAddressBias] = useState<GeocodeBias | undefined>()
   const wrapRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const origin = locationBias ?? proximity
+    let cancelled = false
+    void geocodeBiasFor(origin).then((b) => {
+      if (!cancelled) setAddressBias(b)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [locationBias?.latitude, locationBias?.longitude, proximity.latitude, proximity.longitude])
 
   const courtHits = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -46,13 +63,13 @@ export function MapSearchBar({
     }
     setLoading(true)
     const timer = window.setTimeout(() => {
-      void forwardGeocode(q, proximity).then((list) => {
+      void forwardGeocode(q, addressBias).then((list) => {
         setPlaces(list)
         setLoading(false)
       })
     }, 280)
     return () => window.clearTimeout(timer)
-  }, [query, proximity.latitude, proximity.longitude])
+  }, [query, addressBias])
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {

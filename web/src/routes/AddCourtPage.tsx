@@ -157,16 +157,26 @@ export function AddCourtPage() {
       <div
         className="fixed inset-x-0 top-0 z-50 flex flex-col bg-bg bottom-[calc(4.75rem+env(safe-area-inset-bottom))] md:inset-y-0 md:right-0 md:bottom-0 md:left-56"
       >
-        <header className="flex shrink-0 items-center gap-2 border-b border-line bg-surface/95 px-3 py-2 backdrop-blur pt-[max(0.5rem,env(safe-area-inset-top))]">
-          <Link to="/" className="-ml-1 rounded-lg p-2 text-ink-2 hover:text-ink" aria-label="Back to map">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-              <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </Link>
-          <div className="min-w-0 flex-1">
-            <h1 className="display truncate text-2xl font-extrabold">Place court</h1>
+        <header className="relative z-20 shrink-0 border-b border-line bg-surface/95 px-3 pb-3 backdrop-blur pt-[max(0.5rem,env(safe-area-inset-top))]">
+          <div className="flex items-center gap-2">
+            <Link to="/" className="-ml-1 rounded-lg p-2 text-ink-2 hover:text-ink" aria-label="Back to map">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </Link>
+            <div className="min-w-0 flex-1">
+              <h1 className="display truncate text-2xl font-extrabold">Place court</h1>
+            </div>
+            <StepIndicator current={1} total={2} />
           </div>
-          <StepIndicator current={1} total={2} />
+          <MapSearchBar
+            className="mt-2"
+            mapRef={mapRef}
+            proximity={mapCenter}
+            locationBias={coords}
+            courts={nearbyCourts ?? []}
+            placeholder="Search address or existing court…"
+          />
         </header>
 
         <div className="relative h-0 min-h-0 flex-1">
@@ -179,13 +189,6 @@ export function AddCourtPage() {
             courts={nearbyCourts ?? []}
             className="absolute inset-0 size-full min-h-[12rem]"
             edgePinHint
-          />
-          <MapSearchBar
-            className="absolute inset-x-3 top-3 z-10"
-            mapRef={mapRef}
-            proximity={mapCenter}
-            courts={nearbyCourts ?? []}
-            placeholder="Search address or existing court…"
           />
         </div>
 

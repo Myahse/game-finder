@@ -100,6 +100,7 @@ export function MapPage() {
           className="mt-2"
           mapRef={mapRef}
           proximity={center}
+          locationBias={coords}
           courts={courts ?? []}
           onSelectCourt={(c) => update('court', c.id)}
         />
