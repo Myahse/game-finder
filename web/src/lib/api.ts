@@ -37,9 +37,7 @@ export function apiOrigin(): string {
       if (pageHost === 'localhost' || pageHost === '127.0.0.1') {
         return window.location.origin
       }
-      if (pageHost.endsWith('.vercel.app')) {
-        return window.location.origin
-      }
+      // Production hosts (e.g. Vercel): call Render directly — /api rewrites share one egress IP.
       return DEFAULT_REMOTE_API
     }
 

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -15,13 +16,14 @@ const (
 
 func (s *Server) setSessionCookies(w http.ResponseWriter, r *http.Request, access, refresh string, accessExp, refreshExp time.Time) {
 	secure := s.cookieSecure(r)
+	sameSite := sessionSameSite(r)
 	http.SetCookie(w, &http.Cookie{
 		Name:     cookieAccess,
 		Value:    access,
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   secure,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: sameSite,
 		Expires:  accessExp,
 	})
 	http.SetCookie(w, &http.Cookie{
@@ -30,13 +32,14 @@ func (s *Server) setSessionCookies(w http.ResponseWriter, r *http.Request, acces
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   secure,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: sameSite,
 		Expires:  refreshExp,
 	})
 }
 
 func (s *Server) clearSessionCookies(w http.ResponseWriter, r *http.Request) {
 	secure := s.cookieSecure(r)
+	sameSite := sessionSameSite(r)
 	expired := time.Unix(0, 0)
 	for _, name := range []string{cookieAccess, cookieRefresh} {
 		http.SetCookie(w, &http.Cookie{
@@ -45,11 +48,31 @@ func (s *Server) clearSessionCookies(w http.ResponseWriter, r *http.Request) {
 			Path:     "/",
 			HttpOnly: true,
 			Secure:   secure,
-			SameSite: http.SameSiteLaxMode,
+			SameSite: sameSite,
 			MaxAge:   -1,
 			Expires:  expired,
 		})
 	}
+}
+
+// sessionSameSite uses None when the web app origin differs from the API host (Vercel → Render).
+func sessionSameSite(r *http.Request) http.SameSite {
+	origin := strings.TrimSpace(r.Header.Get("Origin"))
+	if origin == "" {
+		return http.SameSiteLaxMode
+	}
+	oh, err := url.Parse(origin)
+	if err != nil || oh.Host == "" {
+		return http.SameSiteLaxMode
+	}
+	if hostOnly(oh.Host) != hostOnly(r.Host) {
+		return http.SameSiteNoneMode
+	}
+	return http.SameSiteLaxMode
+}
+
+func hostOnly(hostport string) string {
+	return strings.ToLower(strings.TrimSpace(strings.Split(hostport, ":")[0]))
 }
 
 func (s *Server) cookieSecure(r *http.Request) bool {

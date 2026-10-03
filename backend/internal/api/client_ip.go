@@ -13,6 +13,9 @@ func (s *Server) clientIP(r *http.Request) string {
 		remote = r.RemoteAddr
 	}
 	if s.peerIsTrustedProxy(remote) {
+		if ip := clientIPFromForwarded(r.Header.Get("X-Vercel-Forwarded-For")); ip != "" {
+			return ip
+		}
 		if ip := clientIPFromForwarded(r.Header.Get("X-Forwarded-For")); ip != "" {
 			return ip
 		}

@@ -49,7 +49,7 @@ func New(cfg config.Config, d *db.DB, hub *realtime.Hub, media *storage.Media) *
 		db:             d,
 		tokens:         auth.NewIssuer(cfg.JWTSecret, cfg.AccessTokenTTL),
 		hub:            hub,
-		limit:           newRateLimiter(12, time.Minute),
+		limit:           newRateLimiter(30, time.Minute),
 		browseLimit:     newRateLimiter(90, time.Minute),
 		userCourtLimit:  newRateLimiter(10, time.Hour),
 		userGameLimit:   newRateLimiter(40, time.Hour),
@@ -532,7 +532,7 @@ func (l *rateLimiter) allow(key string) bool {
 func (s *Server) rateLimited(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ip := s.clientIP(r)
-		if !s.dbRateLimit(r.Context(), "auth", ip, 12, 60) || !s.limit.allow(ip) {
+		if !s.dbRateLimit(r.Context(), "auth", ip, 30, 60) {
 			writeError(w, http.StatusTooManyRequests, "rate_limited", "Too many attempts. Try again in a minute.")
 			return
 		}
