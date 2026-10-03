@@ -13,25 +13,8 @@ import { CourtPlacementMap } from '../components/CourtPlacementMap'
 import { Hourglass, Plus, SportName } from '../components/icons'
 import { formatOpeningHours } from '../lib/openingHours'
 import { reverseGeocode } from '../lib/reverseGeocode'
+import { StepIndicator } from '../components/StepIndicator'
 import { Button, ErrorText, Field, Input, Textarea } from '../components/ui'
-
-function StepIndicator({ current }: { current: 1 | 2 }) {
-  return (
-    <div className="flex shrink-0 items-center gap-1.5" aria-label={`Step ${current} of 2`}>
-      {([1, 2] as const).map((n) => (
-        <span
-          key={n}
-          className={`flex size-8 items-center justify-center rounded-full text-sm font-extrabold tabular-nums ${
-            n === current ? 'bg-brand text-brand-ink' : n < current ? 'bg-brand/25 text-brand' : 'bg-surface-2 text-ink-2'
-          }`}
-          aria-current={n === current ? 'step' : undefined}
-        >
-          {n}
-        </span>
-      ))}
-    </div>
-  )
-}
 
 export function AddCourtPage() {
   const navigate = useNavigate()
@@ -171,7 +154,7 @@ export function AddCourtPage() {
           <div className="min-w-0 flex-1">
             <h1 className="display truncate text-2xl font-extrabold">Place court</h1>
           </div>
-          <StepIndicator current={1} />
+          <StepIndicator current={1} total={2} />
         </header>
 
         <div className="relative h-0 min-h-0 flex-1">
@@ -226,7 +209,7 @@ export function AddCourtPage() {
         <div className="min-w-0 flex-1">
           <h1 className="display truncate text-3xl font-extrabold">Court details</h1>
         </div>
-        <StepIndicator current={2} />
+        <StepIndicator current={2} total={2} />
       </header>
 
       <div className="mx-auto grid max-w-md gap-5 p-5">

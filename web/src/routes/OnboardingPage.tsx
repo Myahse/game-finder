@@ -6,8 +6,9 @@ import { skillLabels } from '../lib/format'
 import { useSports, useUpdateMe } from '../lib/queries'
 import type { SkillLevel } from '../lib/types'
 import { SportIcon, SportName } from '../components/icons'
-import { StepFlow, useStepFlow } from '../components/StepFlow'
-import { ErrorText, Field, Input, Spinner } from '../components/ui'
+import { StepIndicator } from '../components/StepIndicator'
+import { useStepFlow } from '../components/StepFlow'
+import { Button, ErrorText, Field, Input, Spinner } from '../components/ui'
 import { useLocale } from '../i18n/LocaleProvider'
 
 const usernamePattern = /^[A-Za-z0-9_.]{3,24}$/
@@ -87,6 +88,7 @@ export function OnboardingPage() {
   }
 
   const canNext = step === 0 ? profileValid : step === 1 ? !!sportId : profileValid && !!sportId
+  const lastStep = 2
 
   return (
     <div className="mx-auto flex min-h-full max-w-md flex-col px-6 py-10">
@@ -103,106 +105,129 @@ export function OnboardingPage() {
       <h1 className="display mt-1 text-4xl font-extrabold">{t.onboarding.title}</h1>
       <p className="mt-3 text-ink-2">{t.onboarding.subtitle}</p>
 
-      <div className="mt-8">
-        <StepFlow
-          step={step}
-          onStepChange={setStep}
-          onStepAdvance={goNext}
-          onSubmit={submit}
-          canNext={canNext}
-          busy={update.isPending}
-          submitLabel={t.onboarding.openMap}
-        >
-          {[
-            <div key="profile" className="grid gap-3">
-              <h2 className="display text-2xl font-bold">{t.onboarding.profile}</h2>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label={t.profile.firstName}>
-                  <Input required autoComplete="given-name" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-                </Field>
-                <Field label={t.profile.lastName}>
-                  <Input required autoComplete="family-name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
-                </Field>
-              </div>
-              <Field
-                label={t.profile.username}
-                hint={
-                  usernameTaken ? (
-                    <span className="text-danger">{t.onboarding.usernameTaken}</span>
-                  ) : (
-                    t.onboarding.usernameHint
-                  )
-                }
-              >
-                <Input
-                  required
-                  pattern="[A-Za-z0-9_.]{3,24}"
-                  autoComplete="username"
-                  value={username}
-                  onChange={(e) => {
-                    setUsernameTaken(false)
-                    setUsername(e.target.value)
-                  }}
-                  onBlur={() => void checkUsername()}
-                />
+      <form onSubmit={submit} className="mt-8 grid gap-5">
+        <StepIndicator current={step + 1} total={3} />
+
+        {step === 0 && (
+          <div className="grid gap-3">
+            <h2 className="display text-2xl font-bold">{t.onboarding.profile}</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t.profile.firstName}>
+                <Input required autoComplete="given-name" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
               </Field>
-              {user?.email && (
-                <p className="text-sm text-ink-2">
-                  {t.onboarding.email}: <span className="font-medium text-ink">{user.email}</span>
-                </p>
-              )}
-            </div>,
-            <div key="sport" className="grid gap-3">
-              <h2 className="display text-2xl font-bold">{t.onboarding.sport}</h2>
-              <p className="text-sm text-ink-2">{t.onboarding.sportHint}</p>
-              {!sports && <Spinner />}
-              {available.map((s) => (
+              <Field label={t.profile.lastName}>
+                <Input required autoComplete="family-name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+              </Field>
+            </div>
+            <Field
+              label={t.profile.username}
+              hint={
+                usernameTaken ? (
+                  <span className="text-danger">{t.onboarding.usernameTaken}</span>
+                ) : (
+                  t.onboarding.usernameHint
+                )
+              }
+            >
+              <Input
+                required
+                pattern="[A-Za-z0-9_.]{3,24}"
+                autoComplete="username"
+                value={username}
+                onChange={(e) => {
+                  setUsernameTaken(false)
+                  setUsername(e.target.value)
+                }}
+                onBlur={() => void checkUsername()}
+              />
+            </Field>
+            {user?.email && (
+              <p className="text-sm text-ink-2">
+                {t.onboarding.email}: <span className="font-medium text-ink">{user.email}</span>
+              </p>
+            )}
+          </div>
+        )}
+
+        {step === 1 && (
+          <div className="grid gap-3">
+            <h2 className="display text-2xl font-bold">{t.onboarding.sport}</h2>
+            <p className="text-sm text-ink-2">{t.onboarding.sportHint}</p>
+            {!sports && <Spinner />}
+            {available.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setSportId(s.id)}
+                aria-pressed={sportId === s.id}
+                className={`flex items-center gap-4 rounded-2xl border-2 p-3 text-left transition ${
+                  sportId === s.id ? 'border-brand bg-brand/10' : 'border-line bg-surface'
+                }`}
+              >
+                <SportIcon slug={s.slug} className="size-9 text-brand" />
+                <span className="display text-xl font-bold">{s.name}</span>
+              </button>
+            ))}
+            {sports?.some((s) => !s.active) && (
+              <p className="text-sm text-ink-2">
+                <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+                  {t.onboarding.comingSoon}
+                  {sports
+                    .filter((s) => !s.active)
+                    .map((s) => <SportName key={s.id} sport={s} />)}
+                </span>
+              </p>
+            )}
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="grid gap-3">
+            <h2 className="display text-2xl font-bold">{t.profile.skillLevel}</h2>
+            <p className="text-sm text-ink-2">Games and matchmaking use this as a guide for who joins.</p>
+            <div className="grid grid-cols-2 gap-2">
+              {(Object.keys(skillLabels) as SkillLevel[]).map((k) => (
                 <button
-                  key={s.id}
+                  key={k}
                   type="button"
-                  onClick={() => setSportId(s.id)}
-                  aria-pressed={sportId === s.id}
-                  className={`flex items-center gap-4 rounded-2xl border-2 p-3 text-left transition ${
-                    sportId === s.id ? 'border-brand bg-brand/10' : 'border-line bg-surface'
-                  }`}
+                  onClick={() => setSkill(k)}
+                  aria-pressed={skill === k}
+                  className={`rounded-xl border-2 px-3 py-3 text-sm font-semibold ${skill === k ? 'border-brand bg-brand/10' : 'border-line bg-surface'}`}
                 >
-                  <SportIcon slug={s.slug} className="size-9 text-brand" />
-                  <span className="display text-xl font-bold">{s.name}</span>
+                  {skillLabels[k]}
                 </button>
               ))}
-              {sports?.some((s) => !s.active) && (
-                <p className="text-sm text-ink-2">
-                  <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
-                    {t.onboarding.comingSoon}
-                    {sports
-                      .filter((s) => !s.active)
-                      .map((s) => <SportName key={s.id} sport={s} />)}
-                  </span>
-                </p>
-              )}
-            </div>,
-            <div key="skill" className="grid gap-3">
-              <h2 className="display text-2xl font-bold">{t.profile.skillLevel}</h2>
-              <p className="text-sm text-ink-2">Games and matchmaking use this as a guide for who joins.</p>
-              <div className="grid grid-cols-2 gap-2">
-                {(Object.keys(skillLabels) as SkillLevel[]).map((k) => (
-                  <button
-                    key={k}
-                    type="button"
-                    onClick={() => setSkill(k)}
-                    aria-pressed={skill === k}
-                    className={`rounded-xl border-2 px-3 py-3 text-sm font-semibold ${skill === k ? 'border-brand bg-brand/10' : 'border-line bg-surface'}`}
-                  >
-                    {skillLabels[k]}
-                  </button>
-                ))}
-              </div>
-              <p className="text-center text-xs text-ink-2">{t.onboarding.locationHint}</p>
-            </div>,
-          ]}
-        </StepFlow>
-        {error ? <div className="mt-3"><ErrorText>{error}</ErrorText></div> : null}
-      </div>
+            </div>
+            <p className="text-center text-xs text-ink-2">{t.onboarding.locationHint}</p>
+          </div>
+        )}
+
+        {error ? <ErrorText>{error}</ErrorText> : null}
+
+        <div className="flex gap-2">
+          {step > 0 ? (
+            <Button type="button" variant="secondary" className="min-h-11 flex-1 text-base" onClick={() => setStep(step - 1)} disabled={update.isPending}>
+              Back
+            </Button>
+          ) : (
+            <span className="flex-1" />
+          )}
+          {step < lastStep ? (
+            <Button
+              type="button"
+              className="min-h-11 flex-1 text-base"
+              disabled={!canNext || update.isPending}
+              onClick={() => void goNext()}
+            >
+              Next
+            </Button>
+          ) : (
+            <Button type="submit" className="min-h-11 flex-1 text-base" loading={update.isPending} disabled={!canNext || update.isPending}>
+              {t.onboarding.openMap}
+            </Button>
+          )}
+        </div>
+      </form>
     </div>
   )
 }
