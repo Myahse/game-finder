@@ -11,7 +11,9 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-const defaultFirebaseJWKSURL = "https://www.googleapis.com/oauth2/v3/certs"
+// Firebase Auth ID tokens are signed with securetoken@system.gserviceaccount.com keys,
+// not the oauth2/v3/certs set used for Google OAuth client ID tokens.
+const defaultFirebaseJWKSURL = "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com"
 
 // FirebaseVerifier checks Firebase Auth ID tokens (RS256, Google-issued keys).
 type FirebaseVerifier struct {
