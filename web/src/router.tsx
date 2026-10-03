@@ -39,8 +39,12 @@ function RootAuthLayout() {
 
   if (['/register', '/login', '/welcome'].includes(path)) return <Navigate to="/" replace />
 
-  if (!user.onboarded && path !== '/onboarding') return <Navigate to="/onboarding" replace />
-  if (user.onboarded && path === '/onboarding') return <Navigate to="/" replace />
+  // Finish sport + level on `/` (not a separate /onboarding URL).
+  if (path === '/onboarding') return <Navigate to="/" replace />
+  if (!user.onboarded) {
+    if (path === '/') return <OnboardingPage />
+    return <Navigate to="/" replace />
+  }
 
   return <Outlet />
 }
@@ -60,7 +64,6 @@ export const router = createBrowserRouter([
       { path: 'privacy', element: <PrivacyPage /> },
       { path: 'login', element: <LoginPage /> },
       { path: 'register', element: <RegisterPage /> },
-      { path: 'onboarding', element: <OnboardingPage /> },
       {
         element: <AppShell />,
         children: [

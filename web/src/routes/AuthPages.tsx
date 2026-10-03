@@ -37,7 +37,7 @@ export function RegisterPage() {
         const url = await uploadImage(photo, 'avatar').catch(() => null)
         if (url) await api('/api/me', { method: 'PATCH', json: { avatar_url: url } }).catch(() => {})
       }
-      navigate('/onboarding', { replace: true })
+      navigate('/', { replace: true })
     } catch (err) {
       setError(errorMessage(err))
     } finally {

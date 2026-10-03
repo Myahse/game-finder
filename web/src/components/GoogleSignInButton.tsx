@@ -61,9 +61,9 @@ export function GoogleSignInButton({ onSignedIn, showTerms = true }: { onSignedI
     setBusy(true)
     setError('')
     try {
-      const isNew = await googleSignIn(idToken, viaFirebase)
+      await googleSignIn(idToken, viaFirebase)
       onSignedIn?.()
-      navigate(isNew ? '/onboarding' : '/', { replace: true })
+      navigate('/', { replace: true })
     } catch (e) {
       setError(errorMessage(e))
     } finally {

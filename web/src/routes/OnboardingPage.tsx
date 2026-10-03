@@ -1,4 +1,4 @@
-import { useCallback, useState, type FormEvent } from 'react'
+import { useCallback, useMemo, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
@@ -12,13 +12,24 @@ import { useLocale } from '../i18n/LocaleProvider'
 
 const usernamePattern = /^[A-Za-z0-9_.]{3,24}$/
 
+function profileCompleteFromUser(user: { first_name?: string; last_name?: string; username?: string } | null) {
+  if (!user) return false
+  const u = user.username?.trim() ?? ''
+  return (
+    (user.first_name?.trim().length ?? 0) > 0 &&
+    (user.last_name?.trim().length ?? 0) > 0 &&
+    usernamePattern.test(u)
+  )
+}
+
 export function OnboardingPage() {
-  const { user, updateUser } = useAuth()
+  const { user, updateUser, logout } = useAuth()
   const { t } = useLocale()
   const navigate = useNavigate()
   const { data: sports } = useSports()
   const update = useUpdateMe()
-  const { step, setStep } = useStepFlow()
+  const startStep = useMemo(() => (profileCompleteFromUser(user) ? 1 : 0), [user])
+  const { step, setStep } = useStepFlow(startStep)
   const [sportId, setSportId] = useState<string | null>(user?.preferred_sport_id ?? null)
   const [skill, setSkill] = useState<SkillLevel>(user?.skill_level ?? 'intermediate')
   const [firstName, setFirstName] = useState(user?.first_name ?? '')
@@ -79,6 +90,15 @@ export function OnboardingPage() {
 
   return (
     <div className="mx-auto flex min-h-full max-w-md flex-col px-6 py-10">
+      <div className="mb-4 flex justify-end">
+        <button
+          type="button"
+          className="text-sm font-semibold text-ink-2 hover:text-brand"
+          onClick={() => void logout().then(() => navigate('/', { replace: true }))}
+        >
+          Sign out
+        </button>
+      </div>
       <p className="text-sm font-semibold text-ink-2">{t.onboarding.welcome}, {user?.first_name}</p>
       <h1 className="display mt-1 text-4xl font-extrabold">{t.onboarding.title}</h1>
       <p className="mt-3 text-ink-2">{t.onboarding.subtitle}</p>
