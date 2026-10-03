@@ -443,11 +443,20 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _first = TextEditingController();
+  final _last = TextEditingController();
+  final _username = TextEditingController();
   List<Sport>? _sports;
   String? _sportId;
   String _skill = 'intermediate';
   String? _error;
   bool _busy = false;
+  bool _usernameTaken = false;
+  String? _initialUsername;
+  bool _profileSeeded = false;
+
+  static final _usernameRe = RegExp(r'^[A-Za-z0-9_.]{3,24}$');
 
   @override
   void initState() {
@@ -460,10 +469,50 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     });
   }
 
+  @override
+  void dispose() {
+    _first.dispose();
+    _last.dispose();
+    _username.dispose();
+    super.dispose();
+  }
+
+  void _seedProfile(Me? user) {
+    if (user == null || _profileSeeded) return;
+    _profileSeeded = true;
+    _initialUsername = user.username;
+    _first.text = user.firstName;
+    _last.text = user.lastName;
+    _username.text = user.username;
+  }
+
+  Future<void> _checkUsername() async {
+    final u = _username.text.trim();
+    if (!_usernameRe.hasMatch(u)) return;
+    if (u == _initialUsername) {
+      setState(() => _usernameTaken = false);
+      return;
+    }
+    try {
+      final j = Map<String, dynamic>.from(
+        await context.read<Api>().get('/api/auth/username-available?username=${Uri.encodeComponent(u)}'),
+      );
+      if (mounted) setState(() => _usernameTaken = j['available'] != true);
+    } catch (_) {}
+  }
+
   Future<void> _done(String sportId) async {
+    if (!_formKey.currentState!.validate() || _usernameTaken) return;
     setState(() => _busy = true);
     try {
-      await context.read<AuthState>().updateMe({'preferred_sport_id': sportId, 'skill_level': _skill, 'onboarded': true});
+      await context.read<AuthState>().updateMe({
+        'first_name': _first.text.trim(),
+        'last_name': _last.text.trim(),
+        'username': _username.text.trim(),
+        'preferred_sport_id': sportId,
+        'skill_level': _skill,
+        'onboarded': true,
+      });
     } catch (e) {
       if (mounted) setState(() => _error = errorText(e));
     } finally {
@@ -474,19 +523,54 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthState>().user;
+    _seedProfile(user);
     final active = _sports?.where((s) => s.active).toList() ?? const <Sport>[];
     final soon = _sports?.where((s) => !s.active).toList() ?? const <Sport>[];
     return Scaffold(
       body: SafeArea(
-        child: ListView(padding: const EdgeInsets.all(24), children: [
+        child: Form(
+          key: _formKey,
+          child: ListView(padding: const EdgeInsets.all(24), children: [
           Text('Welcome, ${user?.firstName ?? ''}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
           Text('SET UP YOUR COURT RADAR', style: Theme.of(context).textTheme.displaySmall),
+          const SizedBox(height: 8),
+          Text(
+            'Confirm your profile, then pick your sport.',
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 20),
+          Text('YOUR PROFILE', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(child: TextFormField(controller: _first, decoration: const InputDecoration(labelText: 'First name'), validator: _required)),
+            const SizedBox(width: 12),
+            Expanded(child: TextFormField(controller: _last, decoration: const InputDecoration(labelText: 'Last name'), validator: _required)),
+          ]),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _username,
+            decoration: InputDecoration(
+              labelText: 'Username',
+              helperText: _usernameTaken ? 'That username is taken.' : '3–24 letters, numbers, _ or .',
+              helperStyle: TextStyle(color: _usernameTaken ? Theme.of(context).colorScheme.error : null),
+            ),
+            onChanged: (_) => setState(() => _usernameTaken = false),
+            onFieldSubmitted: (_) => _checkUsername(),
+            onEditingComplete: _checkUsername,
+            validator: (v) => _usernameRe.hasMatch(v ?? '') ? null : '3–24 letters, numbers, _ or .',
+          ),
+          if (user != null && user.email.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text('Email: ${user.email}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
+          ],
+          const SizedBox(height: 24),
+          Text('YOUR SPORT', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
           Text(
             'Pick the one sport you play. The map and games stay on that sport — it can\'t be changed later.',
             style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
           if (_sports == null && _error == null) const Center(child: CircularProgressIndicator()),
           for (final s in active)
             Padding(
@@ -518,7 +602,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           const SizedBox(height: 32),
           ErrorBanner(_error),
           PrimaryButton(
-            onPressed: _busy || _sportId == null ? null : () => _done(_sportId!),
+            onPressed: _busy || _sportId == null || _usernameTaken ? null : () => _done(_sportId!),
             child: const Text('OPEN THE MAP'),
           ),
           const SizedBox(height: 8),
@@ -528,7 +612,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13),
           ),
         ]),
+        ),
       ),
     );
   }
+
+  String? _required(String? v) => (v == null || v.trim().isEmpty) ? 'Required' : null;
 }
