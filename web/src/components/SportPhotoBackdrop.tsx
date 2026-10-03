@@ -1,64 +1,5 @@
 import { useEffect, useState } from 'react'
-import { SportIcon } from './icons'
-
-const commons = (file: string) => `https://commons.wikimedia.org/wiki/File:${file}`
-
-/**
- * Photos from Wikimedia Commons, self-hosted in `public/sports` (resized to webp, otherwise unaltered).
- * CC BY / BY-SA require the credit shown on each slide — keep `credit` in sync if a photo changes.
- */
-const sportPhotos = [
-  {
-    slug: 'basketball',
-    name: 'Basketball',
-    position: '15% 50%',
-    credit: {
-      author: 'James Moore200',
-      license: 'CC BY-SA 4.0',
-      href: commons('Basketball_players_10.jpg'),
-    },
-  },
-  {
-    slug: 'football',
-    name: 'Football',
-    position: '62% 50%',
-    credit: {
-      author: 'Tahiru Rajab',
-      license: 'CC BY-SA 4.0',
-      href: commons('Night_Football_matches_In_Northern_Ghana_13.jpg'),
-    },
-  },
-  {
-    slug: 'volleyball',
-    name: 'Volleyball',
-    position: '50% 15%',
-    credit: {
-      author: 'Astro Medya',
-      license: 'CC BY 2.0',
-      href: commons('5._Islamic_Solidarity_Games_2021_Konya_Women_Volleyball_Sudan_-_Cameroon_20220813_2.jpg'),
-    },
-  },
-  {
-    slug: 'tennis',
-    name: 'Tennis',
-    position: '4% 50%',
-    credit: {
-      author: 'Godstime Elijah',
-      license: 'CC BY-SA 4.0',
-      href: commons('Lawn_tennis_training_session_at_unilorin_9.jpg'),
-    },
-  },
-  {
-    slug: 'badminton',
-    name: 'Badminton',
-    position: '60% 50%',
-    credit: {
-      author: 'Samson Ssemakadde',
-      license: 'CC0',
-      href: commons('Schools_badminton_in_Lugogo023.jpg'),
-    },
-  },
-] as const
+import { sportPhotos } from '../content/sportPhotos'
 
 const SLIDE_MS = 5500
 
@@ -82,13 +23,10 @@ export function SportPhotoBackdrop() {
     return () => window.clearInterval(id)
   }, [reduced])
 
-  const current = sportPhotos[index]
-
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      {/* Photos fill the top of the screen only, so wide shots crop tight enough to keep the players in view. */}
-      {/* Phones: top of the screen. Large screens: a panel on the right, text sits on the left. */}
-      <div aria-hidden className="absolute inset-x-0 top-0 h-[64%] overflow-hidden lg:inset-y-0 lg:left-auto lg:h-full lg:w-[56%]">
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+      {/* Phones: top of the screen (tight crop keeps players in view). Large screens: a panel on the right. */}
+      <div className="absolute inset-x-0 top-0 h-[64%] overflow-hidden lg:inset-y-0 lg:left-auto lg:h-full lg:w-[56%]">
         {sportPhotos.map((p, i) => {
           const on = i === index
           return (
@@ -117,30 +55,6 @@ export function SportPhotoBackdrop() {
         <div className="absolute inset-y-0 left-0 hidden w-2/5 bg-gradient-to-r from-bg via-bg/60 to-transparent lg:block" />
       </div>
 
-      <div className="absolute inset-x-0 top-[max(1.25rem,env(safe-area-inset-top))] mx-auto flex max-w-md items-start justify-between px-6 lg:left-auto lg:right-0 lg:top-8 lg:mx-0 lg:w-[56%] lg:max-w-none lg:pl-[22%] lg:pr-10">
-        <span key={current.slug} className="ftg-label-in grid gap-0.5 drop-shadow">
-          <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-white" aria-hidden>
-            <SportIcon slug={current.slug} className="size-4" />
-            {current.name}
-          </span>
-          <a
-            href={current.credit.href}
-            target="_blank"
-            rel="noreferrer"
-            className="pointer-events-auto text-[10px] font-medium text-white/70 hover:text-white hover:underline"
-          >
-            Photo: {current.credit.author} · {current.credit.license}
-          </a>
-        </span>
-        <span className="mt-1.5 flex gap-1" aria-hidden>
-          {sportPhotos.map((p, i) => (
-            <span
-              key={p.slug}
-              className={`h-1 rounded-full bg-white transition-all duration-500 ${i === index ? 'w-5 opacity-100' : 'w-1.5 opacity-50'}`}
-            />
-          ))}
-        </span>
-      </div>
     </div>
   )
 }
