@@ -7,7 +7,7 @@ import { configureEarthMap } from '../lib/mapboxEarth'
 import { MAPBOX_ACCESS_TOKEN, MAPBOX_MAP_PROPS, mapboxConfigured, mapboxTokenSetupError } from '../lib/mapbox'
 import { mapStyleForTheme } from '../theme/mapStyle'
 import { useTheme } from '../theme/ThemeProvider'
-import { SportIcon, Users } from './icons'
+import { Hourglass, SportIcon, Users } from './icons'
 import { courtPhotoUrl } from '../lib/mediaUrl'
 import type { Activity, Court } from '../lib/types'
 type Props = {
@@ -310,11 +310,13 @@ export function CourtPin({
 }) {
   const sport = court.sports.find((s) => s.slug === sportSlug) ?? court.sports[0]
   const photo = courtPhotoUrl(court.photos ?? [])
-  const label =
-    court.activity === 'inactive'
+  const preview = court.status === 'pending'
+  const label = preview
+    ? `${court.name}: preview (pending review)`
+    : court.activity === 'inactive'
       ? `${court.name}: inactive`
       : `${court.name}: ${court.player_count} players${court.activity === 'active' ? ', game active' : ''}`
-  const showCount = court.activity !== 'inactive' && court.player_count > 0
+  const showCount = !preview && court.activity !== 'inactive' && court.player_count > 0
   const activity = court.activity
   const slug = sport?.slug ?? 'basketball'
 
@@ -333,23 +335,44 @@ export function CourtPin({
     >
       <div className="relative flex w-full flex-col items-center">
         <span
-          className={`relative size-[46px] overflow-hidden rounded-full border-[2.5px] border-white ${ringShadow[activity]} ${
-            selected ? 'ring-[3px] ring-brand ring-offset-2 ring-offset-transparent' : ''
-          }`}
+          className={`relative size-[46px] overflow-hidden rounded-full border-[2.5px] border-white ${
+            preview ? 'shadow-md' : ringShadow[activity]
+          } ${selected ? 'ring-[3px] ring-brand ring-offset-2 ring-offset-transparent' : ''}`}
         >
           <span
-            className={`relative flex size-full items-center justify-center overflow-hidden rounded-full border-[3px] ${ringClass[activity]} ${
-              photo ? 'bg-ink/5' : thumbBg[activity]
-            }`}
+            className={`relative flex size-full items-center justify-center overflow-hidden rounded-full border-[3px] ${
+              preview ? 'border-dashed border-players bg-players/20' : ringClass[activity]
+            } ${photo ? 'bg-ink/5' : preview ? 'bg-players/15' : thumbBg[activity]}`}
           >
             {photo ? (
               <PinPicture src={photo} activity={activity} slug={slug} />
+            ) : preview ? (
+              <Hourglass className="size-6 text-players" aria-hidden />
             ) : (
               <PinFallback activity={activity} slug={slug} />
             )}
+            {preview ? (
+              <span
+                className="absolute inset-0 rounded-full bg-surface/35 backdrop-blur-[1px]"
+                aria-hidden
+              />
+            ) : null}
           </span>
         </span>
-        <PinStick activity={activity} />
+        {preview ? (
+          <svg width="14" height="12" viewBox="0 0 14 12" className="-mt-px shrink-0" aria-hidden>
+            <path
+              d="M7 12 0 0h14L7 12Z"
+              fill="var(--players)"
+              stroke="#fff"
+              strokeWidth="1.5"
+              strokeDasharray="3 2"
+              strokeLinejoin="round"
+            />
+          </svg>
+        ) : (
+          <PinStick activity={activity} />
+        )}
         {showCount && (
           <span
             className={`absolute top-[32px] left-1/2 -translate-x-1/2 rounded-full border-[1.5px] border-white px-1.5 py-0.5 text-[11px] font-black leading-none text-white ${
@@ -361,11 +384,15 @@ export function CourtPin({
         )}
       </div>
       <span
-        className={`pointer-events-none absolute left-1/2 top-full z-10 mt-0.5 w-max max-w-[96px] -translate-x-1/2 truncate rounded-md border px-1.5 py-0.5 text-center text-[10px] font-bold leading-tight shadow-sm ${
-          selected ? 'border-brand bg-surface text-ink' : 'border-line/80 bg-surface/95 text-ink'
+        className={`pointer-events-none absolute left-1/2 top-full z-10 mt-0.5 w-max max-w-[110px] -translate-x-1/2 truncate rounded-md border px-1.5 py-0.5 text-center text-[10px] font-bold leading-tight shadow-sm ${
+          preview
+            ? 'border-players/60 bg-players/20 text-ink'
+            : selected
+              ? 'border-brand bg-surface text-ink'
+              : 'border-line/80 bg-surface/95 text-ink'
         }`}
       >
-        {court.name}
+        {preview ? `Preview · ${court.name}` : court.name}
       </span>
     </button>
   )

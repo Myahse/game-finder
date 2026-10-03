@@ -11,7 +11,7 @@ import { directionsUrl, gameHasOpenSpots, gamePlayerCountLabel } from '../lib/fo
 import type { Coords } from '../lib/location'
 import { useGameAction, useMyPresence, usePresenceAction } from '../lib/queries'
 import type { Court, Game } from '../lib/types'
-import { Check, Circle, MapPin, Navigation } from 'lucide-react'
+import { Check, Circle, Hourglass, MapPin, Navigation } from 'lucide-react'
 import { AppAlert, Button, ErrorText } from './ui'
 
 /** JOIN GAME · I'M HERE · GET DIRECTIONS — shared by the sheet and the details page. */
@@ -30,6 +30,31 @@ export function CourtActions({ court, games, me }: { court: Court; games: Game[]
   const atCourt = isAtCourt(me, court)
 
   const showNotAtCourt = () => setFarModal(true)
+
+  if (court.status === 'pending') {
+    return (
+      <div className="grid gap-2">
+        <p className="rounded-xl bg-players/20 p-3 text-sm font-medium">
+          <span className="inline-flex items-center gap-2">
+            <Hourglass className="size-4 shrink-0" aria-hidden />
+            Preview only — waiting for admin review. Only you see this on the map.
+          </span>
+        </p>
+        <Button type="button" variant="secondary" onClick={() => navigate(`/courts/${court.id}`)}>
+          View your proposal
+        </Button>
+        <a
+          href={directionsUrl(court.latitude, court.longitude)}
+          target="_blank"
+          rel="noreferrer"
+          className="display inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-surface-2 px-4 text-lg font-bold text-ink hover:bg-line"
+        >
+          <Navigation className="size-5 shrink-0" aria-hidden />
+          Directions
+        </a>
+      </div>
+    )
+  }
 
   const join = () => {
     if (!joinable) return navigate(`/games/new?court=${court.id}`)

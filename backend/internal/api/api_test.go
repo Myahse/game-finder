@@ -411,7 +411,20 @@ func TestCourtProposalAndAdmin(t *testing.T) {
 		return nil
 	}
 	if c := onMap(court["id"]); c != nil {
-		t.Fatalf("pending court on map = %v", c)
+		t.Fatalf("pending court on public map = %v", c)
+	}
+	onMapAuth := func(token string, id any) map[string]any {
+		t.Helper()
+		_, arr := e.must(200, token, "GET", "/api/courts/nearby?lat=5.22&lng=-3.74&radius_km=1", nil)
+		for _, c := range arr {
+			if c.(map[string]any)["id"] == id {
+				return c.(map[string]any)
+			}
+		}
+		return nil
+	}
+	if c := onMapAuth(u.Token, court["id"]); c == nil || c["status"] != "pending" {
+		t.Fatalf("proposer pending preview on map = %v", c)
 	}
 	e.must(200, u.Token, "GET", "/api/courts/"+court["id"].(string), nil)
 	_, notifs := e.must(200, u.Token, "GET", "/api/me/notifications", nil)
