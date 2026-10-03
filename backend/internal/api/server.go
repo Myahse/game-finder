@@ -181,6 +181,7 @@ func (s *Server) Routes() http.Handler {
 				r.Use(s.requireAdmin)
 				r.Get("/stats", s.adminStats)
 				r.Get("/courts", s.adminCourts)
+				r.Get("/courts/{id}", s.adminGetCourt)
 				r.Post("/courts", s.adminCreateCourt)
 				r.Patch("/courts/{id}", s.adminUpdateCourt)
 				r.Post("/courts/{id}/review", s.adminReviewCourt)

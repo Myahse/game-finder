@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useEffect, useState, type FormEvent } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, errorMessage } from '../../lib/api'
 import { DEFAULT_CENTER, type Coords } from '../../lib/location'
@@ -23,13 +23,30 @@ export function AdminCourts() {
     queryFn: () => api<AdminCourt[]>(`/api/admin/courts?${new URLSearchParams({ ...(status && { status }), ...(q && { q }) })}`),
   })
   const act = useMutation({
-    mutationFn: ({ id, kind, reason }: { id: string; kind: 'approve' | 'reject' | 'delete'; reason?: string }) =>
+    mutationFn: ({
+      id,
+      kind,
+      reason,
+    }: {
+      id: string
+      kind: 'approve' | 'reject' | 'pending' | 'delete'
+      reason?: string
+    }) =>
       kind === 'delete'
         ? api(`/api/admin/courts/${id}`, { method: 'DELETE' })
-        : api(`/api/admin/courts/${id}/review`, { method: 'POST', json: { approve: kind === 'approve', reason } }),
+        : kind === 'pending'
+          ? api(`/api/admin/courts/${id}/review`, { method: 'POST', json: { pending: true } })
+          : api(`/api/admin/courts/${id}/review`, { method: 'POST', json: { approve: kind === 'approve', reason } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin'] }),
     onError: (e) => alert(errorMessage(e)),
   })
+
+  const editId = params.get('edit')
+  useEffect(() => {
+    if (!editId || !data) return
+    const c = data.find((x) => x.id === editId)
+    if (c) setEditing(c)
+  }, [editId, data])
 
   if (editing) return <CourtEditor court={editing === 'new' ? null : editing} onDone={() => setEditing(null)} />
 
@@ -75,21 +92,20 @@ export function AdminCourts() {
             {c.description && <p className="mt-1 text-sm">{c.description}</p>}
           </div>
           <div className="flex flex-wrap gap-2">
-            {c.status !== 'approved' && (
-              <Button variant="live" className="min-h-9 px-3 text-base" onClick={() => act.mutate({ id: c.id, kind: 'approve' })}>
-                Approve
+            <Link to={`/admin/courts/${c.id}`}>
+              <Button type="button" variant="secondary" className="min-h-9 px-3 text-base">
+                Review
               </Button>
-            )}
-            {c.status === 'pending' && (
+            </Link>
+            {c.status === 'approved' && (
               <Button
-                variant="danger"
+                variant="ghost"
                 className="min-h-9 px-3 text-base"
                 onClick={() => {
-                  const reason = prompt('Reason for rejecting (optional)') ?? undefined
-                  act.mutate({ id: c.id, kind: 'reject', reason })
+                  if (confirm(`Send "${c.name}" back to pending review?`)) act.mutate({ id: c.id, kind: 'pending' })
                 }}
               >
-                Reject
+                Unapprove
               </Button>
             )}
             <Button variant="secondary" className="min-h-9 px-3 text-base" onClick={() => setEditing(c)}>

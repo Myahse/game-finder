@@ -416,6 +416,14 @@ func TestCourtProposalAndAdmin(t *testing.T) {
 	}
 
 	e.must(204, admin.Token, "POST", "/api/admin/courts/"+court["id"].(string)+"/review", map[string]any{"approve": true})
+	_, detail := e.must(200, admin.Token, "GET", "/api/admin/courts/"+court["id"].(string), nil)
+	if detail["status"] != "approved" {
+		t.Fatalf("admin court detail status = %v", detail["status"])
+	}
+	e.must(204, admin.Token, "POST", "/api/admin/courts/"+court["id"].(string)+"/review", map[string]any{"pending": true})
+	if detail, _ = e.must(200, admin.Token, "GET", "/api/admin/courts/"+court["id"].(string), nil); detail["status"] != "pending" {
+		t.Fatalf("after unapprove status = %v", detail["status"])
+	}
 	e.must(200, "", "GET", "/api/courts/nearby?lat=5.22&lng=-3.74&radius_km=1", nil)
 
 	// Report → admin resolves.

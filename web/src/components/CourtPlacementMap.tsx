@@ -20,6 +20,8 @@ type Props = {
   mapRef?: RefObject<MapRef | null>
   /** Show edge arrow when the court pin is outside the visible map area */
   edgePinHint?: boolean
+  /** View-only map (no pin drag / map tap). */
+  readOnly?: boolean
 }
 
 export function CourtPlacementMap({
@@ -31,6 +33,7 @@ export function CourtPlacementMap({
   className = '',
   mapRef,
   edgePinHint = true,
+  readOnly = false,
 }: Props) {
   const { isDark } = useTheme()
   const innerRef = useRef<MapRef>(null)
@@ -107,7 +110,7 @@ export function CourtPlacementMap({
         minZoom={2}
         maxZoom={18}
         mapStyle={mapStyleForTheme(isDark)}
-        onClick={(e) => onChange({ latitude: e.lngLat.lat, longitude: e.lngLat.lng })}
+        onClick={readOnly ? undefined : (e) => onChange({ latitude: e.lngLat.lat, longitude: e.lngLat.lng })}
         onMove={syncEdge}
         onMoveEnd={syncEdge}
         onLoad={(e) => {
@@ -122,7 +125,7 @@ export function CourtPlacementMap({
         attributionControl={false}
         logoPosition="bottom-right"
         style={{ width: '100%', height: '100%' }}
-        cursor="crosshair"
+        cursor={readOnly ? 'grab' : 'crosshair'}
       >
         <AttributionControl compact position="bottom-left" />
         {me && (
@@ -144,8 +147,8 @@ export function CourtPlacementMap({
             longitude={value.longitude}
             latitude={value.latitude}
             anchor="bottom"
-            draggable
-            onDragEnd={(e) => onChange({ latitude: e.lngLat.lat, longitude: e.lngLat.lng })}
+            draggable={!readOnly}
+            onDragEnd={readOnly ? undefined : (e) => onChange({ latitude: e.lngLat.lat, longitude: e.lngLat.lng })}
           >
             <MapPin className="size-10 text-brand drop-shadow" strokeWidth={2.4} aria-label="Court location" />
           </Marker>

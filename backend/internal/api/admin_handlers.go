@@ -38,6 +38,28 @@ func (s *Server) adminCourts(w http.ResponseWriter, r *http.Request) {
 	writeRaw(w, http.StatusOK, b)
 }
 
+func (s *Server) adminGetCourt(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	b, err := s.db.JSON(r.Context(), uid(r), `
+		select court_json(c, $2, $3) || jsonb_build_object(
+			'creator', (select user_public_json(u) from users u where u.id = c.created_by),
+			'open_reports', (select count(*) from reports rp where rp.court_id = c.id and rp.status = 'open'),
+			'games', coalesce((
+				select jsonb_agg(game_json(g, $2, $3) order by g.status, g.start_time)
+				from games g
+				where g.court_id = c.id
+				  and (g.status = 'active' or (g.status = 'scheduled' and g.start_time < now() + interval '7 days'))
+			), '[]')
+		)
+		from courts c where c.id = $1`,
+		id, optFloat(r, "lat"), optFloat(r, "lng"))
+	if err != nil {
+		writeDBError(w, r, err)
+		return
+	}
+	writeRaw(w, http.StatusOK, b)
+}
+
 func (s *Server) adminCreateCourt(w http.ResponseWriter, r *http.Request) {
 	var in courtInput
 	if !readJSON(w, r, &in) || !in.validate(s, w) {
@@ -85,14 +107,28 @@ func (s *Server) adminUpdateCourt(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) adminReviewCourt(w http.ResponseWriter, r *http.Request) {
 	var in struct {
-		Approve bool   `json:"approve"`
+		Approve *bool  `json:"approve"`
+		Pending bool   `json:"pending"`
 		Reason  string `json:"reason"`
 	}
 	if !readJSON(w, r, &in) {
 		return
 	}
-	if err := s.db.Exec(r.Context(), uid(r), "select admin_review_court($1, $2, $3)",
-		chi.URLParam(r, "id"), in.Approve, in.Reason); err != nil {
+	if in.Pending {
+		if err := s.db.Exec(r.Context(), uid(r), "select admin_review_court($1, false, null, true)",
+			chi.URLParam(r, "id")); err != nil {
+			writeDBError(w, r, err)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	if in.Approve == nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", "Send approve or pending.")
+		return
+	}
+	if err := s.db.Exec(r.Context(), uid(r), "select admin_review_court($1, $2, $3, false)",
+		chi.URLParam(r, "id"), *in.Approve, in.Reason); err != nil {
 		writeDBError(w, r, err)
 		return
 	}
