@@ -1,9 +1,13 @@
 import { useEffect } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
-import { clearPendingGameNavigation, stashGameShareToken } from '../lib/gameInvite'
+import {
+  gamePathForId,
+  stashGameShareToken,
+  stashResolvedGameTarget,
+} from '../lib/gameInvite'
 import { gameTimeLabel, gameTypeLabels } from '../lib/format'
 import { SportIcon } from '../components/icons'
 import { Button, PageHeader, Spinner } from '../components/ui'
@@ -37,12 +41,10 @@ export function GameLinkPage() {
   })
 
   useEffect(() => {
-    if (!sessionReady || !user?.onboarded || !preview?.game_id) return
-    clearPendingGameNavigation()
-    navigate(`/games/${preview.game_id}`, { replace: true })
-  }, [sessionReady, user, preview?.game_id, navigate])
+    if (preview?.game_id) stashResolvedGameTarget(preview.game_id)
+  }, [preview?.game_id])
 
-  if (!sessionReady || (user?.onboarded && preview?.game_id)) {
+  if (!sessionReady) {
     return (
       <div className="flex min-h-full items-center justify-center p-8">
         <Spinner className="text-brand" />
@@ -50,9 +52,15 @@ export function GameLinkPage() {
     )
   }
 
+  if (sessionReady && user?.onboarded && preview?.game_id) {
+    return <Navigate to={gamePathForId(preview.game_id)} replace />
+  }
+
+  const homeTo = user?.onboarded ? '/' : '/?login=1'
+
   return (
     <div className="mx-auto min-h-full max-w-md p-4 pb-10">
-      <PageHeader title="Join game" back="/" />
+      <PageHeader title="Join game" back={homeTo} />
       {isLoading ? (
         <div className="flex justify-center py-16">
           <Spinner className="text-brand" />
@@ -61,8 +69,8 @@ export function GameLinkPage() {
         <div className="rounded-2xl border border-line bg-surface p-6 text-center">
           <p className="font-semibold">This game link isn&apos;t valid anymore.</p>
           <p className="mt-2 text-sm text-ink-2">It may have ended or been cancelled.</p>
-          <Link to="/" className="mt-4 inline-block font-semibold text-brand">
-            Back to map
+          <Link to={homeTo} className="mt-4 inline-block font-semibold text-brand">
+            {user?.onboarded ? 'Back to map' : 'Open Find the Game'}
           </Link>
         </div>
       ) : (
@@ -80,12 +88,17 @@ export function GameLinkPage() {
             {gameTimeLabel({ status: preview.status, start_time: preview.start_time })}
           </p>
           <p className="mt-4 text-sm text-ink-2">Sign in to view details and join.</p>
-          <Button className="mt-4 w-full" onClick={() => navigate('/login')}>
+          <Button className="mt-4 w-full" onClick={() => navigate('/?login=1')}>
             Sign in
           </Button>
           <Link to="/register" className="mt-3 block text-center text-sm font-semibold text-brand">
             Create account
           </Link>
+          {user && !user.onboarded ? (
+            <Link to="/" className="mt-3 block text-center text-sm font-semibold text-ink-2">
+              Finish setup first →
+            </Link>
+          ) : null}
         </div>
       )}
     </div>

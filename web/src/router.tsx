@@ -28,7 +28,7 @@ import { PublicProfilePage } from './routes/PublicProfilePage'
 import { VerifyEmailPage } from './routes/VerifyEmailPage'
 import { GameLinkPage } from './routes/GameLinkPage'
 import { GameJoinLanding } from './routes/GameJoinLanding'
-import { pendingGamePathAfterAuth } from './lib/gameInvite'
+import { pathMatchesPendingGame, pendingGamePathAfterAuth } from './lib/gameInvite'
 
 const GUEST_PATHS = new Set(['/register', '/terms', '/privacy', '/login'])
 
@@ -78,7 +78,12 @@ function RootAuthLayout() {
   }
 
   const pendingGame = pendingGamePathAfterAuth()
-  if (pendingGame && path !== pendingGame && !isGameSharePath(path) && !legacyGamePath(path)) {
+  if (
+    pendingGame &&
+    user.onboarded &&
+    !isGameSharePath(path) &&
+    !pathMatchesPendingGame(path, pendingGame)
+  ) {
     return <Navigate to={pendingGame} replace />
   }
 

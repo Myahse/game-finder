@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { GameInviteField } from '../components/GameInviteField'
 import { errorMessage } from '../lib/api'
 import { Clock, Navigation, Star, Timer } from 'lucide-react'
@@ -19,6 +19,7 @@ import {
 import { isAtCourt, NOT_AT_COURT_MESSAGE, NOT_AT_COURT_TITLE } from '../lib/courtProximity'
 import { useLocation } from '../lib/location'
 import { useGame, useGameAction } from '../lib/queries'
+import { clearPendingGameNavigation } from '../lib/gameInvite'
 import { ShareGameButton } from '../components/ShareGameButton'
 import { AppAlert, Avatar, Button, Card, Empty, ErrorText, PageHeader } from '../components/ui'
 import { Loading } from './CourtPage'
@@ -33,6 +34,10 @@ const statusLabel = {
 export function GamePage() {
   const { id } = useParams()
   const { user } = useAuth()
+
+  useEffect(() => {
+    clearPendingGameNavigation()
+  }, [])
   const { coords } = useLocation()
   const { data: game, isLoading } = useGame(id, coords)
   const action = useGameAction()
@@ -65,7 +70,7 @@ export function GamePage() {
     <div className="pb-10">
       <PageHeader
         title={`${gameTypeLabels[game.game_type]} ${game.sport.name}`}
-        back={`/?court=${game.court_id}`}
+        back="/"
         right={
           <ShareGameButton
             gameId={game.id}

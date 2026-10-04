@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
+import { pendingGamePathAfterAuth } from '../lib/gameInvite'
 import { OrDivider } from './GoogleSignInButton'
 import { SocialSignInButtons } from './SocialSignInButtons'
 import { Button, ErrorText, Field, Input, PasswordInput } from './ui'
@@ -61,7 +62,7 @@ export function LoginBottomSheet({ open, onClose }: Props) {
       setLoginId('')
       setPassword('')
       onClose()
-      navigate('/', { replace: true })
+      navigate(pendingGamePathAfterAuth() ?? '/', { replace: true })
     } catch (err) {
       setError(errorMessage(err))
     } finally {
@@ -89,7 +90,11 @@ export function LoginBottomSheet({ open, onClose }: Props) {
         <p className="mt-1 text-sm text-ink-2">Pick up where you left off on the map.</p>
 
         <div className="mt-5 grid gap-3">
-          <SocialSignInButtons onSignedIn={onClose} showTerms={false} />
+          <SocialSignInButtons
+            onSignedIn={onClose}
+            showTerms={false}
+            navigateAfterSignIn={pendingGamePathAfterAuth() ?? '/'}
+          />
           <OrDivider className="text-ink-2" />
         </div>
         <form onSubmit={submit} className="mt-4 grid gap-4">
