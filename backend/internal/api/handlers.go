@@ -183,9 +183,9 @@ func (s *Server) removeCourtPhotoURLs(ctx context.Context, courtID, userID strin
 	}
 	removeSet := make(map[string]bool, len(remove))
 	for _, u := range remove {
-		u = strings.TrimSpace(u)
-		if u != "" {
-			removeSet[u] = true
+		key := canonicalPhotoRef(u)
+		if key != "" {
+			removeSet[key] = true
 		}
 	}
 	if len(removeSet) == 0 {
@@ -193,21 +193,29 @@ func (s *Server) removeCourtPhotoURLs(ctx context.Context, courtID, userID strin
 	}
 	next := make([]string, 0, len(photos))
 	for _, p := range photos {
-		if !removeSet[p] {
-			next = append(next, p)
+		if removeSet[canonicalPhotoRef(p)] {
+			continue
 		}
+		next = append(next, p)
 	}
 	if len(next) == len(photos) {
 		return nil, http.StatusUnprocessableEntity, "photo_not_found", "That photo is not on this court.", nil
 	}
-	tag, err := s.db.Pool.Exec(ctx, `
-		update courts set photos = $2
-		where id = $1 and (created_by = $3 or public.is_admin())`, courtID, next, userID)
+	err = s.db.Tx(ctx, userID, func(tx pgx.Tx) error {
+		tag, err := tx.Exec(ctx, `update courts set photos = $2 where id = $1`, courtID, next)
+		if err != nil {
+			return err
+		}
+		if tag.RowsAffected() == 0 {
+			return pgx.ErrNoRows
+		}
+		return nil
+	})
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, http.StatusNotFound, "not_found", "Court not found.", nil
+		}
 		return nil, 0, "", "", err
-	}
-	if tag.RowsAffected() == 0 {
-		return nil, http.StatusNotFound, "not_found", "Court not found.", nil
 	}
 	return next, 0, "", "", nil
 }
@@ -254,13 +262,25 @@ func (s *Server) appendCourtPhotos(ctx context.Context, courtID, userID string, 
 	if status != 0 {
 		return status, code, msg, nil
 	}
-	_, err = s.db.Pool.Exec(ctx, `
-		update courts set photos = (
-			select coalesce(array_agg(x), '{}')
-			from (select unnest(array_cat(photos, $2::text[])) as x limit 6) q
-		)
-		where id = $1 and (created_by = $3 or public.is_admin())`, courtID, newPhotos, userID)
+	err = s.db.Tx(ctx, userID, func(tx pgx.Tx) error {
+		tag, err := tx.Exec(ctx, `
+			update courts set photos = (
+				select coalesce(array_agg(x), '{}')
+				from (select unnest(array_cat(photos, $2::text[])) as x limit 6) q
+			)
+			where id = $1`, courtID, newPhotos)
+		if err != nil {
+			return err
+		}
+		if tag.RowsAffected() == 0 {
+			return pgx.ErrNoRows
+		}
+		return nil
+	})
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return http.StatusNotFound, "not_found", "Court not found.", nil
+		}
 		return 0, "", "", err
 	}
 	return 0, "", "", nil

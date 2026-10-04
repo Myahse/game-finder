@@ -13,6 +13,17 @@ func (s *Server) allowedUploadURL(raw string) bool {
 	return raw == "" || strings.HasPrefix(raw, "/uploads/")
 }
 
+// canonicalPhotoRef matches stored upload URLs even when hosts differ (R2 vs API proxy).
+func canonicalPhotoRef(raw string) string {
+	raw = strings.TrimSpace(raw)
+	for _, prefix := range []string{"/court/", "/avatar/", "/uploads/"} {
+		if i := strings.Index(raw, prefix); i >= 0 {
+			return raw[i:]
+		}
+	}
+	return raw
+}
+
 func (s *Server) validateUploadURLs(w http.ResponseWriter, urls []string) bool {
 	for _, u := range urls {
 		if !s.allowedUploadURL(u) {

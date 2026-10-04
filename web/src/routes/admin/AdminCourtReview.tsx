@@ -4,6 +4,7 @@ import { api, errorMessage } from '../../lib/api'
 import { formatDistance } from '../../lib/format'
 import { useLocation } from '../../lib/location'
 import type { CourtDetail, Game, PublicUser } from '../../lib/types'
+import { CourtAddPhotos } from '../../components/CourtAddPhotos'
 import { CourtPhotoStrip } from '../../components/CourtPhotoStrip'
 import { CourtPlacementMap } from '../../components/CourtPlacementMap'
 import { GameCard } from '../../components/GameCard'
@@ -87,6 +88,9 @@ export function AdminCourtReview() {
       )}
 
       <CourtPhotoStrip photos={court.photos} />
+      {courtId && (
+        <CourtAddPhotos courtId={courtId} photos={court.photos.filter((p) => p.trim())} canManage />
+      )}
 
       <Card className="overflow-hidden p-0">
         <div className="h-52">

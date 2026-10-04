@@ -107,9 +107,8 @@ func (s *Server) patchCourtHours(w http.ResponseWriter, r *http.Request) {
 		opening = &formatted
 	}
 
-	_, err = s.db.Pool.Exec(r.Context(), `
-		update courts set opening_hours = $2
-		where id = $1 and (created_by = $3 or public.is_admin())`, courtID, opening, uid(r))
+	err = s.db.Exec(r.Context(), uid(r), `
+		update courts set opening_hours = $2 where id = $1`, courtID, opening)
 	if err != nil {
 		writeDBError(w, r, err)
 		return
