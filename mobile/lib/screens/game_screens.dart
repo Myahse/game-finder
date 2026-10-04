@@ -415,17 +415,13 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
   }
 
   Future<void> _submit(String sportId) async {
-    final court = _courts.where((c) => c.id == _courtId).firstOrNull;
-    if (court != null && court.photos.isEmpty && _placePhotos.isEmpty) {
-      setState(() => _error = 'Add a photo of the court so others can find the place.');
-      return;
-    }
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
-      final j = await context.read<Api>().post('/api/games', {
+      final loc = context.read<LocationState>().position;
+      final body = <String, dynamic>{
         'court_id': _courtId,
         'sport_id': sportId,
         'start_time': (_now ? DateTime.now() : _start).toUtc().toIso8601String(),
@@ -433,7 +429,12 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
         'skill_level': _skill,
         'game_type': _type,
         'court_photos': _placePhotos,
-      });
+      };
+      if (_now && loc != null) {
+        body['latitude'] = loc.latitude;
+        body['longitude'] = loc.longitude;
+      }
+      final j = await context.read<Api>().post('/api/games', body);
       setState(() => _created = Game.fromJson(j));
     } catch (e) {
       setState(() => _error = errorText(e));
@@ -478,7 +479,8 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
     final locked = (!(user?.isAdmin ?? false)) ? sportForUser(user, courtSports) : null;
     final sports = locked != null ? [locked] : courtSports;
     final sport = sports.where((s) => s.id == _sportId).firstOrNull ?? sports.firstOrNull ?? locked;
-    final needsPlacePhoto = court != null && court.photos.isEmpty && _placePhotos.isEmpty;
+    final courtPhotoCount = court?.photos.where((p) => p.trim().isNotEmpty).length ?? 0;
+    final suggestPlacePhoto = court != null && courtPhotoCount == 0 && _placePhotos.isEmpty;
 
     return Scaffold(
       appBar: AppBar(title: const Text('CREATE GAME')),
@@ -510,13 +512,13 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
         if (court != null) ...[
           const SizedBox(height: 16),
           Text(
-            court.photos.isEmpty ? 'Photo of the place (required)' : 'Photo of the place (optional)',
+            courtPhotoCount == 0 ? 'Photo of the place (recommended)' : 'Photo of the place (optional)',
             style: const TextStyle(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 6),
           Text(
-            court.photos.isEmpty
-                ? 'Show players what the court looks like.'
+            courtPhotoCount == 0
+                ? 'A photo helps others find the court. You can create the game without one.'
                 : 'This court already has photos. You can add another.',
             style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
@@ -525,7 +527,7 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              for (final p in court.photos)
+              for (final p in court.photos.where((x) => x.trim().isNotEmpty))
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: Image.network(
@@ -547,7 +549,7 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
                     errorBuilder: (_, _, _) => const Icon(Icons.broken_image_outlined),
                   ),
                 ),
-              if (court.photos.length + _placePhotos.length < 6)
+              if (courtPhotoCount + _placePhotos.length < 6)
                 InkWell(
                   onTap: _uploading ? null : _addPlacePhoto,
                   child: Container(
@@ -634,12 +636,20 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
           items: [for (final e in gameTypeLabels.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
           onChanged: (v) => setState(() => _type = v!),
         ),
+        if (suggestPlacePhoto)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Text(
+              'No court photo yet — adding one is recommended but not required.',
+              style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
+          ),
       ]),
       bottomNavigationBar: StickyScreenActions(
         children: [
           ErrorBanner(_error),
           PrimaryButton(
-            onPressed: _busy || _uploading || _courtId == null || sport == null || needsPlacePhoto ? null : () => _submit(sport.id),
+            onPressed: _busy || _uploading || _courtId == null || sport == null ? null : () => _submit(sport.id),
             child: Text(_busy ? '…' : 'CREATE GAME'),
           ),
         ],

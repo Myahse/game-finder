@@ -57,8 +57,8 @@ export function CreateGamePage() {
   const [farModal, setFarModal] = useState(false)
 
   const court = courts?.find((c) => c.id === courtId)
-  const existingPhotos = court?.photos ?? []
-  const needsPlacePhoto = !!courtId && existingPhotos.length === 0 && placePhotos.length === 0
+  const existingPhotos = (court?.photos ?? []).filter((p) => p.trim().length > 0)
+  const suggestPlacePhoto = !!courtId && existingPhotos.length === 0 && placePhotos.length === 0
 
   useEffect(() => {
     setPlacePhotos([])
@@ -91,10 +91,6 @@ export function CreateGamePage() {
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     if (!chosenSport) return
-    if (needsPlacePhoto) {
-      setError('Add a photo of the court so others can find the place.')
-      return
-    }
     if (when === 'now' && court && !isAtCourt(coords, court)) {
       setFarModal(true)
       return
@@ -172,7 +168,7 @@ export function CreateGamePage() {
             hint={
               existingPhotos.length
                 ? 'This court already has photos. You can add another (optional).'
-                : 'Required — show players what the court looks like.'
+                : 'Recommended — a photo helps others find the court. You can still create the game without one.'
             }
           >
             <div className="flex flex-wrap gap-2">
@@ -187,7 +183,7 @@ export function CreateGamePage() {
                   {uploading ? '…' : <Plus className="size-8" aria-hidden />}
                   <input
                     type="file"
-                    accept="image/jpeg,image/png,image/webp"
+                    accept="image/*"
                     className="sr-only"
                     onChange={(e) => addPlacePhoto(e.target.files)}
                   />
@@ -284,7 +280,10 @@ export function CreateGamePage() {
         </Field>
 
         <ErrorText>{error}</ErrorText>
-        <Button type="submit" loading={busy} disabled={!courtId || !chosenSport || uploading || needsPlacePhoto}>
+        {suggestPlacePhoto && (
+          <p className="text-sm text-ink-2">No court photo yet — adding one is recommended but not required.</p>
+        )}
+        <Button type="submit" loading={busy} disabled={!courtId || !chosenSport || uploading}>
           Create game
         </Button>
       </form>

@@ -164,10 +164,45 @@ export async function api<T>(path: string, init: RequestInit & { json?: unknown 
   return data as T
 }
 
+/** Re-encode phone photos (HEIC, huge PNG) as JPEG so the API accepts them. */
+async function prepareImageUpload(file: File): Promise<File> {
+  if (!file.type.startsWith('image/') && !/\.(jpe?g|png|webp|heic|heif)$/i.test(file.name)) {
+    return file
+  }
+  try {
+    const bitmap = await createImageBitmap(file)
+    const max = 1600
+    let w = bitmap.width
+    let h = bitmap.height
+    if (w > max || h > max) {
+      if (w >= h) {
+        h = Math.round((h * max) / w)
+        w = max
+      } else {
+        w = Math.round((w * max) / h)
+        h = max
+      }
+    }
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    canvas.getContext('2d')!.drawImage(bitmap, 0, 0, w, h)
+    bitmap.close()
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('encode failed'))), 'image/jpeg', 0.88)
+    })
+    const base = file.name.replace(/\.[^.]+$/, '') || 'photo'
+    return new File([blob], `${base}.jpg`, { type: 'image/jpeg' })
+  } catch {
+    return file
+  }
+}
+
 export async function uploadImage(file: File, kind: 'avatar' | 'court'): Promise<string> {
+  const prepared = await prepareImageUpload(file)
   const form = new FormData()
   form.append('kind', kind)
-  form.append('file', file)
+  form.append('file', prepared)
   const { url } = await api<{ url: string }>('/api/uploads', { method: 'POST', body: form })
   return url
 }

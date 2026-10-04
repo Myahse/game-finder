@@ -223,7 +223,9 @@ func (s *Server) appendCourtPhotos(ctx context.Context, courtID, userID string, 
 	}
 	var have int
 	if err := s.db.Pool.QueryRow(ctx, `
-		select coalesce(array_length(c.photos, 1), 0)
+		select coalesce((
+			select count(*)::int from unnest(c.photos) ph where trim(ph) <> ''
+		), 0)
 		from courts c where c.id = $1`, courtID).Scan(&have); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return http.StatusNotFound, "not_found", "Court not found.", nil
@@ -513,14 +515,12 @@ func (s *Server) createGame(w http.ResponseWriter, r *http.Request) {
 	}
 	var have int
 	if err := s.db.Pool.QueryRow(r.Context(), `
-		select coalesce(array_length(c.photos, 1), 0)
+		select coalesce((
+			select count(*)::int from unnest(c.photos) ph where trim(ph) <> ''
+		), 0)
 		from courts c
 		where c.id = $1 and c.status in ('approved', 'pending')`, in.CourtID).Scan(&have); err != nil {
 		writeDBError(w, r, err)
-		return
-	}
-	if have == 0 && len(in.CourtPhotos) == 0 {
-		writeError(w, http.StatusUnprocessableEntity, "photo_required", "Add a photo of the court so others can find it.")
 		return
 	}
 	// Starting now creates an active game — creator must be at the court.
