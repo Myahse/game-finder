@@ -6,6 +6,8 @@ import type { Me, Session } from './types'
 
 interface AuthState {
   user: Me | null
+  /** False until the first cookie session bootstrap finishes (avoids racing ws-ticket). */
+  sessionReady: boolean
   login: (login: string, password: string) => Promise<void>
   register: (input: {
     first_name: string
@@ -26,12 +28,13 @@ const AuthContext = createContext<AuthState | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<Me | null>(() => getSession()?.user ?? null)
+  const [sessionReady, setSessionReady] = useState(false)
   const qc = useQueryClient()
 
   useEffect(() => onSessionChange((s) => setUser(s?.user ?? null)), [])
 
   useEffect(() => {
-    void bootstrapSession()
+    void bootstrapSession().finally(() => setSessionReady(true))
   }, [])
 
   const login = useCallback(async (loginId: string, password: string) => {
@@ -77,8 +80,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo(
-    () => ({ user, login, register, googleSignIn, logout, updateUser }),
-    [user, login, register, googleSignIn, logout, updateUser],
+    () => ({ user, sessionReady, login, register, googleSignIn, logout, updateUser }),
+    [user, sessionReady, login, register, googleSignIn, logout, updateUser],
   )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

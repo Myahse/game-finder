@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
@@ -94,7 +95,7 @@ func (h *Hub) dispatch(payload []byte) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	for c := range h.clients {
-		if private && c.userID != env.UserID {
+		if private && normConnUserID(c.userID) != normConnUserID(env.UserID) {
 			continue
 		}
 		select {
@@ -107,7 +108,7 @@ func (h *Hub) dispatch(payload []byte) {
 // Serve upgrades the request and pumps events until the client disconnects.
 // userID may be empty for anonymous map browsing.
 func (h *Hub) Serve(ctx context.Context, conn *websocket.Conn, userID string) {
-	c := &client{userID: userID, send: make(chan []byte, 64)}
+	c := &client{userID: normConnUserID(userID), send: make(chan []byte, 64)}
 	h.mu.Lock()
 	h.clients[c] = struct{}{}
 	h.mu.Unlock()
@@ -143,6 +144,10 @@ func (h *Hub) Serve(ctx context.Context, conn *websocket.Conn, userID string) {
 			}
 		}
 	}
+}
+
+func normConnUserID(id string) string {
+	return strings.ToLower(strings.TrimSpace(id))
 }
 
 func (h *Hub) Count() int {

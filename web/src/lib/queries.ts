@@ -105,7 +105,10 @@ export function useMyPresence(enabled = true) {
   })
 }
 
-export function useNotifications(enabled = true, refetchIntervalMs = 90_000) {
+/** Poll interval while the app shell is open (toasts + badge; WS can still miss events). */
+export const NOTIFICATION_POLL_MS = 15_000
+
+export function useNotifications(enabled = true, refetchIntervalMs = NOTIFICATION_POLL_MS) {
   return useQuery({
     queryKey: qk.notifications,
     queryFn: () => api<{ unread: number; items: AppNotification[] }>('/api/notifications'),

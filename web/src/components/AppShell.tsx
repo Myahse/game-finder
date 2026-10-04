@@ -7,6 +7,8 @@ import { useRealtime } from '../lib/realtime'
 import { useNotifications } from '../lib/queries'
 import { useLocation as useGeoLocation } from '../lib/location'
 import { syncNotifyArea, type NotifyAreaState } from '../lib/notifyArea'
+import { notificationLink } from '../lib/notificationLinks'
+import { usePolledNotificationToasts } from '../lib/usePolledNotificationToasts'
 import { EngagementPrompts } from './EngagementPrompts'
 import { PresenceWatcher } from './PresenceWatcher'
 import type { RealtimeEvent } from '../lib/types'
@@ -23,40 +25,25 @@ const tabs: Tab[] = [
 
 export function AppShell() {
   const { t } = useLocale()
-  const { user } = useAuth()
+  const { user, sessionReady } = useAuth()
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const isMap = pathname === '/'
   const { coords } = useGeoLocation()
   const notifyState = useRef<NotifyAreaState>({ lastSent: null, lastAttemptMs: 0 })
   useEffect(() => {
-    if (!user || !coords) return
+    if (!user || !sessionReady) return
     syncNotifyArea(coords, notifyState.current)
       .then((s) => {
         notifyState.current = s
       })
       .catch(() => {})
-  }, [user, coords])
+  }, [user, sessionReady, coords])
 
   const onNotification = useCallback(
     (ev: Extract<RealtimeEvent, { type: 'notification' }>) => {
       if (ev.notification_type === 'presence_check') return
-      const link =
-        ev.notification_type === 'admin_court_request' && ev.data.court_id
-          ? `/admin/courts/${ev.data.court_id}`
-          : ev.notification_type === 'court_pending_review' && ev.data.court_id
-            ? `/courts/${ev.data.court_id}`
-            : ev.notification_type === 'admin_new_user'
-              ? '/admin/users'
-              : ev.notification_type === 'friend_request'
-                ? '/profile'
-                : ev.data.game_id
-                  ? `/games/${ev.data.game_id}`
-                  : ev.data.court_id
-                    ? `/?court=${ev.data.court_id}`
-                    : ev.data.user_id
-                      ? `/users/${ev.data.user_id}`
-                      : undefined
+      const link = notificationLink({ type: ev.notification_type, data: ev.data })
       toast(ev.title, {
         id: ev.id,
         description: ev.body,
@@ -79,8 +66,9 @@ export function AppShell() {
     [navigate, t.common.open],
   )
 
-  const wsConnected = useRealtime(user?.id ?? null, onNotification)
-  const { data: notes } = useNotifications(!!user, wsConnected ? 90_000 : 20_000)
+  useRealtime(sessionReady ? (user?.id ?? null) : null, onNotification)
+  const { data: notes } = useNotifications(!!user && sessionReady, 15_000)
+  usePolledNotificationToasts(notes?.items, !!user && sessionReady, t.common.open)
 
   return (
     <div className="flex h-full flex-col md:flex-row">
