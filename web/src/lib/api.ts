@@ -59,6 +59,12 @@ export const API_URL =
   typeof window !== 'undefined' ? apiOrigin() : (viteApiUrl() || 'http://localhost:8080').replace(/\/$/, '')
 
 const LEGACY_STORAGE_KEY = 'ftg.session'
+/**
+ * Refresh token kept in storage ONLY for browsers that block the API's cross-site cookies
+ * (Safari/iOS, Brave, private windows): the web app (Vercel) and API (Render) are different
+ * sites, so without this those users are signed out on their first request after login.
+ */
+const FALLBACK_REFRESH_KEY = 'ftg.rt'
 
 export class ApiError extends Error {
   status: number
@@ -73,9 +79,35 @@ export class ApiError extends Error {
 type Listener = (s: Session | null) => void
 const listeners = new Set<Listener>()
 
-/** In-memory user; auth tokens live in httpOnly cookies on the web. */
+/**
+ * In-memory user + tokens. Auth normally rides on httpOnly cookies; the tokens from the
+ * session response are also kept and sent as a Bearer header so sign-in still works when
+ * the browser drops third-party cookies.
+ */
 let sessionUser: Me | null = null
 let sessionTokens: { access_token?: string; refresh_token?: string; access_expires_at?: string } | null = null
+/** Bumped on every session change so a slow bootstrap can't undo a newer sign-in. */
+let sessionVersion = 0
+
+function storedRefreshToken(): string | null {
+  try {
+    return localStorage.getItem(FALLBACK_REFRESH_KEY)
+  } catch {
+    return null
+  }
+}
+
+function writeStoredRefreshToken(token: string | null) {
+  try {
+    if (token) localStorage.setItem(FALLBACK_REFRESH_KEY, token)
+    else localStorage.removeItem(FALLBACK_REFRESH_KEY)
+  } catch {
+    // storage blocked: session lasts for this tab only
+  }
+}
+
+/** True once we've seen that this browser doesn't send our session cookies. */
+let cookieFallback = storedRefreshToken() !== null
 
 try {
   localStorage.removeItem(LEGACY_STORAGE_KEY)
@@ -97,8 +129,38 @@ export function setSession(s: Session | null) {
           refresh_token: s.refresh_token,
           access_expires_at: s.access_expires_at,
         }
-      : null
+      : s
+        ? sessionTokens
+        : null
+  sessionVersion++
+  if (!s) {
+    cookieFallback = false
+    writeStoredRefreshToken(null)
+  } else if (cookieFallback && s.refresh_token) {
+    // Refresh tokens rotate on every use — keep the stored one current.
+    writeStoredRefreshToken(s.refresh_token)
+  }
   listeners.forEach((l) => l(getSession()))
+}
+
+/**
+ * Start a session from a login / register / Google / Apple response, then check whether this
+ * browser actually sends our cookies. If not, keep the refresh token so a reload stays signed in.
+ */
+export async function establishSession(s: Session): Promise<void> {
+  setSession(s)
+  try {
+    const res = await fetch(`${apiOrigin()}/api/me`, { credentials: 'include' })
+    if (res.status === 401) {
+      cookieFallback = true
+      if (sessionTokens?.refresh_token) writeStoredRefreshToken(sessionTokens.refresh_token)
+    } else if (res.ok) {
+      cookieFallback = false
+      writeStoredRefreshToken(null)
+    }
+  } catch {
+    // offline / API asleep: the Bearer token still works for this tab
+  }
 }
 
 export function onSessionChange(l: Listener) {
@@ -113,10 +175,14 @@ let refreshing: Promise<boolean> | null = null
 async function refreshSession(): Promise<boolean> {
   refreshing ??= (async () => {
     try {
+      // In fallback mode storage holds the newest token (another tab may have rotated it).
+      const refresh_token = (cookieFallback ? storedRefreshToken() : null) ?? sessionTokens?.refresh_token ?? undefined
       const res = await fetch(`${apiOrigin()}/api/auth/refresh`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
+        // Cookie is used when the browser sends it; the body covers browsers that don't.
+        body: refresh_token ? JSON.stringify({ refresh_token }) : undefined,
       })
       if (!res.ok) {
         setSession(null)
@@ -134,7 +200,7 @@ async function refreshSession(): Promise<boolean> {
   return refreshing
 }
 
-/** Bearer token when present (e.g. tests); web relies on cookies. */
+/** Bearer token from the last session response (cookies are the primary transport). */
 export async function accessToken(): Promise<string | null> {
   const exp = sessionTokens?.access_expires_at
   if (exp && new Date(exp).getTime() - Date.now() < 30_000) {
@@ -213,14 +279,23 @@ export function errorMessage(e: unknown): string {
   return 'Something went wrong.'
 }
 
-/** Restore session from httpOnly cookies (web bootstrap). */
+/** Restore the session on page load: cookies first, then the stored refresh token (cookie-blocking browsers). */
 export async function bootstrapSession(): Promise<boolean> {
+  const started = sessionVersion
   try {
     const me = await api<Me>('/api/me')
-    setSession({ user: me })
+    // The user may have signed in while this was in flight (slow API wake-up) — keep that session.
+    if (sessionVersion === started) setSession({ user: me })
     return true
   } catch {
-    setSession(null)
-    return false
+    if (sessionVersion !== started) return !!sessionUser
+    if (storedRefreshToken() && (await refreshSession())) return true
+    if (sessionVersion === started) setSession(null)
+    return !!sessionUser
   }
+}
+
+/** Refresh token to revoke on logout when cookies aren't available. */
+export function currentRefreshToken(): string | undefined {
+  return sessionTokens?.refresh_token ?? storedRefreshToken() ?? undefined
 }

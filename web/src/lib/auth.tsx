@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { api, bootstrapSession, getSession, onSessionChange, setSession } from './api'
+import { api, bootstrapSession, currentRefreshToken, establishSession, getSession, onSessionChange, setSession } from './api'
 import { acceptPendingFriendInvite, clearFriendInviteToken, friendInviteTokenForAuth } from './friendInvite'
 import type { Me, Session } from './types'
 
@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       method: 'POST',
       json: { login: loginId.trim(), password },
     })
-    setSession({ user: data.user })
+    await establishSession(data)
     await acceptPendingFriendInvite()
   }, [])
 
@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       method: 'POST',
       json: { ...input, friend_invite_token },
     })
-    setSession({ user: data.user })
+    await establishSession(data)
     clearFriendInviteToken()
   }, [])
 
@@ -63,13 +63,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       method: 'POST',
       json: { id_token: idToken, friend_invite_token },
     })
-    setSession({ user: s.user })
+    await establishSession(s)
     clearFriendInviteToken()
     return !s.user.onboarded
   }, [])
 
   const logout = useCallback(async () => {
-    await api('/api/auth/logout', { method: 'POST' }).catch(() => {})
+    const refresh_token = currentRefreshToken()
+    await api('/api/auth/logout', { method: 'POST', json: refresh_token ? { refresh_token } : undefined }).catch(() => {})
     setSession(null)
     qc.clear()
   }, [qc])
