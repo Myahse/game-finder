@@ -19,7 +19,7 @@ type Props = {
 function SkeletonCard({ className = '' }: { className?: string }) {
   return (
     <div
-      className={`h-[7.5rem] shrink-0 animate-pulse rounded-2xl border border-line bg-surface-2/80 ${className}`}
+      className={`h-[4.5rem] shrink-0 animate-pulse rounded-xl border border-line bg-surface-2/80 ${className}`}
       aria-hidden
     />
   )
@@ -36,17 +36,17 @@ export function MapGamesRail({ games, isLoading, sport, viewerIsAdmin = false }:
 
   return (
     <MapBottomSheet ariaLabel="Games nearby" layout="dock">
-      <div className="flex items-end justify-between gap-3 px-4 pb-2 pt-1">
+      <div className="flex items-end justify-between gap-2 px-3 pb-1 pt-0.5 md:px-4 md:pb-2 md:pt-1">
         <div>
-          <h2 className="display text-base font-bold">Games nearby</h2>
-          <p className="text-xs text-ink-2">
+          <h2 className="display text-sm font-bold md:text-base">Games nearby</h2>
+          <p className="text-[11px] text-ink-2 md:text-xs">
             {showSkeletons ? 'Loading…' : sorted.length === 0 ? 'No open games' : `${sorted.length} open`}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2 pb-0.5">
           <Link
             to={createHref}
-            className="inline-flex items-center gap-1 rounded-full border border-line bg-surface-2 px-3 py-1.5 text-sm font-semibold"
+            className="inline-flex items-center gap-1 rounded-full border border-line bg-surface-2 px-2.5 py-1 text-xs font-semibold md:px-3 md:py-1.5 md:text-sm"
           >
             <Plus className="size-4" aria-hidden />
             Create
@@ -60,32 +60,32 @@ export function MapGamesRail({ games, isLoading, sport, viewerIsAdmin = false }:
         </div>
       </div>
 
-      <div className="overflow-x-auto snap-x snap-mandatory px-3 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="overflow-x-auto snap-x snap-mandatory px-2 pb-2 md:px-3 md:pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {showSkeletons ? (
           <div className="flex gap-3">
-            <SkeletonCard className="w-[min(72vw,280px)]" />
-            <SkeletonCard className="w-[min(72vw,280px)]" />
-            <SkeletonCard className="hidden w-[min(72vw,280px)] sm:block" />
+            <SkeletonCard className="w-[min(62vw,220px)] md:w-[min(72vw,280px)]" />
+            <SkeletonCard className="w-[min(62vw,220px)] md:w-[min(72vw,280px)]" />
+            <SkeletonCard className="hidden w-[min(62vw,220px)] sm:block md:w-[min(72vw,280px)]" />
           </div>
         ) : sorted.length === 0 ? (
-          <div className="mx-1 rounded-2xl border border-line bg-surface-2 p-4">
-            <div className="flex items-center gap-3">
-              <BaseSportIcon className="size-10 shrink-0 text-brand" />
+          <div className="mx-1 rounded-xl border border-line bg-surface-2 p-3 md:rounded-2xl md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <BaseSportIcon className="size-8 shrink-0 text-brand md:size-10" />
               <div className="min-w-0">
-                <p className="font-semibold">No open games yet</p>
-                <p className="text-sm text-ink-2">Add a court photo when you create a game.</p>
+                <p className="text-sm font-semibold md:text-base">No open games yet</p>
+                <p className="text-xs text-ink-2 md:text-sm">Tap Create to start one.</p>
               </div>
             </div>
             <Link
               to={createHref}
-              className="display mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand text-base font-extrabold text-white"
+              className="display mt-2 flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-brand text-sm font-extrabold text-white md:mt-3 md:min-h-11 md:text-base"
             >
               <Plus className="size-5" aria-hidden />
               Create game
             </Link>
           </div>
         ) : (
-          <div className="flex gap-3">
+          <div className="flex gap-2 md:gap-3">
             {sorted.map((g) => (
               <div
                 key={g.id}
@@ -94,9 +94,10 @@ export function MapGamesRail({ games, isLoading, sport, viewerIsAdmin = false }:
                 <GameCard
                   game={g}
                   variant="map"
+                  showCourt
                   viewerIsAdmin={viewerIsAdmin}
                   scheduleAccent={gameIsUpcomingLater(g) ? 'upcoming' : undefined}
-                  className="w-[min(72vw,280px)]"
+                  className="w-[min(62vw,220px)] md:w-[min(72vw,280px)]"
                 />
               </div>
             ))}

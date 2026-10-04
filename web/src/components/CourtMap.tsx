@@ -234,7 +234,7 @@ export function CourtMap({
       <button
         type="button"
         onClick={recenter}
-        className="absolute bottom-44 right-4 z-[5] flex size-12 items-center justify-center rounded-full border border-line bg-surface text-ink shadow-lg md:bottom-8"
+        className="absolute bottom-[8.5rem] right-4 z-[5] flex size-11 items-center justify-center rounded-full border border-line bg-surface text-ink shadow-lg md:bottom-8 md:size-12"
         aria-label="Center on my location"
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
