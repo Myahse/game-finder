@@ -22,6 +22,7 @@ import { useCourtsNearby, useSports } from '../lib/queries'
 import type { Game, GameType, SkillLevel } from '../lib/types'
 import { Clock, Flame, SportIcon, SportName } from '../components/icons'
 import { Plus } from 'lucide-react'
+import { ShareGameButton } from '../components/ShareGameButton'
 import { AppAlert, Button, ErrorText, Field, Input, PageHeader, Select } from '../components/ui'
 
 function localInputValue(d: Date) {
@@ -132,9 +133,14 @@ export function CreateGamePage() {
         <p className="mt-2 text-ink-2">
           You're in. Players near {created.court.name} can see it now.
         </p>
-        <Button className="mt-8 w-full" variant="live" onClick={() => navigate(`/games/${created.id}`, { replace: true })}>
+        <Button className="mt-4 w-full" variant="live" onClick={() => navigate(`/games/${created.id}`, { replace: true })}>
           View game
         </Button>
+        <ShareGameButton
+          gameId={created.id}
+          title={`${created.court.name} · ${gameTypeLabels[created.game_type]}`}
+          className="mt-2 w-full"
+        />
       </div>
     )
   }

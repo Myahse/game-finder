@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/pick_image.dart';
 import 'package:provider/provider.dart';
 
@@ -8,6 +9,7 @@ import '../core/api.dart';
 import '../core/media_url.dart';
 import '../core/auth.dart';
 import '../core/format.dart';
+import '../core/game_share.dart';
 import '../core/location.dart';
 import '../core/models.dart';
 import '../core/map_pause.dart';
@@ -129,6 +131,12 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
+  Future<void> _shareGame(Game g) async {
+    final url = gameShareUrl(g.id);
+    await Clipboard.setData(ClipboardData(text: url));
+    if (mounted) showSnack(context, 'Game link copied — share it with friends');
+  }
+
   Future<void> _sendInvite() async {
     final name = _invite.text.trim().replaceFirst('@', '');
     if (name.isEmpty) return;
@@ -162,7 +170,16 @@ class _GameScreenState extends State<GameScreen> {
     final isCreator = g.creatorId == me?.id;
 
     return Scaffold(
-      appBar: AppBar(title: Text('${gameTypeLabels[g.gameType]} ${g.sport.name}'.toUpperCase())),
+      appBar: AppBar(
+        title: Text('${gameTypeLabels[g.gameType]} ${g.sport.name}'.toUpperCase()),
+        actions: [
+          IconButton(
+            tooltip: 'Share game',
+            icon: const Icon(Icons.share_outlined),
+            onPressed: () => _shareGame(g),
+          ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(padding: const EdgeInsets.all(16), children: [

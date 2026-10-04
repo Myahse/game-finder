@@ -19,6 +19,7 @@ import {
 import { isAtCourt, NOT_AT_COURT_MESSAGE, NOT_AT_COURT_TITLE } from '../lib/courtProximity'
 import { useLocation } from '../lib/location'
 import { useGame, useGameAction } from '../lib/queries'
+import { ShareGameButton } from '../components/ShareGameButton'
 import { AppAlert, Avatar, Button, Card, Empty, ErrorText, PageHeader } from '../components/ui'
 import { Loading } from './CourtPage'
 
@@ -62,7 +63,19 @@ export function GamePage() {
 
   return (
     <div className="pb-10">
-      <PageHeader title={`${gameTypeLabels[game.game_type]} ${game.sport.name}`} back={`/?court=${game.court_id}`} />
+      <PageHeader
+        title={`${gameTypeLabels[game.game_type]} ${game.sport.name}`}
+        back={`/?court=${game.court_id}`}
+        right={
+          <ShareGameButton
+            gameId={game.id}
+            title={`${game.court.name} · ${gameTypeLabels[game.game_type]}`}
+            variant="ghost"
+            className="min-h-9 px-2"
+            compact
+          />
+        }
+      />
       <div className="mx-auto grid max-w-2xl gap-4 p-4">
         <AppAlert
           open={farModal}
