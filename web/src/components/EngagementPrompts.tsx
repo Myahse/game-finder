@@ -22,7 +22,8 @@ function showNotificationPrompt(onDone: () => void) {
 
   toast('Turn on notifications', {
     id: NOTIFY_TOAST_ID,
-    description: 'Get alerts when new games and courts are added near you. You can change this anytime in browser settings.',
+    description:
+      'Shows alerts when this tab is in the background. In-app toasts still work while Find the Game is open. Allow location on the map for nearby game alerts.',
     duration: Infinity,
     action: {
       label: 'Enable',

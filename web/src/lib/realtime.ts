@@ -25,40 +25,57 @@ export function useRealtime(userId: string | null, onNotification: Notify) {
     let retry = 1000
     let timer: ReturnType<typeof setTimeout>
 
+    const catchUp = () => {
+      qc.invalidateQueries({ queryKey: ['courts'] })
+      qc.invalidateQueries({ queryKey: ['court'] })
+      qc.invalidateQueries({ queryKey: ['game'] })
+      qc.invalidateQueries({ queryKey: ['games-nearby'] })
+      qc.invalidateQueries({ queryKey: qk.myGames })
+      qc.invalidateQueries({ queryKey: qk.notifications })
+      qc.invalidateQueries({ queryKey: qk.presence })
+    }
+
+    const scheduleReconnect = () => {
+      setConnected(false)
+      if (closed) return
+      timer = setTimeout(() => void connect(), retry)
+      retry = Math.min(retry * 2, 30_000)
+    }
+
     const connect = async () => {
       if (closed) return
-      let qs = ''
-      if (userId) {
-        const { ticket } = await api<{ ticket: string }>('/api/me/ws-ticket', { method: 'POST' })
-        qs = `?ticket=${encodeURIComponent(ticket)}`
-      }
-      const url = `${apiOrigin().replace(/^http/, 'ws')}/api/ws${qs}`
-      ws = new WebSocket(url)
-      ws.onopen = () => {
-        setConnected(true)
-        retry = 1000
-        // Catch up on anything missed while disconnected.
-        qc.invalidateQueries({ queryKey: ['courts'] })
-        qc.invalidateQueries({ queryKey: ['court'] })
-        qc.invalidateQueries({ queryKey: ['game'] })
-        qc.invalidateQueries({ queryKey: ['games-nearby'] })
-        qc.invalidateQueries({ queryKey: qk.myGames })
-      }
-      ws.onmessage = (m) => {
-        try {
-          apply(qc, JSON.parse(m.data as string) as RealtimeEvent, notifyRef.current)
-        } catch {
-          // ignore malformed frames
+      try {
+        let qs = ''
+        if (userId) {
+          try {
+            const { ticket } = await api<{ ticket: string }>('/api/me/ws-ticket', { method: 'POST' })
+            qs = `?ticket=${encodeURIComponent(ticket)}`
+          } catch {
+            scheduleReconnect()
+            return
+          }
         }
-      }
-      ws.onclose = () => {
-        setConnected(false)
-        if (closed) return
-        timer = setTimeout(connect, retry)
-        retry = Math.min(retry * 2, 30_000)
+        const url = `${apiOrigin().replace(/^http/, 'ws')}/api/ws${qs}`
+        ws = new WebSocket(url)
+        ws.onopen = () => {
+          setConnected(true)
+          retry = 1000
+          catchUp()
+        }
+        ws.onmessage = (m) => {
+          try {
+            apply(qc, JSON.parse(m.data as string) as RealtimeEvent, notifyRef.current)
+          } catch {
+            // ignore malformed frames
+          }
+        }
+        ws.onerror = () => ws?.close()
+        ws.onclose = scheduleReconnect
+      } catch {
+        scheduleReconnect()
       }
     }
-    connect()
+    void connect()
     return () => {
       closed = true
       clearTimeout(timer)

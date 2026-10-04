@@ -97,15 +97,20 @@ export function useMyGames(coords: Coords | null) {
 }
 
 export function useMyPresence(enabled = true) {
-  return useQuery({ queryKey: qk.presence, queryFn: () => api<Presence | null>('/api/me/presence'), enabled })
+  return useQuery({
+    queryKey: qk.presence,
+    queryFn: () => api<Presence | null>('/api/me/presence'),
+    enabled,
+    refetchInterval: enabled ? 45_000 : false,
+  })
 }
 
-export function useNotifications(enabled = true) {
+export function useNotifications(enabled = true, refetchIntervalMs = 90_000) {
   return useQuery({
     queryKey: qk.notifications,
     queryFn: () => api<{ unread: number; items: AppNotification[] }>('/api/notifications'),
     enabled,
-    refetchInterval: enabled ? 90_000 : false,
+    refetchInterval: enabled && refetchIntervalMs > 0 ? refetchIntervalMs : false,
   })
 }
 

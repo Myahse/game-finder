@@ -1,10 +1,12 @@
-import { useCallback, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, type ReactNode } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Bell, BaseSportIcon, CalendarDays, MapPin, User, Wrench } from './icons'
 import { useAuth } from '../lib/auth'
 import { useRealtime } from '../lib/realtime'
 import { useNotifications } from '../lib/queries'
+import { useLocation as useGeoLocation } from '../lib/location'
+import { syncNotifyArea, type NotifyAreaState } from '../lib/notifyArea'
 import { EngagementPrompts } from './EngagementPrompts'
 import { PresenceWatcher } from './PresenceWatcher'
 import type { RealtimeEvent } from '../lib/types'
@@ -25,10 +27,20 @@ export function AppShell() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const isMap = pathname === '/'
-  const { data: notes } = useNotifications(!!user)
+  const { coords } = useGeoLocation()
+  const notifyState = useRef<NotifyAreaState>({ lastSent: null, lastAttemptMs: 0 })
+  useEffect(() => {
+    if (!user || !coords) return
+    syncNotifyArea(coords, notifyState.current)
+      .then((s) => {
+        notifyState.current = s
+      })
+      .catch(() => {})
+  }, [user, coords])
 
   const onNotification = useCallback(
     (ev: Extract<RealtimeEvent, { type: 'notification' }>) => {
+      if (ev.notification_type === 'presence_check') return
       const link =
         ev.notification_type === 'admin_court_request' && ev.data.court_id
           ? `/admin/courts/${ev.data.court_id}`
@@ -66,7 +78,9 @@ export function AppShell() {
     },
     [navigate, t.common.open],
   )
-  useRealtime(user?.id ?? null, onNotification)
+
+  const wsConnected = useRealtime(user?.id ?? null, onNotification)
+  const { data: notes } = useNotifications(!!user, wsConnected ? 90_000 : 20_000)
 
   return (
     <div className="flex h-full flex-col md:flex-row">
