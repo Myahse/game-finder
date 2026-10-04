@@ -89,11 +89,16 @@ function gamesNearbyPath(
   return path
 }
 
-export function useGamesNearby(center: Coords, sport: string | null, radiusKm = LIST_NEARBY_RADIUS_KM) {
+export function useGamesNearby(
+  center: Coords,
+  sport: string | null,
+  radiusKm = LIST_NEARBY_RADIUS_KM,
+  upcomingHours?: number,
+) {
   const c = coarse(center)
   return useQuery({
-    queryKey: [...qk.gamesNearby(c.lat, c.lng, sport), radiusKm],
-    queryFn: () => api<Game[]>(gamesNearbyPath(center, sport, radiusKm)),
+    queryKey: [...qk.gamesNearby(c.lat, c.lng, sport), radiusKm, upcomingHours ?? 'default'],
+    queryFn: () => api<Game[]>(gamesNearbyPath(center, sport, radiusKm, upcomingHours)),
     placeholderData: (prev) => prev,
   })
 }

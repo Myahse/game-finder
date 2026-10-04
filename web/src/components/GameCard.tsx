@@ -68,6 +68,11 @@ export function GameCard({
               LIVE
             </span>
           )}
+          {upcoming && (
+            <span className="display absolute left-2 top-2 rounded bg-upcoming px-1.5 py-0.5 text-xs font-bold text-white">
+              UPCOMING
+            </span>
+          )}
           <span className="display absolute bottom-2 right-2 rounded-lg bg-black/55 px-2 py-0.5 text-lg font-extrabold text-white">
             {gamePlayerCountLabel(game.player_count, game.max_players)}
           </span>

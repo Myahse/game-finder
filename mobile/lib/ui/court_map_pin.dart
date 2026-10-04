@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/format.dart';
 import '../core/media_url.dart';
 import '../core/models.dart';
 import 'app_icons.dart';
@@ -11,17 +12,24 @@ class CourtMapPin extends StatelessWidget {
   final VoidCallback? onTap;
   /// Filter highlight on the main map (ignored in [CourtMapPin.placement]).
   final String? sportSlug;
+  final CourtPinTone? pinTone;
   final String? placementSportSlug;
   final String? placementPhotoUrl;
 
-  const CourtMapPin({super.key, required Court this.court, required VoidCallback this.onTap, this.sportSlug})
-      : placementSportSlug = null,
+  const CourtMapPin({
+    super.key,
+    required Court this.court,
+    required VoidCallback this.onTap,
+    this.sportSlug,
+    this.pinTone,
+  })  : placementSportSlug = null,
         placementPhotoUrl = null;
 
   const CourtMapPin.placement({super.key, this.placementSportSlug, this.placementPhotoUrl})
       : court = null,
         onTap = null,
-        sportSlug = null;
+        sportSlug = null,
+        pinTone = null;
 
   static const double size = 46;
   static const double totalHeight = 62;
@@ -35,19 +43,26 @@ class CourtMapPin extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = court;
     final activity = c?.activity ?? Activity.inactive;
+    final tone = pinTone ??
+        switch (activity) {
+          Activity.active => CourtPinTone.active,
+          Activity.players => CourtPinTone.players,
+          Activity.inactive => CourtPinTone.inactive,
+        };
     final sport = c != null
         ? c.sports.where((s) => s.slug == sportSlug).firstOrNull ?? c.sports.firstOrNull
         : null;
     final slug = sport?.slug ?? placementSportSlug ?? 'basketball';
-    final ring = switch (activity) {
-      Activity.active => Palette.live,
-      Activity.players => Palette.players,
-      Activity.inactive => Theme.of(context).colorScheme.outline,
+    final ring = switch (tone) {
+      CourtPinTone.active => Palette.live,
+      CourtPinTone.players => Palette.players,
+      CourtPinTone.upcoming => Palette.upcoming,
+      CourtPinTone.inactive => Theme.of(context).colorScheme.outline,
     };
     final photo = c != null
         ? _photoUrl(c)
         : (placementPhotoUrl != null && placementPhotoUrl!.isNotEmpty ? resolveMediaUrl(placementPhotoUrl!) : null);
-    final showCount = c != null && activity != Activity.inactive && c.playerCount > 0;
+    final showCount = c != null && tone != CourtPinTone.inactive && c.playerCount > 0;
 
     final pin = SizedBox(
       width: size + 8,
@@ -67,8 +82,8 @@ class CourtMapPin extends StatelessWidget {
                   border: Border.all(color: Colors.white, width: 2.5),
                   boxShadow: [
                     BoxShadow(
-                      blurRadius: activity == Activity.active ? 12 : 6,
-                      color: ring.withValues(alpha: activity == Activity.active ? 0.55 : 0.35),
+                      blurRadius: tone == CourtPinTone.active ? 12 : 6,
+                      color: ring.withValues(alpha: tone == CourtPinTone.active ? 0.55 : 0.35),
                     ),
                   ],
                 ),
@@ -84,9 +99,9 @@ class CourtMapPin extends StatelessWidget {
                             fit: BoxFit.cover,
                             width: size,
                             height: size,
-                            errorBuilder: (_, _, _) => _thumb(slug, activity),
+                            errorBuilder: (_, _, _) => _thumb(slug, tone),
                           )
-                        : _thumb(slug, activity),
+                        : _thumb(slug, tone),
                   ),
                 ),
               ),
@@ -120,18 +135,27 @@ class CourtMapPin extends StatelessWidget {
     return GestureDetector(behavior: HitTestBehavior.opaque, onTap: onTap, child: pin);
   }
 
-  Widget _thumb(String slug, Activity activity) {
-    final bg = switch (activity) {
-      Activity.active => Palette.live.withValues(alpha: 0.12),
-      Activity.players => Palette.players.withValues(alpha: 0.25),
-      Activity.inactive => const Color(0xFFF0EDE6),
+  Widget _thumb(String slug, CourtPinTone tone) {
+    final bg = switch (tone) {
+      CourtPinTone.active => Palette.live.withValues(alpha: 0.12),
+      CourtPinTone.players => Palette.players.withValues(alpha: 0.25),
+      CourtPinTone.upcoming => Palette.upcoming.withValues(alpha: 0.12),
+      CourtPinTone.inactive => const Color(0xFFF0EDE6),
     };
     return ColoredBox(
       color: bg,
       child: Center(
-        child: activity == Activity.players
+        child: tone == CourtPinTone.players
             ? const Icon(Icons.groups, size: 22, color: Color(0xFF8A6A00))
-            : SportIcon(slug, size: 26, color: activity == Activity.active ? Palette.live : const Color(0xFF6B7280)),
+            : SportIcon(
+                slug,
+                size: 26,
+                color: tone == CourtPinTone.active
+                    ? Palette.live
+                    : tone == CourtPinTone.upcoming
+                        ? Palette.upcoming
+                        : const Color(0xFF6B7280),
+              ),
       ),
     );
   }

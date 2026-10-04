@@ -167,8 +167,15 @@ class _RailGameCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final muted = scheme.onSurfaceVariant;
+    final upcoming = gameIsUpcomingLater(game) && !game.isLive;
+    final accent = game.isLive ? Palette.live : (upcoming ? Palette.upcoming : muted);
     return Card(
       margin: EdgeInsets.zero,
+      color: upcoming ? Palette.upcoming.withValues(alpha: 0.06) : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: upcoming ? BorderSide(color: Palette.upcoming.withValues(alpha: 0.35)) : BorderSide.none,
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
         onTap: onTap,
@@ -180,14 +187,14 @@ class _RailGameCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  SportIcon(game.sport.slug, size: 20, color: game.isLive ? Palette.live : muted),
+                  SportIcon(game.sport.slug, size: 20, color: accent),
                   const SizedBox(width: 8),
                   Text(
                     gamePlayerCountLabel(game.playerCount, game.maxPlayers),
                     style: TextStyle(
                       fontWeight: FontWeight.w900,
                       fontSize: 17,
-                      color: game.isLive ? Palette.live : muted,
+                      color: accent,
                     ),
                   ),
                 ],

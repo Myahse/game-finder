@@ -140,6 +140,7 @@ func (s *Server) Routes() http.Handler {
 		r.With(s.rateLimitedPublic).Get("/sports", s.listSports)
 		r.With(s.rateLimitedPublic).Get("/courts/nearby", s.courtsNearby)
 		r.With(s.rateLimitedPublic).Get("/friend-invites/{token}", s.getFriendInvitePreview)
+		r.With(s.rateLimitedPublic).Get("/game-links/{token}", s.getGameSharePreview)
 		r.With(s.rateLimitedPublic).Get("/profiles/{username}", s.getPublicProfileByUsername)
 
 		r.Group(func(r chi.Router) {
@@ -179,6 +180,7 @@ func (s *Server) Routes() http.Handler {
 			r.Post("/games/{id}/leave", s.leaveGame)
 			r.Post("/games/{id}/cancel", s.cancelGame)
 			r.Post("/games/{id}/invite", s.inviteToGame)
+			r.Post("/games/{id}/share-link", s.createGameShareLink)
 
 			r.Post("/presence", s.markPresent)
 			r.Post("/presence/confirm", s.confirmPresence)

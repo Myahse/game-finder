@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { Share2 } from 'lucide-react'
-import { gameShareUrl } from '../lib/gameShare'
+import { createGameShareUrl } from '../lib/gameShare'
 import { Button } from './ui'
 
 type Props = {
@@ -17,7 +17,7 @@ export function ShareGameButton({ gameId, title, variant = 'secondary', classNam
   const [copied, setCopied] = useState(false)
   const share = useMutation({
     mutationFn: async () => {
-      const url = gameShareUrl(gameId)
+      const url = await createGameShareUrl(gameId)
       const shareTitle = `${title} · Find the Game`
       if (typeof navigator.share === 'function') {
         try {

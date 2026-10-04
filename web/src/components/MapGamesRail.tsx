@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Game } from '../lib/types'
 import { subscribeLiveGamePulse } from '../lib/liveGames'
-import { sortPlayable } from '../lib/sort'
+import { gameIsUpcomingLater, sortPlayable } from '../lib/sort'
 import { GameCard } from './GameCard'
 import { MapBottomSheet } from './MapBottomSheet'
 import { BaseSportIcon } from './icons'
@@ -91,7 +91,13 @@ export function MapGamesRail({ games, isLoading, sport, viewerIsAdmin = false }:
                 key={g.id}
                 className={`shrink-0 snap-center ${pulseIds.has(g.id) ? 'ftg-game-enter' : ''}`}
               >
-                <GameCard game={g} variant="map" viewerIsAdmin={viewerIsAdmin} className="w-[min(72vw,280px)]" />
+                <GameCard
+                  game={g}
+                  variant="map"
+                  viewerIsAdmin={viewerIsAdmin}
+                  scheduleAccent={gameIsUpcomingLater(g) ? 'upcoming' : undefined}
+                  className="w-[min(72vw,280px)]"
+                />
               </div>
             ))}
           </div>

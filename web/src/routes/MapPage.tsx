@@ -3,7 +3,8 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { syncNotifyArea, type NotifyAreaState } from '../lib/notifyArea'
 import { formatDistance, timeAgo } from '../lib/format'
 import { useLocation, type Coords } from '../lib/location'
-import { MAP_NEARBY_RADIUS_KM } from '../lib/nearby'
+import { MAP_NEARBY_RADIUS_KM, PLAY_UPCOMING_HOURS } from '../lib/nearby'
+import { gameIsUpcomingLater } from '../lib/sort'
 import { useBrowseSportSlug, useMySports } from '../lib/mySport'
 import { useCourt, useCourtsNearby, useGamesNearby, useSports } from '../lib/queries'
 import { useAuth } from '../lib/auth'
@@ -37,7 +38,7 @@ export function MapPage() {
   const queryCenter = browseCenter ?? gpsCenter
   const { data: sports } = useSports()
   const courtsQ = useCourtsNearby(queryCenter, sport)
-  const gamesQ = useGamesNearby(queryCenter, sport, MAP_NEARBY_RADIUS_KM)
+  const gamesQ = useGamesNearby(queryCenter, sport, MAP_NEARBY_RADIUS_KM, PLAY_UPCOMING_HOURS)
   const courts = courtsQ.data
   const nearbyGames = gamesQ.data
   const gamesLoading = gamesQ.isLoading
@@ -82,6 +83,7 @@ export function MapPage() {
       <CourtMap
         mapRef={mapRef}
         courts={courts ?? []}
+        nearbyGames={nearbyGames ?? []}
         center={gpsCenter}
         me={coords}
         sportSlug={sport}
@@ -247,7 +249,14 @@ function CourtSheet({
               <h3 className="display mb-2 text-2xl font-bold">{live.length ? 'Games now' : 'Upcoming games'}</h3>
               <div className="grid gap-2">
                 {games.slice(0, 4).map((g) => (
-                  <GameCard key={g.id} game={g} showCourt={false} showHost viewerIsAdmin={viewerIsAdmin} />
+                  <GameCard
+                    key={g.id}
+                    game={g}
+                    showCourt={false}
+                    showHost
+                    viewerIsAdmin={viewerIsAdmin}
+                    scheduleAccent={gameIsUpcomingLater(g) ? 'upcoming' : undefined}
+                  />
                 ))}
               </div>
             </div>

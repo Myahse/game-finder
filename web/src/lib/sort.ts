@@ -1,5 +1,5 @@
 import { isUnlimitedMaxPlayers } from './format'
-import type { Game } from './types'
+import type { Activity, Court, Game } from './types'
 
 function openSpotsSortKey(g: Game): number {
   if (isUnlimitedMaxPlayers(g.max_players)) return Number.MAX_SAFE_INTEGER
@@ -25,6 +25,33 @@ export function splitScheduledBySoon(games: Game[], now = Date.now()) {
   }
   upcoming.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
   return { soon, upcoming }
+}
+
+export function gameIsUpcomingLater(game: Game, now = Date.now()): boolean {
+  if (game.status !== 'scheduled') return false
+  return new Date(game.start_time).getTime() - now > SOON_MS
+}
+
+export type CourtPinTone = Activity | 'upcoming'
+
+/** Map pin ring: live green, later-week scheduled blue, starting-soon scheduled amber. */
+export function courtPinTone(court: Court, gamesAtCourt: Iterable<Game>, now = Date.now()): CourtPinTone {
+  if (court.activity === 'active') return 'active'
+  let hasActive = false
+  let hasUpcomingLater = false
+  let hasScheduledSoon = false
+  for (const g of gamesAtCourt) {
+    if (g.status === 'active') hasActive = true
+    else if (g.status === 'scheduled') {
+      if (new Date(g.start_time).getTime() - now > SOON_MS) hasUpcomingLater = true
+      else hasScheduledSoon = true
+    }
+  }
+  if (hasActive) return 'active'
+  if (hasUpcomingLater) return 'upcoming'
+  if (hasScheduledSoon) return 'players'
+  if (court.activity === 'players') return 'players'
+  return court.activity
 }
 
 export function sortPlayable(games: Game[]): Game[] {

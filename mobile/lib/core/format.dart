@@ -94,6 +94,40 @@ List<Game> sortPlayable(Iterable<Game> games) {
 }
 
 const _soonMs = 3 * 60 * 60 * 1000;
+const soonMs = _soonMs;
+
+bool gameIsUpcomingLater(Game game, [DateTime? now]) {
+  if (game.status != 'scheduled') return false;
+  final t0 = (now ?? DateTime.now()).millisecondsSinceEpoch;
+  return game.startTime.millisecondsSinceEpoch - t0 > _soonMs;
+}
+
+/// Map pin ring: live, later-week scheduled (blue), starting-soon scheduled (amber).
+enum CourtPinTone { inactive, players, active, upcoming }
+
+CourtPinTone courtPinTone(Court court, List<Game> gamesAtCourt, [DateTime? now]) {
+  if (court.activity == Activity.active) return CourtPinTone.active;
+  var hasActive = false;
+  var hasUpcomingLater = false;
+  var hasScheduledSoon = false;
+  final t0 = (now ?? DateTime.now()).millisecondsSinceEpoch;
+  for (final g in gamesAtCourt) {
+    if (g.isLive) {
+      hasActive = true;
+    } else if (g.status == 'scheduled') {
+      if (g.startTime.millisecondsSinceEpoch - t0 > _soonMs) {
+        hasUpcomingLater = true;
+      } else {
+        hasScheduledSoon = true;
+      }
+    }
+  }
+  if (hasActive) return CourtPinTone.active;
+  if (hasUpcomingLater) return CourtPinTone.upcoming;
+  if (hasScheduledSoon) return CourtPinTone.players;
+  if (court.activity == Activity.players) return CourtPinTone.players;
+  return CourtPinTone.inactive;
+}
 
 ({List<Game> soon, List<Game> upcoming}) splitScheduledBySoon(List<Game> games, [DateTime? now]) {
   final t0 = (now ?? DateTime.now()).millisecondsSinceEpoch;

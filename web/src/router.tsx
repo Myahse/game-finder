@@ -26,6 +26,9 @@ import { AdminSettings } from './routes/admin/AdminSettings'
 import { FriendInvitePage } from './routes/FriendInvitePage'
 import { PublicProfilePage } from './routes/PublicProfilePage'
 import { VerifyEmailPage } from './routes/VerifyEmailPage'
+import { GameLinkPage } from './routes/GameLinkPage'
+import { GameJoinLanding } from './routes/GameJoinLanding'
+import { pendingGamePathAfterAuth } from './lib/gameInvite'
 
 const GUEST_PATHS = new Set(['/register', '/terms', '/privacy', '/login'])
 
@@ -37,15 +40,29 @@ function isPublicProfilePath(path: string) {
   return path.startsWith('/u/')
 }
 
+function isGameSharePath(path: string) {
+  return path.startsWith('/g/')
+}
+
+function legacyGamePath(path: string): string | null {
+  const m = path.match(/^\/games\/([^/]+)$/)
+  if (!m || m[1] === 'new') return null
+  return m[1]
+}
+
 /** Logged-out: welcome at `/` (and `/welcome`). Logged-in: app shell or onboarding. */
 function RootAuthLayout() {
   const { user } = useAuth()
   const loc = useLocation()
   const path = loc.pathname
 
-  if (isFriendInvitePath(path) || isPublicProfilePath(path) || path === '/verify-email') return <Outlet />
+  if (isFriendInvitePath(path) || isPublicProfilePath(path) || isGameSharePath(path) || path === '/verify-email') {
+    return <Outlet />
+  }
 
   if (!user) {
+    const legacyGameId = legacyGamePath(path)
+    if (legacyGameId) return <GameJoinLanding gameId={legacyGameId} />
     if (path === '/' || path === '/welcome') return <WelcomePage />
     if (GUEST_PATHS.has(path)) return <Outlet />
     return <Navigate to="/" replace state={{ from: path }} />
@@ -58,6 +75,11 @@ function RootAuthLayout() {
   if (!user.onboarded) {
     if (path === '/') return <OnboardingPage />
     return <Navigate to="/" replace />
+  }
+
+  const pendingGame = pendingGamePathAfterAuth()
+  if (pendingGame && path !== pendingGame && !isGameSharePath(path) && !legacyGamePath(path)) {
+    return <Navigate to={pendingGame} replace />
   }
 
   return <Outlet />
@@ -80,6 +102,7 @@ export const router = createBrowserRouter([
       { path: 'register', element: <RegisterPage /> },
       { path: 'verify-email', element: <VerifyEmailPage /> },
       { path: 'friend/:token', element: <FriendInvitePage /> },
+      { path: 'g/:token', element: <GameLinkPage /> },
       { path: 'u/:username', element: <PublicProfilePage /> },
       {
         element: <AppShell />,

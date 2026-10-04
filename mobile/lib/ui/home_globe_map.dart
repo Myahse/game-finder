@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
+import '../core/format.dart';
 import '../core/map_tiles.dart';
 import '../core/models.dart';
 import 'court_map_pin.dart';
@@ -33,6 +34,7 @@ class HomeGlobeMap extends StatefulWidget {
     required this.initialCenter,
     required this.userPosition,
     required this.courts,
+    this.nearbyGames = const [],
     required this.sportSlug,
     required this.onCourtTap,
     required this.onReady,
@@ -42,6 +44,7 @@ class HomeGlobeMap extends StatefulWidget {
   final LatLng initialCenter;
   final LatLng? userPosition;
   final List<Court> courts;
+  final List<Game> nearbyGames;
   final String? sportSlug;
   final ValueChanged<Court> onCourtTap;
   final ValueChanged<HomeGlobeMapController> onReady;
@@ -177,6 +180,7 @@ class _HomeGlobeMapState extends State<HomeGlobeMap> {
         ...widget.courts.map((c) {
           final o = _pinPos[c.id];
           if (o == null) return const SizedBox.shrink();
+          final atCourt = widget.nearbyGames.where((g) => g.courtId == c.id);
           return Positioned(
             left: o.dx - _pinW / 2,
             top: o.dy - _pinH,
@@ -185,6 +189,7 @@ class _HomeGlobeMapState extends State<HomeGlobeMap> {
             child: CourtMapPin(
               court: c,
               sportSlug: widget.sportSlug,
+              pinTone: courtPinTone(c, atCourt.toList()),
               onTap: () => widget.onCourtTap(c),
             ),
           );

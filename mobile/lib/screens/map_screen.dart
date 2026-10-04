@@ -252,7 +252,9 @@ class _MapScreenState extends State<MapScreen> {
 
         context.read<Api>().get('/api/courts/nearby?lat=${c.latitude}&lng=${c.longitude}&radius_km=$mapNearbyRadiusKm$sportQ'),
 
-        context.read<Api>().get('/api/games/nearby?lat=${c.latitude}&lng=${c.longitude}&radius_km=$mapNearbyRadiusKm$sportQ'),
+        context.read<Api>().get(
+          '/api/games/nearby?lat=${c.latitude}&lng=${c.longitude}&radius_km=$mapNearbyRadiusKm&upcoming_hours=$playUpcomingHours$sportQ',
+        ),
 
       ]);
 
@@ -334,6 +336,7 @@ class _MapScreenState extends State<MapScreen> {
             initialCenter: loc.center,
             userPosition: loc.position,
             courts: _courts,
+            nearbyGames: _games,
             sportSlug: _sport,
             dark: dark,
             onCourtTap: _openCourt,

@@ -132,7 +132,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Future<void> _shareGame(Game g) async {
-    final url = gameShareUrl(g.id);
+    final url = await createGameShareUrl(context.read<Api>(), g.id);
     await Clipboard.setData(ClipboardData(text: url));
     if (mounted) showSnack(context, 'Game link copied — share it with friends');
   }

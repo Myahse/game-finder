@@ -9,9 +9,11 @@ import { mapStyleForTheme } from '../theme/mapStyle'
 import { useTheme } from '../theme/ThemeProvider'
 import { Hourglass, SportIcon, Users } from './icons'
 import { courtPhotoUrl } from '../lib/mediaUrl'
-import type { Activity, Court } from '../lib/types'
+import { courtPinTone, type CourtPinTone } from '../lib/sort'
+import type { Court, Game } from '../lib/types'
 type Props = {
   courts: Court[]
+  nearbyGames?: Game[]
   center: Coords
   me: Coords | null
   sportSlug: string | null
@@ -25,7 +27,24 @@ type Props = {
 type PointProps = { court: Court }
 type ClusterProps = { players: number; live: number }
 
-export function CourtMap({ courts, center, me, sportSlug, selectedId, onSelect, onBrowseCenterChange, mapRef: mapRefProp }: Props) {
+export function CourtMap({
+  courts,
+  nearbyGames = [],
+  center,
+  me,
+  sportSlug,
+  selectedId,
+  onSelect,
+  onBrowseCenterChange,
+  mapRef: mapRefProp,
+}: Props) {
+  const gamesByCourt = useMemo(() => {
+    const m: Record<string, Game[]> = {}
+    for (const g of nearbyGames) {
+      ;(m[g.court_id] ??= []).push(g)
+    }
+    return m
+  }, [nearbyGames])
   const innerRef = useRef<MapRef>(null)
   const mapRef = mapRefProp ?? innerRef
   const { isDark } = useTheme()
@@ -203,6 +222,7 @@ export function CourtMap({ courts, center, me, sportSlug, selectedId, onSelect, 
               <CourtPin
                 court={court}
                 sportSlug={sportSlug}
+                pinTone={courtPinTone(court, gamesByCourt[court.id] ?? [])}
                 selected={court.id === selectedId}
                 onClick={() => onSelect(court)}
               />
@@ -231,27 +251,36 @@ const COURT_PIN_HEIGHT = 62
 const COURT_PIN_WIDTH = 54
 
 /** Match mobile [CourtMapPin] ring + stick colors. */
-const ringClass: Record<Activity, string> = {
+const ringClass: Record<CourtPinTone, string> = {
   active: 'border-live',
   players: 'border-players',
   inactive: 'border-idle',
+  upcoming: 'border-upcoming',
 }
 
-const ringShadow: Record<Activity, string> = {
+const ringShadow: Record<CourtPinTone, string> = {
   active: 'shadow-[0_0_12px_rgba(22,163,74,0.55)]',
   players: 'shadow-[0_0_6px_rgba(234,179,8,0.35)]',
   inactive: 'shadow-lg',
+  upcoming: 'shadow-[0_0_10px_rgba(37,99,235,0.45)]',
 }
 
-const thumbBg: Record<Activity, string> = {
+const thumbBg: Record<CourtPinTone, string> = {
   active: 'bg-live/12',
   players: 'bg-players/25',
   inactive: 'bg-[#f0ede6]',
+  upcoming: 'bg-upcoming/12',
 }
 
-function PinStick({ activity }: { activity: Activity }) {
+function PinStick({ activity }: { activity: CourtPinTone }) {
   const fill =
-    activity === 'active' ? 'var(--live)' : activity === 'players' ? 'var(--players)' : 'var(--idle)'
+    activity === 'active'
+      ? 'var(--live)'
+      : activity === 'players'
+        ? 'var(--players)'
+        : activity === 'upcoming'
+          ? 'var(--upcoming)'
+          : 'var(--idle)'
   return (
     <svg width="14" height="12" viewBox="0 0 14 12" className="-mt-px shrink-0" aria-hidden>
       <path
@@ -269,7 +298,7 @@ function PinFallback({
   activity,
   slug,
 }: {
-  activity: Activity
+  activity: CourtPinTone
   slug: string
 }): ReactNode {
   if (activity === 'players') {
@@ -278,7 +307,9 @@ function PinFallback({
   return (
     <SportIcon
       slug={slug}
-      className={`size-[26px] ${activity === 'active' ? 'text-live' : 'text-[#6b7280]'}`}
+      className={`size-[26px] ${
+        activity === 'active' ? 'text-live' : activity === 'upcoming' ? 'text-upcoming' : 'text-[#6b7280]'
+      }`}
     />
   )
 }
@@ -290,7 +321,7 @@ function PinPicture({
   slug,
 }: {
   src: string
-  activity: Activity
+  activity: CourtPinTone
   slug: string
 }) {
   const [broken, setBroken] = useState(false)
@@ -311,11 +342,13 @@ function PinPicture({
 export function CourtPin({
   court,
   sportSlug,
+  pinTone,
   selected,
   onClick,
 }: {
   court: Court
   sportSlug: string | null
+  pinTone?: CourtPinTone
   selected?: boolean
   onClick?: () => void
 }) {
@@ -327,8 +360,8 @@ export function CourtPin({
     : court.activity === 'inactive'
       ? `${court.name}: inactive`
       : `${court.name}: ${court.player_count} players${court.activity === 'active' ? ', game active' : ''}`
-  const showCount = !preview && court.activity !== 'inactive' && court.player_count > 0
-  const activity = court.activity
+  const activity = pinTone ?? court.activity
+  const showCount = !preview && activity !== 'inactive' && court.player_count > 0
   const slug = sport?.slug ?? 'basketball'
 
   return (
@@ -387,7 +420,7 @@ export function CourtPin({
         {showCount && (
           <span
             className={`absolute top-[32px] left-1/2 -translate-x-1/2 rounded-full border-[1.5px] border-white px-1.5 py-0.5 text-[11px] font-black leading-none text-white ${
-              activity === 'active' ? 'bg-live' : 'bg-players'
+              activity === 'active' ? 'bg-live' : activity === 'upcoming' ? 'bg-upcoming' : 'bg-players'
             }`}
           >
             {court.player_count}
