@@ -93,6 +93,25 @@ List<Game> sortPlayable(Iterable<Game> games) {
   return list;
 }
 
+const _soonMs = 3 * 60 * 60 * 1000;
+
+({List<Game> soon, List<Game> upcoming}) splitScheduledBySoon(List<Game> games, [DateTime? now]) {
+  final t0 = (now ?? DateTime.now()).millisecondsSinceEpoch;
+  final soon = <Game>[];
+  final upcoming = <Game>[];
+  for (final g in games) {
+    if (g.isLive) continue;
+    final start = g.startTime.millisecondsSinceEpoch;
+    if (start - t0 <= _soonMs) {
+      soon.add(g);
+    } else {
+      upcoming.add(g);
+    }
+  }
+  upcoming.sort((a, b) => a.startTime.compareTo(b.startTime));
+  return (soon: soon, upcoming: upcoming);
+}
+
 /// Opens Apple Maps on iOS, Google Maps elsewhere (app if installed, else web).
 Future<void> openDirections(double lat, double lng) async {
   final candidates = Platform.isIOS

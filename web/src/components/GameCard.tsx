@@ -14,6 +14,8 @@ import {
 import { courtPhotoUrl } from '../lib/mediaUrl'
 import type { Game } from '../lib/types'
 
+export type GameScheduleAccent = 'upcoming'
+
 /** SPORT + DISTANCE + PLAYER COUNT + STATUS, at a glance. */
 export function GameCard({
   game,
@@ -21,6 +23,7 @@ export function GameCard({
   variant = 'list',
   showHost = false,
   viewerIsAdmin = false,
+  scheduleAccent,
   className = '',
 }: {
   game: Game
@@ -29,9 +32,12 @@ export function GameCard({
   /** Show host as @username (map / public game discovery). */
   showHost?: boolean
   viewerIsAdmin?: boolean
+  /** Play list: games starting later this week (blue accent). */
+  scheduleAccent?: GameScheduleAccent
   className?: string
 }) {
   const live = game.status === 'active'
+  const upcoming = !live && scheduleAccent === 'upcoming'
   const full = !gameHasOpenSpots(game)
   const photo = courtPhotoUrl(game.court.photos ?? [])
   const mapLayout = variant === 'map'
@@ -40,7 +46,11 @@ export function GameCard({
   return (
     <Link
       to={`/games/${game.id}`}
-      className={`flex items-stretch gap-3 rounded-2xl border border-line bg-surface p-3 shadow-md transition hover:border-ink-2 ${mapLayout ? 'flex-col sm:flex-row' : ''} ${className}`}
+      className={`flex items-stretch gap-3 rounded-2xl border p-3 shadow-md transition ${mapLayout ? 'flex-col sm:flex-row' : ''} ${
+        upcoming
+          ? 'border-upcoming/35 bg-upcoming/5 hover:border-upcoming/55'
+          : 'border-line bg-surface hover:border-ink-2'
+      } ${className}`}
     >
       {mapLayout ? (
         <div className="relative h-28 w-full shrink-0 overflow-hidden rounded-xl bg-surface-2 sm:h-auto sm:w-24 sm:min-h-[5.5rem]">
@@ -65,7 +75,7 @@ export function GameCard({
       ) : (
         <div
           className={`flex w-16 shrink-0 flex-col items-center justify-center rounded-xl ${
-            live ? 'bg-live/15 text-live' : 'bg-surface-2 text-ink-2'
+            live ? 'bg-live/15 text-live' : upcoming ? 'bg-upcoming/15 text-upcoming' : 'bg-surface-2 text-ink-2'
           }`}
         >
           <SportIcon slug={game.sport.slug} className="size-8" />
@@ -78,6 +88,11 @@ export function GameCard({
             <span className="display inline-flex items-center gap-1 rounded bg-live px-1.5 py-0.5 text-sm font-bold text-white">
               <Flame className="size-3.5 shrink-0" aria-hidden />
               LIVE
+            </span>
+          )}
+          {upcoming && !mapLayout && (
+            <span className="display inline-flex rounded bg-upcoming px-1.5 py-0.5 text-sm font-bold text-white">
+              UPCOMING
             </span>
           )}
           <p className="truncate font-semibold">
@@ -102,7 +117,9 @@ export function GameCard({
       </div>
       <div className="flex shrink-0 flex-col items-end justify-between py-0.5 text-right">
         {game.distance_m != null && <span className="display text-xl font-bold">{formatDistance(game.distance_m)}</span>}
-        <span className={`text-xs font-semibold ${full ? 'text-danger' : 'text-live'}`}>
+        <span
+          className={`text-xs font-semibold ${full ? 'text-danger' : live ? 'text-live' : upcoming ? 'text-upcoming' : 'text-live'}`}
+        >
           {full ? 'Full' : isUnlimitedMaxPlayers(game.max_players) ? 'Open' : `${game.spots_left} spot${game.spots_left === 1 ? '' : 's'}`}
         </span>
       </div>

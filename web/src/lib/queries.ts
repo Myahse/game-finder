@@ -2,7 +2,7 @@ import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/rea
 import { api } from './api'
 import { useAuth } from './auth'
 import { coarse, type Coords } from './location'
-import { LIST_NEARBY_RADIUS_KM, MAP_NEARBY_RADIUS_KM } from './nearby'
+import { LIST_NEARBY_RADIUS_KM, MAP_NEARBY_RADIUS_KM, PLAY_UPCOMING_HOURS } from './nearby'
 import type { AppNotification, Court, CourtDetail, Game, Me, Presence, PublicUser, Sport } from './types'
 
 export const qk = {
@@ -77,16 +77,52 @@ export function useGame(id: string | undefined, coords: Coords | null) {
   })
 }
 
+function gamesNearbyPath(
+  center: Coords,
+  sport: string | null,
+  radiusKm: number,
+  upcomingHours?: number,
+) {
+  let path = `/api/games/nearby?lat=${center.latitude}&lng=${center.longitude}&radius_km=${radiusKm}`
+  if (sport) path += `&sport=${encodeURIComponent(sport)}`
+  if (upcomingHours != null && upcomingHours > 0) path += `&upcoming_hours=${upcomingHours}`
+  return path
+}
+
 export function useGamesNearby(center: Coords, sport: string | null, radiusKm = LIST_NEARBY_RADIUS_KM) {
   const c = coarse(center)
   return useQuery({
     queryKey: [...qk.gamesNearby(c.lat, c.lng, sport), radiusKm],
-    queryFn: () =>
-      api<Game[]>(
-        `/api/games/nearby?lat=${center.latitude}&lng=${center.longitude}&radius_km=${radiusKm}${sport ? `&sport=${sport}` : ''}`,
-      ),
+    queryFn: () => api<Game[]>(gamesNearbyPath(center, sport, radiusKm)),
     placeholderData: (prev) => prev,
   })
+}
+
+/** Play tab: wider upcoming window; merges several sport filters (member sports). */
+export function usePlayGamesNearby(
+  center: Coords,
+  sportSlugs: (string | null)[],
+  radiusKm = LIST_NEARBY_RADIUS_KM,
+) {
+  const c = coarse(center)
+  const keys = sportSlugs.length ? sportSlugs : [null as string | null]
+  const results = useQueries({
+    queries: keys.map((sport) => ({
+      queryKey: [...qk.gamesNearby(c.lat, c.lng, sport), radiusKm, PLAY_UPCOMING_HOURS, 'play'],
+      queryFn: () => api<Game[]>(gamesNearbyPath(center, sport, radiusKm, PLAY_UPCOMING_HOURS)),
+      placeholderData: (prev: Game[] | undefined) => prev,
+    })),
+  })
+  const merged = new Map<string, Game>()
+  for (const r of results) {
+    for (const game of r.data ?? []) merged.set(game.id, game)
+  }
+  return {
+    data: [...merged.values()],
+    isLoading: results.some((r) => r.isLoading),
+    isError: results.some((r) => r.isError),
+    error: results.find((r) => r.error)?.error,
+  }
 }
 
 export function useMyGames(coords: Coords | null) {

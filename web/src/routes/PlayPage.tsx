@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { subscribeLiveGamePulse } from '../lib/liveGames'
 import { useLocation } from '../lib/location'
-import { useBrowseSportSlug, useMySport } from '../lib/mySport'
-import { useGamesNearby, useSports } from '../lib/queries'
+import { useBrowseSportSlug, useMySports } from '../lib/mySport'
+import { usePlayGamesNearby, useSports } from '../lib/queries'
 import { useAuth } from '../lib/auth'
 import { useQueryErrorToast } from '../lib/toastErrors'
-import { sortPlayable } from '../lib/sort'
+import { sortPlayable, splitScheduledBySoon } from '../lib/sort'
 import { GameCard } from '../components/GameCard'
 import { BaseSportIcon, LiveText, SportName } from '../components/icons'
 import { Chip, Empty, PageHeader } from '../components/ui'
@@ -20,16 +20,21 @@ export function PlayPage() {
   const [, setParams] = useSearchParams()
   const { user } = useAuth()
   const sport = useBrowseSportSlug()
-  const mySport = useMySport()
+  const mySports = useMySports()
   const isAdmin = user?.role === 'admin'
+  const sportSlugs = useMemo(() => {
+    if (isAdmin) return sport ? [sport] : [null as string | null]
+    return mySports.map((s) => s.slug)
+  }, [isAdmin, sport, mySports])
+
   const { center, status, waitingGps, hasFix } = useLocation()
   const { data: sports } = useSports()
-  const { data: games, isLoading, isError, error } = useGamesNearby(center, sport)
+  const { data: games, isLoading, isError, error } = usePlayGamesNearby(center, sportSlugs)
   useQueryErrorToast(error)
-  useQueryErrorToast(error)
+
   const sorted = sortPlayable(games ?? [])
   const live = sorted.filter((g) => g.status === 'active')
-  const soon = sorted.filter((g) => g.status === 'scheduled')
+  const { soon, upcoming } = splitScheduledBySoon(sorted)
 
   return (
     <div className="pb-10">
@@ -50,11 +55,11 @@ export function PlayPage() {
                 ))}
             </>
           ) : (
-            mySport && (
-              <Chip active>
-                <SportName sport={mySport} />
+            mySports.map((s) => (
+              <Chip key={s.id} active>
+                <SportName sport={s} />
               </Chip>
-            )
+            ))
           )}
         </div>
         {waitingGps && (
@@ -98,12 +103,25 @@ export function PlayPage() {
               </section>
             )}
             {soon.length > 0 && (
-              <section className="mt-6">
+              <section className={live.length > 0 ? 'mt-6' : undefined}>
                 <h2 className="display mb-2 text-2xl font-bold">Starting soon</h2>
                 <div className="grid gap-2">
                   {soon.map((g) => (
                     <div key={g.id} className={pulseIds.has(g.id) ? 'ftg-game-enter' : undefined}>
                       <GameCard game={g} />
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+            {upcoming.length > 0 && (
+              <section className={live.length > 0 || soon.length > 0 ? 'mt-6' : undefined}>
+                <h2 className="display mb-2 text-2xl font-bold text-upcoming">Upcoming</h2>
+                <p className="mb-2 text-sm text-ink-2">Scheduled games in the next week near you.</p>
+                <div className="grid gap-2">
+                  {upcoming.map((g) => (
+                    <div key={g.id} className={pulseIds.has(g.id) ? 'ftg-game-enter' : undefined}>
+                      <GameCard game={g} scheduleAccent="upcoming" />
                     </div>
                   ))}
                 </div>

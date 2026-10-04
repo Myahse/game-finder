@@ -9,6 +9,7 @@ const kFloatingNavClearance = 84.0;
 class Palette {
   static const brand = Color(0xFFFF5A1F);
   static const live = Color(0xFF16A34A);
+  static const upcoming = Color(0xFF2563EB);
   static const players = Color(0xFFEAB308);
   static const idle = Color(0xFF9AA0A8);
   static const night = Color(0xFF0B0E12);

@@ -15,6 +15,7 @@
   --sport-accent: #ffb020;
   --sport-deep: #7a1f00;
   --live: #16a34a;
+  --upcoming: #2563eb;
   --players: #eab308;
   --idle: #9aa0a8;
   --danger: #dc2626;
@@ -33,6 +34,7 @@
     --sport-accent: #ffbe3d;
     --sport-deep: #3d1200;
     --live: #22c55e;
+    --upcoming: #60a5fa;
     --players: #facc15;
     --idle: #6b7380;
     --danger: #f87171;
@@ -52,6 +54,7 @@
   --sport-accent: #ffbe3d;
   --sport-deep: #3d1200;
   --live: #22c55e;
+  --upcoming: #60a5fa;
   --players: #facc15;
   --idle: #6b7380;
   --danger: #f87171;
@@ -70,6 +73,7 @@
   --sport-accent: #ffb020;
   --sport-deep: #7a1f00;
   --live: #16a34a;
+  --upcoming: #2563eb;
   --players: #eab308;
   --idle: #9aa0a8;
   --danger: #dc2626;
@@ -164,6 +168,7 @@
   --color-sport-accent: var(--sport-accent);
   --color-sport-deep: var(--sport-deep);
   --color-live: var(--live);
+  --color-upcoming: var(--upcoming);
   --color-players: var(--players);
   --color-idle: var(--idle);
   --color-danger: var(--danger);

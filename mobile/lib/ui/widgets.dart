@@ -80,15 +80,30 @@ class GameCard extends StatelessWidget {
   final Game game;
   final bool showCourt;
   final bool dense;
+  final bool upcomingAccent;
   final VoidCallback onTap;
-  const GameCard({super.key, required this.game, required this.onTap, this.showCourt = true, this.dense = false});
+  const GameCard({
+    super.key,
+    required this.game,
+    required this.onTap,
+    this.showCourt = true,
+    this.dense = false,
+    this.upcomingAccent = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
     final muted = t.colorScheme.onSurfaceVariant;
     final full = !gameHasOpenSpots(game);
+    final upcoming = upcomingAccent && !game.isLive;
+    final accent = game.isLive ? Palette.live : (upcoming ? Palette.upcoming : muted);
     return Card(
+      color: upcoming ? Palette.upcoming.withValues(alpha: 0.06) : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: upcoming ? BorderSide(color: Palette.upcoming.withValues(alpha: 0.35)) : BorderSide.none,
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
         onTap: onTap,
@@ -99,16 +114,20 @@ class GameCard extends StatelessWidget {
               width: dense ? 52 : 64,
               padding: EdgeInsets.symmetric(vertical: dense ? 6 : 8),
               decoration: BoxDecoration(
-                color: game.isLive ? Palette.live.withValues(alpha: 0.15) : t.colorScheme.surfaceContainerHighest,
+                color: game.isLive
+                    ? Palette.live.withValues(alpha: 0.15)
+                    : upcoming
+                        ? Palette.upcoming.withValues(alpha: 0.15)
+                        : t.colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(children: [
-                SportIcon(game.sport.slug, size: dense ? 22 : 26, color: game.isLive ? Palette.live : muted),
+                SportIcon(game.sport.slug, size: dense ? 22 : 26, color: accent),
                 Text(gamePlayerCountLabel(game.playerCount, game.maxPlayers),
                     style: TextStyle(
                         fontWeight: FontWeight.w900,
                         fontSize: dense ? 15 : 18,
-                        color: game.isLive ? Palette.live : muted)),
+                        color: accent)),
               ]),
             ),
             const SizedBox(width: 12),
@@ -125,6 +144,14 @@ class GameCard extends StatelessWidget {
                         SizedBox(width: 2),
                         Text('LIVE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11)),
                       ]),
+                    ),
+                  if (upcoming)
+                    Container(
+                      margin: const EdgeInsets.only(right: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                      decoration: BoxDecoration(color: Palette.upcoming, borderRadius: BorderRadius.circular(4)),
+                      child: const Text('UPCOMING',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11)),
                     ),
                   Expanded(
                     child: Text('${gameTypeLabels[game.gameType]} ${game.sport.name.toLowerCase()}',
@@ -175,7 +202,9 @@ class GameCard extends StatelessWidget {
                             ? 'Open'
                             : '${game.spotsLeft} spot${game.spotsLeft == 1 ? '' : 's'}',
                     style: TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.w700, color: full ? t.colorScheme.error : Palette.live)),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: full ? t.colorScheme.error : (game.isLive ? Palette.live : (upcoming ? Palette.upcoming : Palette.live)))),
               ]),
           ]),
         ),

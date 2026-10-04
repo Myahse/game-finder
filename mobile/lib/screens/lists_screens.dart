@@ -144,7 +144,7 @@ class _PlayScreenState extends _LiveListState<PlayScreen> {
       if (slug != null) sportQ = '&sport=$slug';
     }
     final j = await api.get(
-      '/api/games/nearby?lat=${c.latitude}&lng=${c.longitude}&radius_km=$listNearbyRadiusKm$sportQ',
+      '/api/games/nearby?lat=${c.latitude}&lng=${c.longitude}&radius_km=$listNearbyRadiusKm&upcoming_hours=$playUpcomingHours$sportQ',
     );
     _games = sortPlayable([for (final g in j as List) Game.fromJson(g)]);
   }
@@ -153,7 +153,9 @@ class _PlayScreenState extends _LiveListState<PlayScreen> {
   Widget build(BuildContext context) {
     final loc = context.watch<LocationState>();
     final live = _games.where((g) => g.isLive).toList();
-    final soon = _games.where((g) => !g.isLive).toList();
+    final split = splitScheduledBySoon(_games);
+    final soon = split.soon;
+    final upcoming = split.upcoming;
     final waitingGps = !loc.hasFix && loc.status != LocationStatus.denied && loc.status != LocationStatus.serviceOff;
     return Scaffold(
       appBar: AppBar(title: const Text('PLAY')),
@@ -205,6 +207,22 @@ class _PlayScreenState extends _LiveListState<PlayScreen> {
             Text('STARTING SOON', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             for (final g in soon) Padding(padding: const EdgeInsets.only(bottom: 8), child: GameCard(game: g, onTap: () => openGame(g.id))),
+          ],
+          if (upcoming.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text('UPCOMING', style: Theme.of(context).textTheme.titleLarge),
+            Padding(
+              padding: const EdgeInsets.only(top: 4, bottom: 8),
+              child: Text(
+                'Scheduled in the next week near you.',
+                style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
+            ),
+            for (final g in upcoming)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: GameCard(game: g, upcomingAccent: true, onTap: () => openGame(g.id)),
+              ),
           ],
         ]),
       ),

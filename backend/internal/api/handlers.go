@@ -45,6 +45,17 @@ func radius(r *http.Request) float64 {
 	return 25
 }
 
+func upcomingHours(r *http.Request) int {
+	h := 3
+	if v := strings.TrimSpace(r.URL.Query().Get("upcoming_hours")); v != "" {
+		n, err := strconv.Atoi(v)
+		if err == nil && n > 0 {
+			h = n
+		}
+	}
+	return min(h, 24*14)
+}
+
 func validCoords(lat, lng float64) bool {
 	return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
 }
@@ -460,8 +471,8 @@ func (s *Server) gamesNearby(w http.ResponseWriter, r *http.Request) {
 	if !s.assertBrowseLocation(w, r, lat, lng) {
 		return
 	}
-	b, err := s.db.JSON(r.Context(), uid(r), "select games_nearby($1, $2, $3, $4)",
-		lat, lng, radius(r), optString(r, "sport"))
+	b, err := s.db.JSON(r.Context(), uid(r), "select games_nearby($1, $2, $3, $4, $5)",
+		lat, lng, radius(r), optString(r, "sport"), upcomingHours(r))
 	if err != nil {
 		writeDBError(w, r, err)
 		return
