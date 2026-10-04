@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { api, errorMessage, uploadImage } from '../lib/api'
+import { resolveMediaUrl } from '../lib/mediaUrl'
 import {
   formatDistance,
   gameTypeLabels,
@@ -176,10 +177,10 @@ export function CreateGamePage() {
           >
             <div className="flex flex-wrap gap-2">
               {existingPhotos.map((p) => (
-                <img key={p} src={p} alt="" className="size-20 rounded-xl object-cover" />
+                <img key={p} src={resolveMediaUrl(p)} alt="" className="size-20 rounded-xl object-cover" />
               ))}
               {placePhotos.map((p) => (
-                <img key={p} src={p} alt="" className="size-20 rounded-xl object-cover ring-2 ring-brand" />
+                <img key={p} src={resolveMediaUrl(p)} alt="" className="size-20 rounded-xl object-cover ring-2 ring-brand" />
               ))}
               {existingPhotos.length + placePhotos.length < 6 && (
                 <label className="flex size-20 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-line text-ink-2">

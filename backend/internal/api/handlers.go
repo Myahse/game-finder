@@ -128,7 +128,7 @@ func (s *Server) addCourtPhotos(w http.ResponseWriter, r *http.Request) {
 	if !s.validateUploadURLs(w, in.Photos) {
 		return
 	}
-	status, code, msg, err := s.appendCourtPhotos(r.Context(), courtID, uid(r), in.Photos)
+	status, code, msg, err := s.appendCourtPhotos(r.Context(), courtID, uid(r), in.Photos, false)
 	if err != nil {
 		writeDBError(w, r, err)
 		return
@@ -212,13 +212,38 @@ func (s *Server) removeCourtPhotoURLs(ctx context.Context, courtID, userID strin
 	return next, 0, "", "", nil
 }
 
-// appendCourtPhotos merges upload URLs onto a court (proposer or admin only, max 6 total).
-func (s *Server) appendCourtPhotos(ctx context.Context, courtID, userID string, newPhotos []string) (status int, code, msg string, err error) {
+// appendCourtPhotos merges upload URLs onto a court (max 6 total).
+// Proposer or admin unless bootstrapFirstPhoto is true and the court has no photos yet (first photo when hosting a game).
+func (s *Server) appendCourtPhotos(ctx context.Context, courtID, userID string, newPhotos []string, bootstrapFirstPhoto bool) (status int, code, msg string, err error) {
 	if len(newPhotos) == 0 {
 		return 0, "", "", nil
 	}
 	if len(newPhotos) > 6 {
 		return http.StatusUnprocessableEntity, "too_many_photos", "Up to 6 photos per request.", nil
+	}
+	var have int
+	if err := s.db.Pool.QueryRow(ctx, `
+		select coalesce(array_length(c.photos, 1), 0)
+		from courts c where c.id = $1`, courtID).Scan(&have); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return http.StatusNotFound, "not_found", "Court not found.", nil
+		}
+		return 0, "", "", err
+	}
+	if have+len(newPhotos) > 6 {
+		return http.StatusUnprocessableEntity, "too_many_photos", "This court already has the maximum of 6 photos.", nil
+	}
+	if bootstrapFirstPhoto {
+		if have > 0 {
+			return http.StatusForbidden, "not_allowed", "You can only add the first court photo when the court has none yet.", nil
+		}
+		_, err = s.db.Pool.Exec(ctx, `
+			update courts set photos = $2::text[]
+			where id = $1`, courtID, newPhotos)
+		if err != nil {
+			return 0, "", "", err
+		}
+		return 0, "", "", nil
 	}
 	status, code, msg, err = s.courtProposerMayEdit(ctx, courtID, userID)
 	if err != nil {
@@ -226,15 +251,6 @@ func (s *Server) appendCourtPhotos(ctx context.Context, courtID, userID string, 
 	}
 	if status != 0 {
 		return status, code, msg, nil
-	}
-	var have int
-	if err := s.db.Pool.QueryRow(ctx, `
-		select coalesce(array_length(c.photos, 1), 0)
-		from courts c where c.id = $1`, courtID).Scan(&have); err != nil {
-		return 0, "", "", err
-	}
-	if have+len(newPhotos) > 6 {
-		return http.StatusUnprocessableEntity, "too_many_photos", "This court already has the maximum of 6 photos.", nil
 	}
 	_, err = s.db.Pool.Exec(ctx, `
 		update courts set photos = (
@@ -515,7 +531,8 @@ func (s *Server) createGame(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if len(in.CourtPhotos) > 0 {
-		status, code, msg, err := s.appendCourtPhotos(r.Context(), in.CourtID, uid(r), in.CourtPhotos)
+		bootstrap := have == 0
+		status, code, msg, err := s.appendCourtPhotos(r.Context(), in.CourtID, uid(r), in.CourtPhotos, bootstrap)
 		if err != nil {
 			writeDBError(w, r, err)
 			return
