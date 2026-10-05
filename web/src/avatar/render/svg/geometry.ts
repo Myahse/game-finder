@@ -11,24 +11,40 @@ export type Geo = {
   waist: number
   hip: number
   neck: number
-  /** Stroke thickness of limbs */
+  /** Base limb thickness (widest muscle ≈ 1.2×) */
   arm: number
   leg: number
+  /** Muscle definition (1 = average) and belly forward-curve in px */
+  muscle: number
+  belly: number
 }
 
 const GEO: Record<BodyType, Geo> = {
-  slim: { shoulder: 33, waist: 24, hip: 24, neck: 8.5, arm: 12, leg: 14 },
-  average: { shoulder: 37, waist: 28, hip: 27, neck: 9.5, arm: 13.5, leg: 15.5 },
-  athletic: { shoulder: 42, waist: 27, hip: 27, neck: 10.5, arm: 15, leg: 16.5 },
-  muscular: { shoulder: 46, waist: 30, hip: 29, neck: 12, arm: 18, leg: 18.5 },
-  larger: { shoulder: 42, waist: 37, hip: 34, neck: 12, arm: 17, leg: 19 },
+  slim: { shoulder: 33, waist: 24, hip: 24, neck: 8.5, arm: 11.5, leg: 13.5, muscle: 0.9, belly: 0 },
+  average: { shoulder: 37, waist: 28, hip: 27, neck: 9.5, arm: 13, leg: 15, muscle: 1, belly: 2 },
+  athletic: { shoulder: 42, waist: 27, hip: 27, neck: 10.5, arm: 14.5, leg: 16, muscle: 1.1, belly: 0 },
+  muscular: { shoulder: 46, waist: 30, hip: 29, neck: 12, arm: 17, leg: 18, muscle: 1.22, belly: 0 },
+  larger: { shoulder: 42, waist: 37, hip: 34, neck: 12, arm: 16.5, leg: 18.5, muscle: 0.95, belly: 9 },
 }
 
 /** Body proportions; a curvy figure narrows shoulders + waist and widens hips. */
-export function geometry(body: BodyType, figure: PlayerAvatarConfig['figure'] = 'straight'): Geo & { curvy: boolean } {
+export type Body = Geo & { curvy: boolean; thigh: number }
+
+export function geometry(body: BodyType, figure: PlayerAvatarConfig['figure'] = 'straight'): Body {
   const g = GEO[body] ?? GEO.athletic
-  if (figure !== 'curvy') return { ...g, curvy: false }
-  return { ...g, shoulder: g.shoulder - 4, waist: Math.max(21, g.waist - 4), hip: g.hip + 8, leg: g.leg + 1, arm: g.arm - 0.5, neck: g.neck - 1, curvy: true }
+  if (figure !== 'curvy') return { ...g, curvy: false, thigh: 1 }
+  return {
+    ...g,
+    shoulder: g.shoulder - 4,
+    waist: Math.max(21, g.waist - 4),
+    hip: g.hip + 8,
+    leg: g.leg + 0.5,
+    arm: g.arm - 1,
+    neck: g.neck - 1,
+    muscle: g.muscle * 0.92,
+    curvy: true,
+    thigh: 1.16,
+  }
 }
 
 export const Y = { neckTop: 88, shoulder: 118, waist: 212, crotch: 262, knee: 314, ankle: 368, sole: 390 }

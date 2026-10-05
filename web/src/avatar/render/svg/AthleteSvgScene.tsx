@@ -7,7 +7,7 @@ import { BodyAccessory, Earrings, Equipment } from './gear'
 import { Brows, Eyes, Eyewear, Face, FaceDetails, FacialHair, HairBack, HairFront, Headwear, Mouth, Nose } from './head'
 import { FULL_FIGURE_VIEWBOX, HEAD_PORTRAIT_VIEWBOX } from './viewBox'
 
-const HEAD_SCALE = `translate(${CX} 98) scale(1.14) translate(${-CX} -98)`
+const HEAD_SCALE = `translate(${CX} 98) scale(1.04) translate(${-CX} -98)`
 
 /** Taller players are drawn a little bigger, anchored at the feet. */
 function heightScale(h: number) {
