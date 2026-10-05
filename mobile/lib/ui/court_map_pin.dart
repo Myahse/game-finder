@@ -18,8 +18,8 @@ class CourtMapPin extends StatelessWidget {
 
   const CourtMapPin({
     super.key,
-    required Court this.court,
-    required VoidCallback this.onTap,
+    required this.court,
+    required this.onTap,
     this.sportSlug,
     this.pinTone,
   })  : placementSportSlug = null,

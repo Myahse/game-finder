@@ -386,6 +386,7 @@ func TestCoreFlow(t *testing.T) {
 
 func TestCourtProposalAndAdmin(t *testing.T) {
 	e := setup(t)
+	ctx := context.Background()
 	admin := e.register("admin")
 	u := e.register("player1")
 	_, sports := e.must(200, "", "GET", "/api/sports", nil)
@@ -479,8 +480,15 @@ func TestCourtProposalAndAdmin(t *testing.T) {
 
 	// Stats + settings.
 	stats, _ := e.must(200, admin.Token, "GET", "/api/admin/stats", nil)
-	if stats["total_users"].(float64) != 3 || stats["courts"].(float64) != 8 {
-		t.Fatalf("stats = %v", stats)
+	var dbUsers, dbApprovedCourts int
+	if err := e.db.Pool.QueryRow(ctx, `select count(*) from users`).Scan(&dbUsers); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.db.Pool.QueryRow(ctx, `select count(*) from courts where status = 'approved'`).Scan(&dbApprovedCourts); err != nil {
+		t.Fatal(err)
+	}
+	if stats["total_users"].(float64) != float64(dbUsers) || stats["courts"].(float64) != float64(dbApprovedCourts) {
+		t.Fatalf("stats = %v (db users %d, approved courts %d)", stats, dbUsers, dbApprovedCourts)
 	}
 	e.must(200, admin.Token, "PATCH", "/api/admin/settings", map[string]any{"presence_minutes": 45})
 
@@ -553,8 +561,7 @@ func TestEmptyGameIsNotActiveAndCreatorsCanBeDeleted(t *testing.T) {
 		t.Fatalf("after everyone left: %v / %v", c["activity"], c["player_count"])
 	}
 
-	// Deleting a game creator keeps the game and clears creator_id, both via
-	// the admin API and directly in the database (no request user).
+
 	e.must(204, admin.Token, "DELETE", "/api/admin/users/"+host.ID, nil)
 	other := e.register("host2")
 	e.must(201, other.Token, "POST", "/api/games", map[string]any{
