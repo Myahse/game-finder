@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { useMutation } from '@tanstack/react-query'
 import { useQuery } from '@tanstack/react-query'
 import { api, errorMessage, uploadImage } from '../lib/api'
 import { useAuth } from '../lib/auth'
@@ -13,8 +12,11 @@ import { SportIcon, SportName, Wrench } from '../components/icons'
 import { FriendsPanel } from '../components/FriendsPanel'
 import { ProfileFriendActions } from '../components/ProfileFriendActions'
 import { playerDisplayLabel, playerFullName, playerUsernameLabel } from '../lib/format'
-import { profileShareUrl } from '../lib/profileShare'
 import { hasPlayerAvatar } from '../avatar/resolve'
+import { ShareProfileButton } from '../components/ShareProfileSheet'
+import { AvatarPortrait } from '../avatar/render/AvatarPortrait'
+import { AVATAR_SPORTS, defaultConfig } from '../avatar/presets'
+import { useMySport } from '../lib/mySport'
 import { Avatar, Button, Card, ErrorText, Field, Input, PageHeader, Select } from '../components/ui'
 import { Loading } from './CourtPage'
 
@@ -66,21 +68,21 @@ function Stat({ value, label }: { value: number; label: string }) {
   )
 }
 
-function ShareProfileButton({ username }: { username: string }) {
-  const [copied, setCopied] = useState(false)
-  const copy = useMutation({
-    mutationFn: async () => {
-      await navigator.clipboard.writeText(profileShareUrl(username))
-    },
-    onSuccess: () => {
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 2500)
-    },
-  })
+/** Nudge for players who haven't made an avatar yet, previewing a player in their sport. */
+function CreateAvatarCard() {
+  const { t } = useLocale()
+  const mySport = useMySport()
+  const preview = defaultConfig(AVATAR_SPORTS.find((s) => s === mySport?.slug) ?? 'basketball')
   return (
-    <Button type="button" variant="secondary" loading={copy.isPending} onClick={() => copy.mutate()}>
-      {copied ? 'Profile link copied!' : 'Share my profile'}
-    </Button>
+    <Link to="/profile/avatar" className="flex items-center gap-3 rounded-2xl border border-brand/40 bg-brand/10 p-3 transition hover:bg-brand/15">
+      <span className="size-16 shrink-0 overflow-hidden rounded-full bg-surface">
+        <AvatarPortrait config={preview} className="h-full w-full" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="display block text-xl font-extrabold text-brand">{t.profile.createAvatar}</span>
+        <span className="block text-sm text-ink-2">{t.profile.avatarPrompt}</span>
+      </span>
+    </Link>
   )
 }
 
@@ -147,15 +149,17 @@ export function ProfilePage() {
         ) : (
           <>
             <ProfileCard user={current} viewerIsAdmin={viewerIsAdmin} />
-            {canEditPlayerAvatar && (
+            {canEditPlayerAvatar ? (
               <Link
                 to="/profile/avatar"
                 className="flex min-h-12 w-full items-center justify-center rounded-xl bg-surface-2 px-5 text-lg font-bold text-ink"
               >
                 {t.profile.editAvatar}
               </Link>
+            ) : (
+              <CreateAvatarCard />
             )}
-            <ShareProfileButton username={current.username} />
+            <ShareProfileButton me={current} />
             <FriendsPanel viewerIsAdmin={viewerIsAdmin} />
           </>
         )}

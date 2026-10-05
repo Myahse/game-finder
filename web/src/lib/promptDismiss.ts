@@ -21,6 +21,7 @@ export function dismissPromptLater(key: string) {
 export const PROMPT_KEYS = {
   notifications: 'ftg_prompt_notifications',
   install: 'ftg_prompt_install',
+  avatar: 'ftg_prompt_avatar',
 } as const
 
 export function isStandalonePwa(): boolean {

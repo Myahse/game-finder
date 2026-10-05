@@ -87,7 +87,20 @@ function kitTint(c: PlayerAvatarConfig) {
   return `radial-gradient(120% 80% at 50% 100%, color-mix(in srgb, ${tone} 22%, transparent), transparent 70%), linear-gradient(180deg, var(--surface-2), var(--surface))`
 }
 
-export function AvatarStudio({ initial, onSaved }: { initial: PlayerAvatarConfig; onSaved?: () => void }) {
+export function AvatarStudio({
+  initial,
+  onSaved,
+  title,
+  back = '/profile',
+  skip,
+}: {
+  initial: PlayerAvatarConfig
+  onSaved?: () => void
+  title?: string
+  back?: string
+  /** Extra header action, e.g. "Skip" during sign-up. */
+  skip?: ReactNode
+}) {
   const { updateUser } = useAuth()
   const { t } = useLocale()
   const L = t.avatarStudio
@@ -123,7 +136,16 @@ export function AvatarStudio({ initial, onSaved }: { initial: PlayerAvatarConfig
 
   return (
     <>
-      <PageHeader title={L.title} back="/profile" right={saveButton(L.save, 'min-h-10 px-4 text-base lg:hidden')} />
+      <PageHeader
+        title={title ?? L.title}
+        back={back}
+        right={
+          <span className="flex items-center gap-1">
+            {skip}
+            {saveButton(L.save, 'min-h-10 px-4 text-base lg:hidden')}
+          </span>
+        }
+      />
       <div className="mx-auto w-full max-w-5xl px-4 pb-8 pt-4 lg:grid lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)] lg:gap-8 lg:pb-10">
         {/* Preview */}
         <aside className="lg:sticky lg:top-4 lg:self-start">

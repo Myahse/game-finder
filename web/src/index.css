@@ -443,6 +443,7 @@ body {
 }
 
 [data-sonner-toast] [data-cancel] {
-  color: var(--ink-2) !important;
+  background: var(--surface-2) !important;
+  color: var(--ink) !important;
 }
 

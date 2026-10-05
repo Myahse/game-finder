@@ -8,7 +8,36 @@ type BeforeInstallPromptEvent = Event & {
 }
 
 const NOTIFY_TOAST_ID = 'ftg-enable-notifications'
+const AVATAR_TOAST_ID = 'ftg-create-avatar'
 const INSTALL_TOAST_ID = 'ftg-install-app'
+
+function showAvatarPrompt(onCreate: (() => void) | null, labels: AvatarPromptLabels, onDone: () => void) {
+  if (!onCreate || promptDismissed(PROMPT_KEYS.avatar)) {
+    onDone()
+    return
+  }
+  toast(labels.title, {
+    id: AVATAR_TOAST_ID,
+    description: labels.body,
+    duration: Infinity,
+    action: {
+      label: labels.create,
+      onClick: () => {
+        dismissPromptLater(PROMPT_KEYS.avatar)
+        toast.dismiss(AVATAR_TOAST_ID)
+        onCreate()
+      },
+    },
+    cancel: {
+      label: labels.later,
+      onClick: () => {
+        dismissPromptLater(PROMPT_KEYS.avatar)
+        toast.dismiss(AVATAR_TOAST_ID)
+        onDone()
+      },
+    },
+  })
+}
 
 function showNotificationPrompt(onDone: () => void) {
   if (!('Notification' in window)) {
@@ -104,10 +133,26 @@ function showInstallPrompt(deferred: BeforeInstallPromptEvent | null, onDone: ()
   }
 }
 
-/** Sonner prompts: notifications first, then optional PWA install. */
+type AvatarPromptLabels = { title: string; body: string; create: string; later: string }
+
+/** Sonner prompts: avatar (players without one), then notifications, then optional PWA install. */
 const SESSION_KEY = 'ftg_engagement_prompts_cycle'
 
-export function EngagementPrompts({ enabled }: { enabled: boolean }) {
+export function EngagementPrompts({
+  enabled,
+  onCreateAvatar = null,
+  avatarLabels,
+}: {
+  enabled: boolean
+  /** Set when the player has no avatar yet — offers to create one (at most weekly). */
+  onCreateAvatar?: (() => void) | null
+  avatarLabels: AvatarPromptLabels
+}) {
+  const avatarRef = useRef({ onCreateAvatar, avatarLabels })
+  useEffect(() => {
+    avatarRef.current = { onCreateAvatar, avatarLabels }
+  })
+
   const installEvent = useRef<BeforeInstallPromptEvent | null>(null)
 
   useEffect(() => {
@@ -133,9 +178,12 @@ export function EngagementPrompts({ enabled }: { enabled: boolean }) {
       } catch {
         // ignore
       }
-      showNotificationPrompt(() => {
-        window.setTimeout(() => showInstallPrompt(installEvent.current, () => {}), 400)
-      })
+      const { onCreateAvatar: create, avatarLabels: labels } = avatarRef.current
+      showAvatarPrompt(create, labels, () =>
+        showNotificationPrompt(() => {
+          window.setTimeout(() => showInstallPrompt(installEvent.current, () => {}), 400)
+        }),
+      )
     }, 1200)
 
     return () => window.clearTimeout(timer)

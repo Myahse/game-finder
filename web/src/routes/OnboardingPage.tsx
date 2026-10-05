@@ -109,7 +109,7 @@ export function OnboardingPage() {
         onSuccess: async (me) => {
           updateUser(me)
           await acceptPendingFriendInvite()
-          navigate('/', { replace: true })
+          navigate('/profile/avatar?welcome=1', { replace: true })
         },
         onError: (err) => setError(errorMessage(err)),
       },

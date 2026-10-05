@@ -10,6 +10,7 @@ import { syncNotifyArea, type NotifyAreaState } from '../lib/notifyArea'
 import { notificationLink } from '../lib/notificationLinks'
 import { usePolledNotificationToasts } from '../lib/usePolledNotificationToasts'
 import { EngagementPrompts } from './EngagementPrompts'
+import { hasPlayerAvatar } from '../avatar/resolve'
 import { PresenceWatcher } from './PresenceWatcher'
 import type { RealtimeEvent } from '../lib/types'
 import { useLocale } from '../i18n/LocaleProvider'
@@ -126,7 +127,11 @@ export function AppShell() {
       </main>
 
       <PresenceWatcher />
-      <EngagementPrompts enabled={!!user} />
+      <EngagementPrompts
+        enabled={!!user}
+        onCreateAvatar={user && !hasPlayerAvatar(user) && pathname !== '/profile/avatar' ? () => navigate('/profile/avatar') : null}
+        avatarLabels={{ title: t.profile.createAvatar, body: t.profile.avatarPrompt, create: t.avatarStudio.create, later: t.avatarStudio.later }}
+      />
     </div>
   )
 }

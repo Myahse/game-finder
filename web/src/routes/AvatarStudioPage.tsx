@@ -1,19 +1,21 @@
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AvatarStudio } from '../avatar/studio/AvatarStudio'
 import { parsePlayerAvatar } from '../avatar/resolve'
-import { defaultConfig } from '../avatar/presets'
-import type { PlayerAvatarConfig, SportSlug } from '../avatar/schema'
+import { AVATAR_SPORTS, defaultConfig } from '../avatar/presets'
+import type { PlayerAvatarConfig } from '../avatar/schema'
 import { api } from '../lib/api'
 import { useMySport } from '../lib/mySport'
 import { PageHeader } from '../components/ui'
 import { useLocale } from '../i18n/LocaleProvider'
 import { Loading } from './CourtPage'
 
-const SPORT_SLUGS: SportSlug[] = ['basketball', 'football', 'tennis', 'badminton', 'volleyball', 'running', 'gym']
 
 export function AvatarStudioPage() {
   const navigate = useNavigate()
+  // Straight after sign-up: friendlier title, Skip goes to the map, saving lands on the map.
+  const welcome = useSearchParams()[0].get('welcome') === '1'
+  const done = welcome ? '/' : '/profile'
   const { t } = useLocale()
   const mySport = useMySport()
   const { data, isPending } = useQuery({
@@ -21,7 +23,7 @@ export function AvatarStudioPage() {
     queryFn: () => api<{ config: PlayerAvatarConfig | null }>('/api/me/avatar'),
   })
   // New players start dressed for their main sport.
-  const base = SPORT_SLUGS.find((s) => s === mySport?.slug) ?? 'basketball'
+  const base = AVATAR_SPORTS.find((s) => s === mySport?.slug) ?? 'basketball'
   const initial = parsePlayerAvatar(data?.config) ?? defaultConfig(base)
 
   return (
@@ -33,7 +35,19 @@ export function AvatarStudioPage() {
           <Loading />
         </>
       ) : (
-        <AvatarStudio key={data?.config ? 'saved' : 'new'} initial={initial} onSaved={() => navigate('/profile')} />
+        <AvatarStudio
+          key={data?.config ? 'saved' : 'new'}
+          initial={initial}
+          back={done}
+          skip={
+            welcome ? (
+              <Link to="/" replace className="px-2 text-sm font-semibold text-ink-2 hover:text-ink">
+                {t.avatarStudio.skip}
+              </Link>
+            ) : undefined
+          }
+          onSaved={() => navigate(done, { replace: welcome })}
+        />
       )}
     </div>
   )

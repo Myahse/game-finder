@@ -1,6 +1,9 @@
 import type { PlayerAvatarConfig, SportSlug } from './schema'
 import { AVATAR_VERSION } from './schema'
 
+/** Sports that have an avatar kit. */
+export const AVATAR_SPORTS: SportSlug[] = ['basketball', 'football', 'tennis', 'badminton', 'volleyball', 'running', 'gym']
+
 export const PRESET_LABELS: { id: string; name: string; sport: SportSlug }[] = [
   { id: 'hooper', name: 'The Hooper', sport: 'basketball' },
   { id: 'footballer', name: 'The Footballer', sport: 'football' },
