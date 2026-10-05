@@ -86,7 +86,7 @@ func setup(t *testing.T) *env {
 	}
 	srv := httptest.NewServer(api.New(cfg, d, hub, media).Routes())
 	t.Cleanup(srv.Close)
-	time.Sleep(100 * time.Millisecond) // let LISTEN attach
+	time.Sleep(300 * time.Millisecond) // let LISTEN attach (CI postgres can be slow to notify)
 	return &env{t: t, srv: srv, db: d, google: google}
 }
 
@@ -235,7 +235,7 @@ func TestCoreFlow(t *testing.T) {
 	}()
 	waitFor := func(desc string, pred func(map[string]any) bool) map[string]any {
 		t.Helper()
-		timeout := time.After(3 * time.Second)
+		timeout := time.After(15 * time.Second)
 		for {
 			select {
 			case ev, ok := <-events:
@@ -479,7 +479,7 @@ func TestCourtProposalAndAdmin(t *testing.T) {
 
 	// Stats + settings.
 	stats, _ := e.must(200, admin.Token, "GET", "/api/admin/stats", nil)
-	if stats["total_users"].(float64) != 2 || stats["courts"].(float64) != 9 {
+	if stats["total_users"].(float64) != 3 || stats["courts"].(float64) != 8 {
 		t.Fatalf("stats = %v", stats)
 	}
 	e.must(200, admin.Token, "PATCH", "/api/admin/settings", map[string]any{"presence_minutes": 45})

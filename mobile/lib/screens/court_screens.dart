@@ -542,7 +542,7 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen>
       _photoError = null;
     });
     try {
-      await context.read<Api>().delete('/api/courts/${c.id}/photos', body: {
+      await context.read<Api>().delete('/api/courts/${c.id}/photos', {
         'photos': [url],
       });
       await load();
@@ -632,7 +632,7 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen>
                                   elevation: 2,
                                   child: InkWell(
                                     customBorder: const CircleBorder(),
-                                    onPressed: _uploadingPhotos
+                                    onTap: _uploadingPhotos
                                         ? null
                                         : () => _removeCourtPhoto(p),
                                     child: const Padding(

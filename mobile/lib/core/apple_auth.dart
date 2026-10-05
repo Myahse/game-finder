@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 
 import 'package:firebase_auth/firebase_auth.dart';
 
+import 'env.dart';
 import 'firebase_bootstrap.dart';
 
 /// Sign in with Apple via Firebase (iOS / iPad; also works on other platforms when configured).
