@@ -1,6 +1,6 @@
 import type { PlayerAvatarConfig, SportSlug } from './schema'
 import { defaultConfig } from './presets'
-import { ACCESSORIES, EYEBROWS, EYES, EYEWEAR, FACIAL_HAIR, FACES, HAIR_COLORS, HAIRS, HEADWEAR, MOUTHS, NOSES, SKIN_TONES, SPORTS } from './registry'
+import { ACCESSORIES, DETAILS, EYE_COLORS, EYEBROWS, EYES, EYEWEAR, FACIAL_HAIR, FACES, HAIR_COLORS, HAIRS, HEADWEAR, LIP_COLORS, MOUTHS, NOSES, SKIN_TONES, SPORTS } from './registry'
 
 function pick<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)]
@@ -27,6 +27,11 @@ export function randomizeAvatar(base?: PlayerAvatarConfig): PlayerAvatarConfig {
   next.eyewear = Math.random() > 0.85 ? pick(ids(EYEWEAR)) : null
   next.accessory = Math.random() > 0.55 ? pick(ids(ACCESSORIES)) : null
   next.pose = Math.random() > 0.5 ? 'action' : 'standing'
+  next.figure = Math.random() > 0.5 ? 'curvy' : 'straight'
+  next.eyeColor = Math.random() > 0.6 ? pick(ids(EYE_COLORS)) : 'brown'
+  next.lashes = Math.random() > 0.55 ? pick(['natural', 'bold'] as const) : 'none'
+  next.lipColor = Math.random() > 0.65 ? pick(ids(LIP_COLORS)) : 'natural'
+  next.details = DETAILS.filter(() => Math.random() > 0.85).map((d) => d.id)
   next.useAsProfile = base?.useAsProfile ?? true
   return next
 }

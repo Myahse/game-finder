@@ -4,6 +4,9 @@ export const AVATAR_PROFILE_MARKER = 'avatar:player'
 export type BodyType = 'slim' | 'average' | 'athletic' | 'muscular' | 'larger'
 export type SportSlug = 'basketball' | 'football' | 'tennis' | 'badminton' | 'volleyball' | 'running' | 'gym'
 export type Pose = 'standing' | 'action'
+export type Figure = 'straight' | 'curvy'
+export type Lashes = 'none' | 'natural' | 'bold'
+export type AvatarDetail = 'freckles' | 'beauty_mark' | 'dimples' | 'face_paint' | 'tattoo_arm' | 'tattoo_sleeve'
 
 export interface PlayerAvatarConfig {
   version: typeof AVATAR_VERSION
@@ -29,6 +32,17 @@ export interface PlayerAvatarConfig {
   sportsEquipment: string | null
   pose: Pose
   useAsProfile: boolean
+  /* Optional (older saves omit them → default look). Keep in sync with backend/internal/avatar. */
+  figure?: Figure
+  eyeColor?: string
+  lashes?: Lashes
+  lipColor?: string
+  details?: AvatarDetail[]
+  /** Team colour ids (see KIT_COLORS); empty/undefined = the sport's colours. */
+  kitMain?: string | null
+  kitTrim?: string | null
+  /** Jersey number 0–99; undefined/null = the sport's default. */
+  number?: number | null
 }
 
 export type AvatarCategory =

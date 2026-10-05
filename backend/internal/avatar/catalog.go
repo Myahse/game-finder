@@ -35,6 +35,8 @@ var (
 		"hair_crop": true, "hair_curls_short": true, "hair_wavy_med": true, "hair_afro": true,
 		"hair_twists": true, "hair_locs": true, "hair_braids": true, "hair_ponytail": true,
 		"hair_box_braids": true, "hair_cornrows": true,
+		"hair_hightop": true, "hair_mohawk": true, "hair_bun": true, "hair_bantu_knots": true,
+		"hair_headwrap": true, "hair_long_straight": true, "hair_pixie": true, "hair_puff": true,
 	}
 	hairColors = map[string]bool{
 		"black": true, "dark_brown": true, "brown": true, "light_brown": true,
@@ -47,11 +49,12 @@ var (
 	tops = map[string]bool{
 		"top_basketball_jersey": true, "top_football_jersey": true, "top_tennis_shirt": true,
 		"top_badminton_shirt": true, "top_running_shirt": true, "top_compression": true,
-		"top_hoodie": true, "top_tank": true, "top_tee": true,
+		"top_hoodie": true, "top_tank": true, "top_tee": true, "top_sports_bra": true,
 	}
 	bottoms = map[string]bool{
 		"bottom_basketball_shorts": true, "bottom_football_shorts": true, "bottom_tennis_shorts": true,
 		"bottom_running_shorts": true, "bottom_sweatpants": true, "bottom_athletic_pants": true,
+		"bottom_leggings": true, "bottom_tennis_skirt": true,
 	}
 	shoes = map[string]bool{
 		"shoes_basketball": true, "shoes_football": true, "shoes_tennis": true,
@@ -75,4 +78,18 @@ var (
 		"eq_badminton_racket": true, "eq_volleyball": true, "eq_water_bottle": true, "eq_dumbbells": true,
 	}
 	poses = map[string]bool{"standing": true, "action": true}
+
+	// Optional fields (added later; empty = default look).
+	figures    = map[string]bool{"straight": true, "curvy": true}
+	eyeColors  = map[string]bool{"brown": true, "dark": true, "hazel": true, "green": true, "blue": true, "grey": true}
+	lashStyles = map[string]bool{"none": true, "natural": true, "bold": true}
+	lipColors  = map[string]bool{"natural": true, "nude": true, "rose": true, "berry": true, "red": true}
+	details    = map[string]bool{
+		"freckles": true, "beauty_mark": true, "dimples": true, "face_paint": true,
+		"tattoo_arm": true, "tattoo_sleeve": true,
+	}
+	kitColors = map[string]bool{
+		"red": true, "orange": true, "gold": true, "green": true, "teal": true, "sky": true, "blue": true,
+		"navy": true, "purple": true, "pink": true, "maroon": true, "black": true, "white": true, "grey": true,
+	}
 )

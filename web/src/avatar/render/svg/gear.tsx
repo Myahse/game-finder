@@ -1,6 +1,6 @@
 import type { PlayerAvatarConfig } from '../../schema'
-import { armJoints, CX, faceSpec, type Geo, Y } from './geometry'
-import { INK, KITS, shade } from './palette'
+import { armJoints, CX, faceSpec, type Geo, kitOf, Y } from './geometry'
+import { INK, shade } from './palette'
 
 const GOLD = '#d9a63a'
 
@@ -10,7 +10,7 @@ function along(a: readonly [number, number], b: readonly [number, number], t: nu
 
 /** Wristbands, watch and necklace (earrings are drawn with the head). */
 export function BodyAccessory({ c, g, raised }: { c: PlayerAvatarConfig; g: Geo; raised: boolean }) {
-  const kit = KITS[c.sport] ?? KITS.basketball
+  const kit = kitOf(c)
   if (c.accessory === 'acc_necklace') {
     return (
       <g fill="none">
@@ -27,7 +27,7 @@ export function BodyAccessory({ c, g, raised }: { c: PlayerAvatarConfig; g: Geo;
           const j = armJoints(g, side, raised && side === -1)
           const a = along(j.elbow, j.wrist, 0.72)
           const b = along(j.elbow, j.wrist, 0.94)
-          const band = c.accessory === 'acc_watch' ? '#202227' : kit.main === '#f6f5f0' ? kit.trim : kit.main
+          const band = c.accessory === 'acc_watch' ? '#202227' : kit.accent
           return (
             <g key={side}>
               <path d={`M ${a.join(',')} L ${b.join(',')}`} stroke={band} strokeWidth={g.arm + 2.5} strokeLinecap="butt" />

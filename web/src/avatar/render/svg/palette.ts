@@ -9,6 +9,21 @@ export function shade(hex: string, amt: number): string {
   return `#${ch.map((c) => c.toString(16).padStart(2, '0')).join('')}`
 }
 
+/** Blend two hex colours (t = 0 → a, 1 → b). */
+export function mix(a: string, b: string, t: number): string {
+  const pa = parseInt(a.slice(1), 16)
+  const pb = parseInt(b.slice(1), 16)
+  const ch = [16, 8, 0].map((sh) => Math.round(((pa >> sh) & 255) * (1 - t) + ((pb >> sh) & 255) * t))
+  return `#${ch.map((c) => c.toString(16).padStart(2, '0')).join('')}`
+}
+
+/** Relative luminance 0–1 (sRGB, approximate). */
+export function luminance(hex: string): number {
+  const n = parseInt(hex.slice(1), 16)
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => v / 255)
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+
 /** Team kit per sport — matches the app's sport skins so a player's kit feels like their sport. */
 export const KITS: Record<SportSlug, { main: string; trim: string; ink: string; number: string }> = {
   basketball: { main: '#f2552c', trim: '#1d1f2b', ink: '#ffffff', number: '23' },

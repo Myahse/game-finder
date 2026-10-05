@@ -71,19 +71,104 @@ export function presetConfig(presetId: string): PlayerAvatarConfig {
   const base = defaultConfig(meta.sport)
   switch (presetId) {
     case 'footballer':
-      return { ...base, skinTone: 'skin_08', hair: 'hair_fade_mid', facialHair: 'beard_short', bodyType: 'muscular', accessory: null, height: 1.8 }
+      return {
+        ...base,
+        skinTone: 'skin_08',
+        hair: 'hair_hightop',
+        facialHair: 'beard_short',
+        bodyType: 'muscular',
+        accessory: null,
+        height: 1.8,
+        details: ['face_paint'],
+      }
     case 'volleyball':
-      return { ...base, skinTone: 'skin_07', hair: 'hair_box_braids', bodyType: 'average', pose: 'action', accessory: 'acc_necklace', height: 1.84 }
+      return {
+        ...base,
+        figure: 'curvy',
+        top: 'top_sports_bra',
+        bottom: 'bottom_leggings',
+        skinTone: 'skin_07',
+        hair: 'hair_puff',
+        lashes: 'bold',
+        lipColor: 'berry',
+        eyeColor: 'dark',
+        bodyType: 'athletic',
+        pose: 'action',
+        accessory: 'acc_earrings',
+        height: 1.84,
+      }
     case 'tennis':
-      return { ...base, skinTone: 'skin_03', hair: 'hair_ponytail', hairColor: 'dark_brown', headwear: 'head_cap', face: 'face_heart', eyes: 'eyes_05', accessory: 'acc_earrings', bodyType: 'slim', pose: 'action', height: 1.72 }
+      return {
+        ...base,
+        figure: 'curvy',
+        bottom: 'bottom_tennis_skirt',
+        skinTone: 'skin_03',
+        hair: 'hair_long_straight',
+        hairColor: 'dark_brown',
+        face: 'face_heart',
+        eyes: 'eyes_05',
+        eyeColor: 'hazel',
+        lashes: 'natural',
+        lipColor: 'rose',
+        accessory: 'acc_watch',
+        bodyType: 'slim',
+        pose: 'action',
+        height: 1.72,
+      }
     case 'badminton':
-      return { ...base, skinTone: 'skin_09', hair: 'hair_wavy_med', hairColor: 'dark_brown', eyewear: 'eye_glasses', accessory: 'acc_watch', bodyType: 'slim', height: 1.7 }
+      return {
+        ...base,
+        figure: 'curvy',
+        bottom: 'bottom_leggings',
+        skinTone: 'skin_10',
+        hair: 'hair_bun',
+        hairColor: 'black',
+        eyewear: 'eye_glasses',
+        lashes: 'natural',
+        lipColor: 'nude',
+        details: ['dimples'],
+        bodyType: 'average',
+        kitMain: 'pink',
+        kitTrim: 'white',
+        number: 21,
+        height: 1.66,
+      }
     case 'runner':
-      return { ...base, skinTone: 'skin_04', hair: 'hair_curls_short', headwear: 'head_headband', bodyType: 'slim', accessory: 'acc_watch', height: 1.74 }
+      return {
+        ...base,
+        skinTone: 'skin_01',
+        hair: 'hair_curls_short',
+        hairColor: 'red',
+        eyeColor: 'green',
+        headwear: 'head_headband',
+        bodyType: 'slim',
+        accessory: 'acc_watch',
+        details: ['freckles'],
+        height: 1.76,
+      }
     case 'gym':
-      return { ...base, skinTone: 'skin_06', hair: 'hair_buzz', facialHair: 'beard_full_mustache', bodyType: 'muscular', accessory: null, height: 1.82 }
+      return {
+        ...base,
+        skinTone: 'skin_06',
+        hair: 'hair_buzz',
+        facialHair: 'beard_full_mustache',
+        bodyType: 'muscular',
+        accessory: null,
+        details: ['tattoo_sleeve'],
+        height: 1.82,
+      }
     case 'casual':
-      return { ...base, top: 'top_hoodie', bottom: 'bottom_sweatpants', shoes: 'shoes_sneakers', sportsEquipment: null, skinTone: 'skin_11', hair: 'hair_locs', facialHair: 'beard_goatee', accessory: null }
+      return {
+        ...base,
+        top: 'top_hoodie',
+        bottom: 'bottom_sweatpants',
+        shoes: 'shoes_sneakers',
+        sportsEquipment: null,
+        skinTone: 'skin_11',
+        hair: 'hair_locs',
+        facialHair: 'beard_goatee',
+        accessory: null,
+      }
     default:
       return { ...base, headwear: 'head_headband' }
   }

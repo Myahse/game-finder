@@ -11,28 +11,38 @@ const Version = 1
 const ProfileMarkerURL = "avatar:player"
 
 type Config struct {
-	Version         int      `json:"version"`
-	BodyType        string   `json:"bodyType"`
-	HeightM         float64  `json:"height"`
-	SkinTone        string   `json:"skinTone"`
-	Face            string   `json:"face"`
-	Eyes            string   `json:"eyes"`
-	Eyebrows        string   `json:"eyebrows"`
-	Nose            string   `json:"nose"`
-	Mouth           string   `json:"mouth"`
-	Hair            string   `json:"hair"`
-	HairColor       string   `json:"hairColor"`
-	FacialHair      string   `json:"facialHair"`
-	Top             string   `json:"top"`
-	Bottom          string   `json:"bottom"`
-	Shoes           string   `json:"shoes"`
-	Headwear        *string  `json:"headwear"`
-	Eyewear         *string  `json:"eyewear"`
-	Accessory       *string  `json:"accessory"`
-	Sport           string   `json:"sport"`
-	SportsEquipment *string  `json:"sportsEquipment"`
-	Pose            string   `json:"pose"`
-	UseAsProfile    bool     `json:"useAsProfile"`
+	Version         int     `json:"version"`
+	BodyType        string  `json:"bodyType"`
+	HeightM         float64 `json:"height"`
+	SkinTone        string  `json:"skinTone"`
+	Face            string  `json:"face"`
+	Eyes            string  `json:"eyes"`
+	Eyebrows        string  `json:"eyebrows"`
+	Nose            string  `json:"nose"`
+	Mouth           string  `json:"mouth"`
+	Hair            string  `json:"hair"`
+	HairColor       string  `json:"hairColor"`
+	FacialHair      string  `json:"facialHair"`
+	Top             string  `json:"top"`
+	Bottom          string  `json:"bottom"`
+	Shoes           string  `json:"shoes"`
+	Headwear        *string `json:"headwear"`
+	Eyewear         *string `json:"eyewear"`
+	Accessory       *string `json:"accessory"`
+	Sport           string  `json:"sport"`
+	SportsEquipment *string `json:"sportsEquipment"`
+	Pose            string  `json:"pose"`
+	UseAsProfile    bool    `json:"useAsProfile"`
+
+	// Optional — omitted means the default look, so older saved configs stay valid.
+	Figure   string   `json:"figure,omitempty"`
+	EyeColor string   `json:"eyeColor,omitempty"`
+	Lashes   string   `json:"lashes,omitempty"`
+	LipColor string   `json:"lipColor,omitempty"`
+	Details  []string `json:"details,omitempty"`
+	KitMain  string   `json:"kitMain,omitempty"`
+	KitTrim  string   `json:"kitTrim,omitempty"`
+	Number   *int     `json:"number,omitempty"`
 }
 
 func Parse(raw json.RawMessage) (*Config, error) {
@@ -122,6 +132,41 @@ func Validate(c *Config) error {
 	if c.SportsEquipment != nil && *c.SportsEquipment != "" && !equipment[*c.SportsEquipment] {
 		return errors.New("invalid sportsEquipment")
 	}
+	optional := func(id string, allowed map[string]bool, field string) error {
+		if id != "" && !allowed[id] {
+			return fmt.Errorf("invalid %s", field)
+		}
+		return nil
+	}
+	for _, o := range []struct {
+		id      string
+		allowed map[string]bool
+		field   string
+	}{
+		{c.Figure, figures, "figure"},
+		{c.EyeColor, eyeColors, "eyeColor"},
+		{c.Lashes, lashStyles, "lashes"},
+		{c.LipColor, lipColors, "lipColor"},
+		{c.KitMain, kitColors, "kitMain"},
+		{c.KitTrim, kitColors, "kitTrim"},
+	} {
+		if err := optional(o.id, o.allowed, o.field); err != nil {
+			return err
+		}
+	}
+	if len(c.Details) > len(details) {
+		return errors.New("too many details")
+	}
+	seen := map[string]bool{}
+	for _, d := range c.Details {
+		if !details[d] || seen[d] {
+			return errors.New("invalid details")
+		}
+		seen[d] = true
+	}
+	if c.Number != nil && (*c.Number < 0 || *c.Number > 99) {
+		return errors.New("number out of range")
+	}
 	return nil
 }
 
@@ -129,6 +174,9 @@ func Normalize(c *Config) {
 	c.Version = Version
 	c.BodyType = strings.TrimSpace(c.BodyType)
 	c.SkinTone = strings.TrimSpace(c.SkinTone)
+	if len(c.Details) == 0 {
+		c.Details = nil
+	}
 	if c.Headwear != nil && strings.TrimSpace(*c.Headwear) == "" {
 		c.Headwear = nil
 	}

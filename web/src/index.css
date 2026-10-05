@@ -317,7 +317,81 @@ body {
   animation: ftg-label-in 0.6s ease-out;
 }
 
+/* Avatar idle motion (Avatar Creator preview). Units inside SVG are user units. */
+.ftg-av-breathe {
+  animation: ftg-av-breathe 3.4s ease-in-out infinite;
+}
+@keyframes ftg-av-breathe {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1.8px);
+  }
+}
+.ftg-av-blink {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ftg-av-blink 4.8s infinite;
+}
+@keyframes ftg-av-blink {
+  0%,
+  93%,
+  100% {
+    transform: scaleY(1);
+  }
+  95.5% {
+    transform: scaleY(0.08);
+  }
+}
+.ftg-av-dribble,
+.ftg-av-float {
+  /* scale/rotate around the gear itself, not the SVG's top-left corner */
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+.ftg-av-dribble {
+  animation: ftg-av-dribble 0.95s infinite;
+}
+@keyframes ftg-av-dribble {
+  0%,
+  100% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
+  }
+  48% {
+    transform: translateY(132px) scale(1, 1);
+    animation-timing-function: linear;
+  }
+  52% {
+    transform: translateY(134px) scale(1.06, 0.9);
+    animation-timing-function: cubic-bezier(0, 0.55, 0.45, 1);
+  }
+}
+.ftg-av-float {
+  animation: ftg-av-float 1.8s ease-in-out infinite alternate;
+}
+@keyframes ftg-av-float {
+  to {
+    transform: translateY(-5px) rotate(-3deg);
+  }
+}
+.ftg-av-pop {
+  animation: ftg-av-pop 0.38s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes ftg-av-pop {
+  from {
+    transform: scale(0.95);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .ftg-av-breathe,
+  .ftg-av-blink,
+  .ftg-av-dribble,
+  .ftg-av-float,
+  .ftg-av-pop,
   .ftg-kenburns,
   .ftg-label-in {
     animation: none;

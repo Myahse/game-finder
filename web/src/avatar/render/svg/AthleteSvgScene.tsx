@@ -1,9 +1,10 @@
+import { useId } from 'react'
 import type { PlayerAvatarConfig } from '../../schema'
 import { skinColors } from '../../colors'
-import { Arms, Bottoms, Legs, Neck, Top } from './body'
+import { Arms, Bottoms, Legs, Neck, Tattoos, Top } from './body'
 import { CX, geometry, Y } from './geometry'
 import { BodyAccessory, Earrings, Equipment } from './gear'
-import { Brows, Eyes, Eyewear, Face, FacialHair, HairBack, HairFront, Headwear, Mouth, Nose } from './head'
+import { Brows, Eyes, Eyewear, Face, FaceDetails, FacialHair, HairBack, HairFront, Headwear, Mouth, Nose } from './head'
 import { FULL_FIGURE_VIEWBOX, HEAD_PORTRAIT_VIEWBOX } from './viewBox'
 
 const HEAD_SCALE = `translate(${CX} 98) scale(1.14) translate(${-CX} -98)`
@@ -18,16 +19,22 @@ export function AthleteSvgScene({
   config: c,
   crop,
   silhouette,
+  animated = false,
 }: {
   config: PlayerAvatarConfig
   crop: 'full' | 'head'
   silhouette?: boolean
+  /** Idle motion: breathing, blinking, dribbling. Off for thumbnails and profile pictures. */
+  animated?: boolean
 }) {
   const full = crop === 'full'
-  const g = geometry(c.bodyType)
+  const uid = useId().replace(/:/g, '')
+  const g = geometry(c.bodyType, c.figure)
   const skin = skinColors(c.skinTone)
   const raised = c.pose === 'action'
   const s = full ? heightScale(c.height) : 1
+  const breathe = animated ? 'ftg-av-breathe' : undefined
+  const gear = !animated ? undefined : c.sportsEquipment === 'eq_basketball' && !raised ? 'ftg-av-dribble' : 'ftg-av-float'
 
   return (
     <svg
@@ -40,29 +47,41 @@ export function AthleteSvgScene({
     >
       {full && <ellipse cx={CX} cy={Y.sole + 2} rx={46 * s} ry={5} fill="#000" opacity={0.12} />}
       <g transform={s === 1 ? undefined : `translate(${CX} ${Y.sole}) scale(${s}) translate(${-CX} ${-Y.sole})`}>
-        <g transform={HEAD_SCALE}>
-          <HairBack c={c} />
+        <g className={breathe}>
+          <g transform={HEAD_SCALE}>
+            <HairBack c={c} />
+          </g>
         </g>
         <Legs c={c} g={g} skin={skin} />
         <Bottoms c={c} g={g} />
-        <Arms g={g} skin={skin} raised={raised} />
-        <Neck g={g} skin={skin} />
-        <Top c={c} g={g} raised={raised} />
-        <BodyAccessory c={c} g={g} raised={raised} />
-        {/* Slightly oversized head — reads better at profile-picture sizes. */}
-        <g transform={HEAD_SCALE}>
-          <Face c={c} skin={skin} />
-          <FacialHair c={c} />
-          <Eyes c={c} />
-          <Brows c={c} />
-          <Nose c={c} skin={skin} />
-          <Mouth c={c} />
-          <HairFront c={c} skin={skin} />
-          <Headwear c={c} />
-          <Eyewear c={c} />
-          <Earrings c={c} />
+        <g className={breathe}>
+          <Arms g={g} skin={skin} raised={raised} />
+          <Tattoos c={c} g={g} raised={raised} />
+          <Neck g={g} skin={skin} />
+          <Top c={c} g={g} raised={raised} skin={skin} />
+          <BodyAccessory c={c} g={g} raised={raised} />
+          {/* Slightly oversized head — reads better at profile-picture sizes. */}
+          <g transform={HEAD_SCALE}>
+            <Face c={c} skin={skin} uid={uid} />
+            <FaceDetails c={c} skin={skin} />
+            <FacialHair c={c} />
+            <g className={animated ? 'ftg-av-blink' : undefined}>
+              <Eyes c={c} skin={skin} />
+            </g>
+            <Brows c={c} />
+            <Nose c={c} skin={skin} />
+            <Mouth c={c} skin={skin} />
+            <HairFront c={c} skin={skin} />
+            <Headwear c={c} />
+            <Eyewear c={c} uid={uid} />
+            <Earrings c={c} />
+          </g>
         </g>
-        {full && <Equipment c={c} g={g} raised={raised} />}
+        {full && (
+          <g className={gear}>
+            <Equipment c={c} g={g} raised={raised} />
+          </g>
+        )}
       </g>
     </svg>
   )
