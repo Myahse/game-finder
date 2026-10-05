@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api, errorMessage } from '../lib/api'
+import { errorMessage } from '../lib/api'
+import { isUsernameTaken, usernamePattern } from '../lib/usernameCheck'
 import { acceptPendingFriendInvite } from '../lib/friendInvite'
 import { useAuth } from '../lib/auth'
 import { playerSkillLevels } from '../lib/format'
@@ -14,8 +15,6 @@ import { useStepFlow } from '../components/StepFlow'
 import { Button, ErrorText, Field, Input } from '../components/ui'
 import { useLocale } from '../i18n/LocaleProvider'
 import { useSportThemePreview } from '../theme/SportThemeProvider'
-
-const usernamePattern = /^[A-Za-z0-9_.]{3,24}$/
 
 function profileCompleteFromUser(user: { first_name?: string; last_name?: string; username?: string } | null) {
   if (!user) return false
@@ -62,14 +61,7 @@ export function OnboardingPage() {
 
   /** Resolves `true` when the username is already taken. */
   const checkUsername = useCallback(async () => {
-    const u = username.trim()
-    if (!usernamePattern.test(u)) return false
-    if (u === user?.username) {
-      setUsernameTaken(false)
-      return false
-    }
-    const r = await api<{ available: boolean }>(`/api/auth/username-available?username=${encodeURIComponent(u)}`).catch(() => null)
-    const taken = r ? !r.available : false
+    const taken = await isUsernameTaken(username, user?.username)
     setUsernameTaken(taken)
     return taken
   }, [username, user?.username])

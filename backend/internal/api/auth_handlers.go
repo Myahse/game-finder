@@ -239,10 +239,19 @@ func (s *Server) sendVerificationEmail(ctx context.Context, userID, email string
 }
 
 func (s *Server) usernameAvailable(w http.ResponseWriter, r *http.Request) {
+	u := strings.TrimSpace(r.URL.Query().Get("username"))
 	var ok bool
-	if err := s.db.Pool.QueryRow(r.Context(), "select username_available($1)", r.URL.Query().Get("username")).Scan(&ok); err != nil {
-		writeDBError(w, r, err)
-		return
+	exclude := uid(r)
+	if exclude != "" {
+		if err := s.db.Pool.QueryRow(r.Context(), "select username_available($1, $2::uuid)", u, exclude).Scan(&ok); err != nil {
+			writeDBError(w, r, err)
+			return
+		}
+	} else {
+		if err := s.db.Pool.QueryRow(r.Context(), "select username_available($1, null)", u).Scan(&ok); err != nil {
+			writeDBError(w, r, err)
+			return
+		}
 	}
 	writeJSON(w, http.StatusOK, map[string]bool{"available": ok})
 }

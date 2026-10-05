@@ -506,19 +506,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _username.text = user.username;
   }
 
+  int _usernameCheckGen = 0;
+
   Future<void> _checkUsername() async {
     final u = _username.text.trim();
-    if (!_usernameRe.hasMatch(u)) return;
-    if (u == _initialUsername) {
-      setState(() => _usernameTaken = false);
+    if (!_usernameRe.hasMatch(u)) {
+      if (mounted) setState(() => _usernameTaken = false);
       return;
     }
+    if (_initialUsername != null && u.toLowerCase() == _initialUsername!.toLowerCase()) {
+      if (mounted) setState(() => _usernameTaken = false);
+      return;
+    }
+    final gen = ++_usernameCheckGen;
     try {
       final j = Map<String, dynamic>.from(
         await context.read<Api>().get('/api/auth/username-available?username=${Uri.encodeComponent(u)}'),
       );
-      if (mounted) setState(() => _usernameTaken = j['available'] != true);
-    } catch (_) {}
+      if (!mounted || gen != _usernameCheckGen) return;
+      setState(() => _usernameTaken = j['available'] != true);
+    } catch (_) {
+      if (mounted && gen == _usernameCheckGen) setState(() => _usernameTaken = false);
+    }
   }
 
   bool _profileValid() =>

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { ApiError, api, errorMessage, setSession, uploadImage } from '../lib/api'
+import { isUsernameTaken } from '../lib/usernameCheck'
 import { useAuth } from '../lib/auth'
 import { OrDivider } from '../components/GoogleSignInButton'
 import { SocialSignInButtons } from '../components/SocialSignInButtons'
@@ -23,9 +24,7 @@ export function RegisterPage() {
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [k]: e.target.value })
 
   const checkUsername = async () => {
-    if (form.username.length < 3) return
-    const r = await api<{ available: boolean }>(`/api/auth/username-available?username=${encodeURIComponent(form.username)}`).catch(() => null)
-    setUsernameTaken(r ? !r.available : false)
+    setUsernameTaken(await isUsernameTaken(form.username))
   }
 
   const submit = async (e: FormEvent) => {
@@ -33,7 +32,13 @@ export function RegisterPage() {
     setBusy(true)
     setError('')
     try {
-      await register(form)
+      await register({
+        ...form,
+        first_name: form.first_name.trim(),
+        last_name: form.last_name.trim(),
+        username: form.username.trim(),
+        email: form.email.trim(),
+      })
       try {
         await api('/api/me')
       } catch (err) {

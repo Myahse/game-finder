@@ -250,11 +250,10 @@ func (s *Server) authenticate(next http.Handler) http.Handler {
 		}
 		if tok := accessTokenFromRequest(r); tok != "" {
 			claims, err := s.tokens.Verify(tok)
-			if err != nil {
-				writeError(w, http.StatusUnauthorized, "invalid_token", "Session expired. Please sign in again.")
-				return
+			if err == nil {
+				r = r.WithContext(context.WithValue(r.Context(), userKey, principal{ID: claims.Subject, Role: claims.Role}))
 			}
-			r = r.WithContext(context.WithValue(r.Context(), userKey, principal{ID: claims.Subject, Role: claims.Role}))
+			// Expired or invalid tokens are ignored here; protected routes still require a valid user.
 		}
 		next.ServeHTTP(w, r)
 	})
