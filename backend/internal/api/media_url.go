@@ -3,14 +3,22 @@ package api
 import (
 	"net/http"
 	"strings"
+
+	"findthegame/backend/internal/avatar"
 )
 
 func (s *Server) allowedUploadURL(raw string) bool {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return true
+	}
+	if isAvatarPresetURL(raw) || raw == avatar.ProfileMarkerURL {
+		return true
+	}
 	if s.media != nil {
 		return s.media.AllowedStoredURL(raw)
 	}
-	raw = strings.TrimSpace(raw)
-	return raw == "" || strings.HasPrefix(raw, "/uploads/")
+	return strings.HasPrefix(raw, "/uploads/")
 }
 
 // canonicalPhotoRef matches stored upload URLs even when hosts differ (R2 vs API proxy).

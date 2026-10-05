@@ -14,6 +14,7 @@ import { FriendsPanel } from '../components/FriendsPanel'
 import { ProfileFriendActions } from '../components/ProfileFriendActions'
 import { playerDisplayLabel, playerFullName, playerUsernameLabel } from '../lib/format'
 import { profileShareUrl } from '../lib/profileShare'
+import { hasPlayerAvatar } from '../avatar/resolve'
 import { Avatar, Button, Card, ErrorText, Field, Input, PageHeader, Select } from '../components/ui'
 import { Loading } from './CourtPage'
 
@@ -122,6 +123,7 @@ export function ProfilePage() {
   if (!user) return null
   const current = me ?? user
   const viewerIsAdmin = user.role === 'admin'
+  const canEditPlayerAvatar = hasPlayerAvatar(current)
 
   return (
     <div className="pb-10">
@@ -145,6 +147,14 @@ export function ProfilePage() {
         ) : (
           <>
             <ProfileCard user={current} viewerIsAdmin={viewerIsAdmin} />
+            {canEditPlayerAvatar && (
+              <Link
+                to="/profile/avatar"
+                className="flex min-h-12 w-full items-center justify-center rounded-xl bg-surface-2 px-5 text-lg font-bold text-ink"
+              >
+                {t.profile.editAvatar}
+              </Link>
+            )}
             <ShareProfileButton username={current.username} />
             <FriendsPanel viewerIsAdmin={viewerIsAdmin} />
           </>

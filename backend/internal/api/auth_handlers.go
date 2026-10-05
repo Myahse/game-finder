@@ -290,7 +290,10 @@ func (s *Server) issueSession(w http.ResponseWriter, r *http.Request, userID, ro
 const meSQL = `
 	select json_build_object(
 		'id', u.id, 'email', u.email, 'first_name', u.first_name, 'last_name', u.last_name,
-		'username', u.username, 'avatar_url', u.avatar_url,
+		'username', u.username, 'avatar_url', u.avatar_url, 'avatar_config', u.avatar_config,
+		'player_avatar', (select ua.config from user_avatars ua where ua.user_id = u.id),
+		'player_avatar_public',
+			(select ua.config from user_avatars ua where ua.user_id = u.id and ua.use_as_profile),
 		'preferred_sport_id', u.preferred_sport_id, 'skill_level', u.skill_level,
 		'extra_sport_ids', coalesce((
 			select json_agg(ues.sport_id::text order by ues.created_at)

@@ -148,6 +148,9 @@ func (s *Server) Routes() http.Handler {
 
 			r.Get("/me", s.getMe)
 			r.Patch("/me", s.updateMe)
+			r.Get("/me/avatar", s.getMyAvatar)
+			r.Put("/me/avatar", s.putMyAvatar)
+			r.Delete("/me/avatar", s.deleteMyAvatar)
 			r.With(s.rateLimitedUser("notify")).Post("/me/notify-area", s.setNotifyArea)
 			r.Post("/me/ws-ticket", s.issueWsTicket)
 			r.Post("/me/push-tokens", s.registerPushToken)

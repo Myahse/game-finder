@@ -1,3 +1,6 @@
+import type { AvatarConfigV2 } from './avatarPresets'
+import type { PlayerAvatarConfig } from '../avatar/schema'
+
 export type Activity = 'inactive' | 'players' | 'active'
 export type SkillLevel = 'beginner' | 'intermediate' | 'advanced' | 'all_levels'
 export type GameType = 'pickup' | 'training' | 'match' | 'tournament'
@@ -25,6 +28,9 @@ export interface PublicUser {
   last_name: string
   username: string
   avatar_url: string | null
+  avatar_config?: AvatarConfigV2 | null
+  player_avatar?: PlayerAvatarConfig | null
+  player_avatar_public?: PlayerAvatarConfig | null
   preferred_sport_id: string | null
   skill_level: SkillLevel | null
   created_at: string

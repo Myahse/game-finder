@@ -12,6 +12,7 @@ import { CreateGamePage } from './routes/CreateGamePage'
 import { PlayPage } from './routes/PlayPage'
 import { MyGamesPage } from './routes/MyGamesPage'
 import { ProfilePage, UserPage } from './routes/ProfilePage'
+import { AvatarStudioPage } from './routes/AvatarStudioPage'
 import { NotificationsPage } from './routes/NotificationsPage'
 import { AddCourtPage } from './routes/AddCourtPage'
 import { ReportCourtPage } from './routes/ReportCourtPage'
@@ -117,6 +118,7 @@ export const router = createBrowserRouter([
           { path: 'my-games', element: <MyGamesPage /> },
           { path: 'notifications', element: <NotificationsPage /> },
           { path: 'profile', element: <ProfilePage /> },
+          { path: 'profile/avatar', element: <AvatarStudioPage /> },
           { path: 'users/:id', element: <UserPage /> },
           { path: 'courts/new', element: <AddCourtPage /> },
           { path: 'courts/:id', element: <CourtPage /> },

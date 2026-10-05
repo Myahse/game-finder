@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../core/avatar_presets.dart';
 import '../core/format.dart';
 import '../core/media_url.dart';
 import '../core/models.dart';
 import 'app_icons.dart';
+import 'avatar_preset.dart';
 import 'theme.dart';
 
 class StatusPill extends StatelessWidget {
@@ -44,6 +46,11 @@ class UserAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final raw = overrideUrl ?? user?.avatarUrl;
+    final userConfig = user?.avatarConfig;
+    final preset = profileAvatarConfig(avatarUrl: raw, avatarConfig: userConfig);
+    if (preset != null) {
+      return AvatarPresetWidget(config: preset, size: size, headOnly: true);
+    }
     final resolved = raw != null && raw.isNotEmpty ? resolveMediaUrl(raw) : '';
     final url = resolved.isNotEmpty ? resolved : null;
     final initials = user?.initials ?? '?';

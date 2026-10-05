@@ -25,6 +25,7 @@ class Sport {
 class PublicUser {
   final String id, firstName, lastName, username;
   final String? avatarUrl, preferredSportId, skillLevel;
+  final Map<String, dynamic>? avatarConfig;
   final DateTime createdAt;
   final int gamesPlayed, gamesCreated;
 
@@ -34,6 +35,7 @@ class PublicUser {
         lastName = j['last_name'] ?? '',
         username = j['username'] ?? '',
         avatarUrl = j['avatar_url'],
+        avatarConfig = j['avatar_config'] is Map ? Map<String, dynamic>.from(j['avatar_config'] as Map) : null,
         preferredSportId = j['preferred_sport_id'],
         skillLevel = j['skill_level'],
         createdAt = _date(j['created_at']) ?? DateTime.now(),

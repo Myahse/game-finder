@@ -3,6 +3,9 @@ import { Eye, EyeOff } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { activityIcons } from './icons'
 import { activityMeta } from '../lib/format'
+import { PlayerAvatar } from '../avatar/components/PlayerAvatar'
+import { playerAvatarForUser } from '../avatar/resolve'
+import { isUploadedAvatar } from '../lib/avatarPresets'
 import { resolveMediaUrl } from '../lib/mediaUrl'
 import type { Activity, PublicUser } from '../lib/types'
 
@@ -135,11 +138,24 @@ export function StatusPill({ activity, className = '' }: { activity: Activity; c
   )
 }
 
-export function Avatar({ user, size = 40 }: { user: Pick<PublicUser, 'username' | 'first_name' | 'last_name' | 'avatar_url'>; size?: number }) {
+export function Avatar({
+  user,
+  size = 40,
+}: {
+  user: Pick<
+    PublicUser,
+    'username' | 'first_name' | 'last_name' | 'avatar_url' | 'avatar_config' | 'player_avatar' | 'player_avatar_public'
+  >
+  size?: number
+}) {
   const handle = user.username?.replace(/^@/, '') ?? ''
   const initials = (handle.length >= 2 ? handle.slice(0, 2) : handle || `${user.first_name?.[0] ?? ''}${user.last_name?.[0] ?? ''}`).toUpperCase()
-  const src = user.avatar_url ? resolveMediaUrl(user.avatar_url) : ''
+  const player = playerAvatarForUser(user)
+  const src = isUploadedAvatar(user.avatar_url) ? resolveMediaUrl(user.avatar_url!) : ''
   const [broken, setBroken] = useState(false)
+  if (player) {
+    return <PlayerAvatar config={player} size={size} crop="head" />
+  }
   const showImg = src && !broken
   return showImg ? (
     <img

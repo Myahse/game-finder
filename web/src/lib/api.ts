@@ -23,6 +23,11 @@ export function apiOrigin(): string {
   const env = viteApiUrl()
   if (typeof window !== 'undefined') {
     const pageHost = window.location.hostname
+    // Local Vite dev: always use the dev-server proxy (/api → localhost:8080), even when
+    // root .env sets VITE_API_URL to production Render.
+    if (import.meta.env.DEV && (pageHost === 'localhost' || pageHost === '127.0.0.1')) {
+      return window.location.origin
+    }
     const onLan = pageHost !== 'localhost' && pageHost !== '127.0.0.1'
     if (env && onLan && (env.includes('localhost') || env.includes('127.0.0.1'))) {
       try {

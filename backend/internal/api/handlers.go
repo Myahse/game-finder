@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -792,14 +793,15 @@ func (s *Server) getMe(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) updateMe(w http.ResponseWriter, r *http.Request) {
 	var in struct {
-		FirstName        *string   `json:"first_name"`
-		LastName         *string   `json:"last_name"`
-		Username         *string   `json:"username"`
-		AvatarURL        *string   `json:"avatar_url"`
-		PreferredSportID *string   `json:"preferred_sport_id"`
-		ExtraSportIDs    *[]string `json:"extra_sport_ids"`
-		SkillLevel       *string   `json:"skill_level"`
-		Onboarded        *bool     `json:"onboarded"`
+		FirstName        *string         `json:"first_name"`
+		LastName         *string         `json:"last_name"`
+		Username         *string         `json:"username"`
+		AvatarURL        *string         `json:"avatar_url"`
+		AvatarConfig     json.RawMessage `json:"avatar_config"`
+		PreferredSportID *string         `json:"preferred_sport_id"`
+		ExtraSportIDs    *[]string       `json:"extra_sport_ids"`
+		SkillLevel       *string         `json:"skill_level"`
+		Onboarded        *bool           `json:"onboarded"`
 	}
 	if !readJSON(w, r, &in) {
 		return
@@ -816,6 +818,34 @@ func (s *Server) updateMe(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnprocessableEntity, "invalid_photo_url", "Avatar must be uploaded through the app.")
 		return
 	}
+	var avatarConfigJSON []byte
+	var avatarURLForDB *string
+	if len(in.AvatarConfig) > 0 && string(in.AvatarConfig) != "null" {
+		cfg, err := parseAvatarConfigJSON(in.AvatarConfig)
+		if err != nil || cfg == nil {
+			writeError(w, http.StatusUnprocessableEntity, "invalid_avatar", "Invalid avatar configuration.")
+			return
+		}
+		avatarConfigJSON, err = json.Marshal(cfg)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "server_error", "Could not save avatar.")
+			return
+		}
+		if cfg.UseAsProfile {
+			url := cfg.presetURL()
+			avatarURLForDB = &url
+		} else {
+			var current string
+			if err := s.db.Pool.QueryRow(r.Context(), `select coalesce(avatar_url, '') from users where id = $1`, uid(r)).Scan(&current); err != nil {
+				writeDBError(w, r, err)
+				return
+			}
+			if isAvatarPresetURL(current) {
+				empty := ""
+				avatarURLForDB = &empty
+			}
+		}
+	}
 	if in.PreferredSportID != nil {
 		var existing *string
 		var role string
@@ -830,17 +860,22 @@ func (s *Server) updateMe(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	avatarURL := in.AvatarURL
+	if avatarURLForDB != nil {
+		avatarURL = avatarURLForDB
+	}
 	err := s.db.Exec(r.Context(), uid(r), `
 		update users set
 			first_name = coalesce(nullif(trim($2), ''), first_name),
 			last_name = coalesce(nullif(trim($3), ''), last_name),
 			username = coalesce($4, username),
 			avatar_url = case when $5::text is null then avatar_url else nullif($5, '') end,
+			avatar_config = case when $9::jsonb is null then avatar_config else $9::jsonb end,
 			preferred_sport_id = coalesce($6::uuid, preferred_sport_id),
 			skill_level = coalesce($7::skill_level, skill_level),
 			onboarded_at = case when $8::bool then coalesce(onboarded_at, now()) else onboarded_at end
 		where id = $1`,
-		uid(r), in.FirstName, in.LastName, in.Username, in.AvatarURL, in.PreferredSportID, in.SkillLevel, in.Onboarded)
+		uid(r), in.FirstName, in.LastName, in.Username, avatarURL, in.PreferredSportID, in.SkillLevel, in.Onboarded, nullableJSON(avatarConfigJSON))
 	if err != nil {
 		writeDBError(w, r, err)
 		return

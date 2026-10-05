@@ -10,6 +10,8 @@ import '../core/models.dart';
 import '../core/notifications.dart';
 import '../ui/theme.dart';
 import '../ui/app_icons.dart';
+import '../core/avatar_presets.dart';
+import 'avatar_builder_screen.dart';
 import '../ui/widgets.dart';
 
 class _ProfileCard extends StatelessWidget {
@@ -105,6 +107,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
         onRefresh: auth.refreshMe,
         child: ListView(padding: const EdgeInsets.all(16), children: [
           _ProfileCard(user: me, sports: _sports),
+          if (hasSavedAvatar(avatarUrl: me.avatarUrl, avatarConfig: me.avatarConfig)) ...[
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: () async {
+                final ok = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AvatarBuilderScreen(initialUrl: me.avatarUrl, initialConfig: me.avatarConfig, seed: me.username),
+                  ),
+                );
+                if (ok == true && context.mounted) await auth.refreshMe();
+              },
+              child: const Text('EDIT PLAYER'),
+            ),
+          ],
           if (me.isAdmin)
             const Padding(
               padding: EdgeInsets.only(top: 12),
