@@ -16,7 +16,7 @@ var (
 		"face_heart": true, "face_long": true, "face_angular": true,
 	}
 	eyes = map[string]bool{
-		"eyes_01": true, "eyes_02": true, "eyes_03": true, "eyes_04": true, "eyes_05": true,
+		"eyes_01": true, "eyes_02": true, "eyes_03": true, "eyes_04": true, "eyes_05": true, "eyes_wink": true,
 	}
 	eyebrows = map[string]bool{
 		"brow_straight": true, "brow_curved": true, "brow_thick": true,
@@ -37,6 +37,12 @@ var (
 		"hair_box_braids": true, "hair_cornrows": true,
 		"hair_hightop": true, "hair_mohawk": true, "hair_bun": true, "hair_bantu_knots": true,
 		"hair_headwrap": true, "hair_long_straight": true, "hair_pixie": true, "hair_puff": true,
+		// Avataaars-backed styles (older ids above stay valid for saved avatars)
+		"hair_short_flat": true, "hair_short_round": true, "hair_side_part": true, "hair_waves": true,
+		"hair_quiff": true, "hair_locs_long": true, "hair_curly": true, "hair_long_curly": true,
+		"hair_big": true, "hair_braid_crown": true, "hair_bob": true, "hair_bob_bangs": true,
+		"hair_shaggy": true, "hair_mullet": true, "hair_shaved_side": true, "hair_long_wavy": true,
+		"hair_long_sleek": true, "hair_long_strand": true, "hair_balding": true, "hair_hijab": true,
 	}
 	hairColors = map[string]bool{
 		"black": true, "dark_brown": true, "brown": true, "light_brown": true,
@@ -62,9 +68,10 @@ var (
 	}
 	headwear = map[string]bool{
 		"head_cap": true, "head_headband": true, "head_bandana": true,
+		"head_beanie": true, "head_bobble": true, "head_earflap": true,
 	}
 	eyewear = map[string]bool{
-		"eye_glasses": true, "eye_sunglasses": true, "eye_sport": true,
+		"eye_glasses": true, "eye_sunglasses": true, "eye_sport": true, "eye_round": true,
 	}
 	accessories = map[string]bool{
 		"acc_wristbands": true, "acc_watch": true, "acc_necklace": true, "acc_earrings": true,

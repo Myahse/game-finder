@@ -20,8 +20,8 @@ export function referenceAvatar(): PlayerAvatarConfig {
     height: 1.88,
     skinTone: 'skin_05',
     face: 'face_oval',
-    eyes: 'eyes_03',
-    eyebrows: 'brow_athletic',
+    eyes: 'eyes_01',
+    eyebrows: 'brow_curved',
     nose: 'nose_medium',
     mouth: 'mouth_smile',
     hair: 'hair_crop',
@@ -74,7 +74,7 @@ export function presetConfig(presetId: string): PlayerAvatarConfig {
       return {
         ...base,
         skinTone: 'skin_08',
-        hair: 'hair_hightop',
+        hair: 'hair_short_flat',
         facialHair: 'beard_short',
         bodyType: 'muscular',
         accessory: null,
@@ -103,7 +103,7 @@ export function presetConfig(presetId: string): PlayerAvatarConfig {
         figure: 'curvy',
         bottom: 'bottom_tennis_skirt',
         skinTone: 'skin_03',
-        hair: 'hair_long_straight',
+        hair: 'hair_long_wavy',
         hairColor: 'dark_brown',
         face: 'face_heart',
         eyes: 'eyes_05',
@@ -140,7 +140,7 @@ export function presetConfig(presetId: string): PlayerAvatarConfig {
         hair: 'hair_curls_short',
         hairColor: 'red',
         eyeColor: 'green',
-        headwear: 'head_headband',
+        headwear: null,
         bodyType: 'slim',
         accessory: 'acc_watch',
         details: ['freckles'],
@@ -165,11 +165,11 @@ export function presetConfig(presetId: string): PlayerAvatarConfig {
         shoes: 'shoes_sneakers',
         sportsEquipment: null,
         skinTone: 'skin_11',
-        hair: 'hair_locs',
+        hair: 'hair_locs_long',
         facialHair: 'beard_goatee',
         accessory: null,
       }
     default:
-      return { ...base, headwear: 'head_headband' }
+      return { ...base, hair: 'hair_short_round' }
   }
 }

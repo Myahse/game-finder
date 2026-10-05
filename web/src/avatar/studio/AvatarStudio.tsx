@@ -1,40 +1,14 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Check, Dices, Glasses, PersonStanding, RotateCcw, Scissors, Shirt, Smile } from 'lucide-react'
-import type { AvatarDetail, PlayerAvatarConfig, SportSlug } from '../schema'
+import { Check, Dices, Glasses, RotateCcw, Scissors, Shirt, Smile } from 'lucide-react'
+import type { PlayerAvatarConfig, SportSlug } from '../schema'
 import { presetConfig, PRESET_LABELS, sportKit } from '../presets'
 import { randomizeAvatar } from '../randomize'
-import {
-  ACCESSORIES,
-  BODY_TYPES,
-  BOTTOMS,
-  DETAILS,
-  EQUIPMENT,
-  EYE_COLORS,
-  EYEBROWS,
-  EYES,
-  EYEWEAR,
-  FACES,
-  FACIAL_HAIR,
-  FIGURES,
-  HAIR_COLORS,
-  HAIRS,
-  HEADWEAR,
-  KIT_COLORS,
-  LASHES,
-  LIP_COLORS,
-  MOUTHS,
-  NOSES,
-  POSES,
-  SHOES_LIST,
-  SKIN_TONES,
-  SPORTS,
-  TOPS,
-} from '../registry'
+import { EYEBROWS, EYES, EYEWEAR, FACIAL_HAIR, HAIR_COLORS, HAIRS, HEADWEAR, KIT_COLORS, MOUTHS, SKIN_TONES, SPORTS, TOPS } from '../registry'
 import { SKIN_HEX } from '../colors'
-import { HAIR_COLORS as HAIR_HEX } from '../render/svg/palette'
-import { kitOf } from '../render/svg/geometry'
-import { AthleteSvgScene } from '../render/svg/AthleteSvgScene'
+import { HAIR_COLORS as HAIR_HEX } from '../render/palette'
+import { kitOf } from '../render/kit'
+import { AvatarPortrait } from '../render/AvatarPortrait'
 import { Button, ErrorText, PageHeader } from '../../components/ui'
 import { api, errorMessage } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
@@ -48,20 +22,16 @@ type Item = { id: string; name: string; hex?: string }
 
 type Part =
   | { id: string; label: keyof Labels; kind: 'options'; field: Field; options: Item[]; crop: 'head' | 'full'; nullable?: boolean }
-  | { id: string; label: keyof Labels; kind: 'swatches'; field: 'eyeColor' | 'lipColor'; options: Item[] }
-  | { id: string; label: keyof Labels; kind: 'multi'; options: Item[]; crop: 'head' | 'full' }
   | { id: string; label: keyof Labels; kind: 'kitColors' }
   | { id: string; label: keyof Labels; kind: 'skin' }
   | { id: string; label: keyof Labels; kind: 'hairColor' }
-  | { id: string; label: keyof Labels; kind: 'height' }
 
 type Group = { id: string; label: keyof Labels; icon: ReactNode; parts: Part[] }
 
-/** Values used when an optional field was never set (older saved avatars). */
-const DEFAULTS: Partial<Record<Field, string>> = { figure: 'straight', lashes: 'none', eyeColor: 'brown', lipColor: 'natural' }
-
-const FACE_DETAILS = DETAILS.filter((d) => !d.id.startsWith('tattoo'))
-const TATTOOS = DETAILS.filter((d) => d.id.startsWith('tattoo'))
+/** Tops that look different as a portrait (the rest share a neckline). */
+const PORTRAIT_TOPS = TOPS.filter((t) => ['top_basketball_jersey', 'top_football_jersey', 'top_tennis_shirt', 'top_tee', 'top_hoodie'].includes(t.id))
+/** Sports with a club in the app; picking one sets the kit colours and shirt. */
+const PORTRAIT_SPORTS = SPORTS.filter((s) => ['basketball', 'football', 'volleyball', 'tennis', 'badminton'].includes(s.id))
 
 const opt = (id: string, label: keyof Labels, field: Field, options: Item[], crop: 'head' | 'full', nullable = false): Part => ({
   id,
@@ -75,31 +45,15 @@ const opt = (id: string, label: keyof Labels, field: Field, options: Item[], cro
 
 const GROUPS: Group[] = [
   {
-    id: 'body',
-    label: 'groupBody',
-    icon: <PersonStanding className="size-5" aria-hidden />,
-    parts: [
-      opt('build', 'build', 'bodyType', BODY_TYPES, 'full'),
-      opt('figure', 'figure', 'figure', FIGURES, 'full'),
-      { id: 'skin', label: 'skin', kind: 'skin' },
-      { id: 'height', label: 'height', kind: 'height' },
-    ],
-  },
-  {
     id: 'face',
     label: 'groupFace',
     icon: <Smile className="size-5" aria-hidden />,
     parts: [
-      opt('shape', 'faceShape', 'face', FACES, 'head'),
+      { id: 'skin', label: 'skin', kind: 'skin' },
       opt('eyes', 'eyes', 'eyes', EYES, 'head'),
-      { id: 'eyeColor', label: 'eyeColor', kind: 'swatches', field: 'eyeColor', options: EYE_COLORS },
-      opt('lashes', 'lashes', 'lashes', LASHES, 'head'),
       opt('brows', 'brows', 'eyebrows', EYEBROWS, 'head'),
-      opt('nose', 'nose', 'nose', NOSES, 'head'),
       opt('mouth', 'mouth', 'mouth', MOUTHS, 'head'),
-      { id: 'lips', label: 'lips', kind: 'swatches', field: 'lipColor', options: LIP_COLORS },
       opt('beard', 'beard', 'facialHair', FACIAL_HAIR, 'head'),
-      { id: 'details', label: 'details', kind: 'multi', options: FACE_DETAILS, crop: 'head' },
     ],
   },
   {
@@ -112,26 +66,13 @@ const GROUPS: Group[] = [
     id: 'kit',
     label: 'groupKit',
     icon: <Shirt className="size-5" aria-hidden />,
-    parts: [
-      opt('sport', 'sport', 'sport', SPORTS, 'full'),
-      { id: 'colours', label: 'colours', kind: 'kitColors' },
-      opt('top', 'top', 'top', TOPS, 'full'),
-      opt('bottom', 'bottom', 'bottom', BOTTOMS, 'full'),
-      opt('shoes', 'shoes', 'shoes', SHOES_LIST, 'full'),
-      opt('gear', 'gear', 'sportsEquipment', EQUIPMENT, 'full', true),
-      opt('pose', 'pose', 'pose', POSES, 'full'),
-    ],
+    parts: [opt('sport', 'sport', 'sport', PORTRAIT_SPORTS, 'head'), { id: 'colours', label: 'colours', kind: 'kitColors' }, opt('top', 'top', 'top', PORTRAIT_TOPS, 'head')],
   },
   {
     id: 'extras',
     label: 'groupExtras',
     icon: <Glasses className="size-5" aria-hidden />,
-    parts: [
-      opt('headwear', 'headwear', 'headwear', HEADWEAR, 'head', true),
-      opt('eyewear', 'eyewear', 'eyewear', EYEWEAR, 'head', true),
-      opt('accessory', 'accessory', 'accessory', ACCESSORIES, 'full', true),
-      { id: 'tattoos', label: 'tattoos', kind: 'multi', options: TATTOOS, crop: 'full' },
-    ],
+    parts: [opt('headwear', 'headwear', 'headwear', HEADWEAR, 'head', true), opt('eyewear', 'eyewear', 'eyewear', EYEWEAR, 'head', true)],
   },
 ]
 
@@ -139,11 +80,6 @@ const GROUPS: Group[] = [
 function withValue(c: PlayerAvatarConfig, field: Field, value: unknown): PlayerAvatarConfig {
   if (field === 'sport') return { ...c, ...sportKit(value as SportSlug), sport: value as SportSlug }
   return { ...c, [field]: value }
-}
-
-function heightLabel(m: number) {
-  const totalIn = Math.round(m * 39.3701)
-  return `${Math.round(m * 100)} cm · ${Math.floor(totalIn / 12)}'${totalIn % 12}"`
 }
 
 function kitTint(c: PlayerAvatarConfig) {
@@ -191,10 +127,10 @@ export function AvatarStudio({ initial, onSaved }: { initial: PlayerAvatarConfig
       <div className="mx-auto w-full max-w-5xl px-4 pb-8 pt-4 lg:grid lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)] lg:gap-8 lg:pb-10">
         {/* Preview */}
         <aside className="lg:sticky lg:top-4 lg:self-start">
-          <div className="relative h-[38vh] min-h-64 overflow-hidden rounded-3xl border border-line lg:h-[560px]" style={{ background: kitTint(config) }}>
-            {/* Re-mount on every change so the player "pops" with the new look. */}
-            <div key={JSON.stringify(config)} className="ftg-av-pop absolute inset-x-6 bottom-3 top-6">
-              <AthleteSvgScene config={config} crop="full" animated />
+          <div className="relative aspect-square max-h-[42vh] w-full overflow-hidden rounded-3xl border border-line lg:max-h-none" style={{ background: kitTint(config) }}>
+            {/* Re-mount on every change so the player "pops" with the new look; idle bob after. */}
+            <div key={JSON.stringify(config)} className="ftg-av-pop absolute inset-x-[8%] bottom-0 top-[6%]">
+              <AvatarPortrait config={config} className="ftg-av-breathe h-full w-full" />
             </div>
             <div className="absolute right-3 top-3 flex gap-2">
               <IconButton label={L.randomize} onClick={() => setConfig((c) => randomizeAvatar(c))}>
@@ -203,12 +139,6 @@ export function AvatarStudio({ initial, onSaved }: { initial: PlayerAvatarConfig
               <IconButton label={L.reset} onClick={() => setConfig(initial)}>
                 <RotateCcw className="size-5" aria-hidden />
               </IconButton>
-            </div>
-            <div className="absolute bottom-3 right-3 flex items-center gap-2 rounded-full bg-surface/90 p-1 sm:pr-3 shadow-sm backdrop-blur">
-              <div className="size-12 overflow-hidden rounded-full bg-surface-2 ring-2 ring-brand">
-                <AthleteSvgScene config={config} crop="head" />
-              </div>
-              <span className="hidden text-xs font-semibold text-ink-2 sm:inline">{L.profileView}</span>
             </div>
           </div>
 
@@ -224,7 +154,7 @@ export function AvatarStudio({ initial, onSaved }: { initial: PlayerAvatarConfig
                   className="flex shrink-0 items-center gap-2 rounded-full border border-line bg-surface py-1 pl-1 pr-3 text-sm font-semibold hover:border-brand"
                 >
                   <span className="size-8 overflow-hidden rounded-full bg-surface-2">
-                    <AthleteSvgScene config={preset} crop="head" />
+                    <AvatarPortrait config={preset} className="h-full w-full" />
                   </span>
                   {p.name}
                 </button>
@@ -353,42 +283,7 @@ function PartEditor({
       </div>
     )
   }
-  if (part.kind === 'swatches') {
-    const field = part.field
-    const current = config[field] ?? DEFAULTS[field]
-    return (
-      <div className="flex flex-wrap gap-3">
-        {part.options.map((o) => (
-          <Swatch key={o.id} color={o.hex ?? '#000'} label={o.name} selected={current === o.id} onClick={() => setConfig((c) => ({ ...c, [field]: o.id }))} />
-        ))}
-      </div>
-    )
-  }
-  if (part.kind === 'multi') return <MultiGrid part={part} config={config} setConfig={setConfig} />
   if (part.kind === 'kitColors') return <KitColors config={config} setConfig={setConfig} L={L} />
-  if (part.kind === 'height') {
-    return (
-      <div className="rounded-2xl border border-line bg-surface p-4">
-        <div className="flex items-baseline justify-between">
-          <span className="text-sm font-semibold text-ink-2">{L.height}</span>
-          <span className="display text-2xl font-extrabold">{heightLabel(config.height)}</span>
-        </div>
-        <input
-          type="range"
-          min={1.45}
-          max={2.25}
-          step={0.01}
-          value={config.height}
-          aria-label={L.height}
-          onChange={(e) => {
-            const height = Number(e.target.value)
-            setConfig((c) => ({ ...c, height }))
-          }}
-          className="mt-3 w-full accent-brand"
-        />
-      </div>
-    )
-  }
   return <OptionGrid part={part} config={config} setConfig={setConfig} L={L} />
 }
 
@@ -407,11 +302,11 @@ function OptionGrid({
     const list: { id: string | null; name: string }[] = part.options.map((o) => ({ id: o.id, name: o.name }))
     return part.nullable ? [{ id: null, name: L.none }, ...list] : list
   }, [part, L.none])
-  const head = part.crop === 'head'
+  const head = true
   return (
     <div className={`grid gap-2.5 ${head ? 'grid-cols-4 sm:grid-cols-5' : 'grid-cols-3 sm:grid-cols-4'}`}>
       {items.map((o) => {
-        const current = config[part.field] ?? DEFAULTS[part.field] ?? null
+        const current = config[part.field] ?? null
         const selected = current === o.id
         const preview = withValue(config, part.field, o.id)
         return (
@@ -425,54 +320,7 @@ function OptionGrid({
             }`}
           >
             <span className={`block w-full overflow-hidden ${head ? 'aspect-square rounded-full bg-surface' : 'aspect-[3/4] rounded-xl bg-surface'}`}>
-              <AthleteSvgScene config={preview} crop={part.crop} />
-            </span>
-            <span className="line-clamp-2 text-[11px] font-semibold leading-tight text-ink-2 group-aria-pressed:text-ink">{o.name}</span>
-            {selected && (
-              <span className="absolute right-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-brand text-brand-ink">
-                <Check className="size-3" strokeWidth={3.5} aria-hidden />
-              </span>
-            )}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
-function MultiGrid({
-  part,
-  config,
-  setConfig,
-}: {
-  part: Extract<Part, { kind: 'multi' }>
-  config: PlayerAvatarConfig
-  setConfig: (fn: (c: PlayerAvatarConfig) => PlayerAvatarConfig) => void
-}) {
-  const head = part.crop === 'head'
-  const toggle = (list: AvatarDetail[] | undefined, id: AvatarDetail) => {
-    const cur = list ?? []
-    return cur.includes(id) ? cur.filter((d) => d !== id) : [...cur, id]
-  }
-  return (
-    <div className={`grid gap-2.5 ${head ? 'grid-cols-4 sm:grid-cols-5' : 'grid-cols-3 sm:grid-cols-4'}`}>
-      {part.options.map((o) => {
-        const id = o.id as AvatarDetail
-        const selected = (config.details ?? []).includes(id)
-        // Preview the detail on its own so the tile shows what it adds.
-        const preview = { ...config, details: [id] }
-        return (
-          <button
-            key={o.id}
-            type="button"
-            aria-pressed={selected}
-            onClick={() => setConfig((c) => ({ ...c, details: toggle(c.details, id) }))}
-            className={`group relative flex flex-col items-center gap-1.5 rounded-2xl border-2 p-1.5 pb-2 text-center transition ${
-              selected ? 'border-brand bg-brand/10' : 'border-transparent bg-surface-2 hover:border-line'
-            }`}
-          >
-            <span className={`block w-full overflow-hidden ${head ? 'aspect-square rounded-full bg-surface' : 'aspect-[3/4] rounded-xl bg-surface'}`}>
-              <AthleteSvgScene config={preview} crop={part.crop} />
+              <AvatarPortrait config={preview} className="h-full w-full" />
             </span>
             <span className="line-clamp-2 text-[11px] font-semibold leading-tight text-ink-2 group-aria-pressed:text-ink">{o.name}</span>
             {selected && (

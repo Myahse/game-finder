@@ -1,4 +1,4 @@
-import type { SportSlug } from '../../schema'
+import type { SportSlug } from '../schema'
 
 /** Mix a hex colour toward black (amt > 0) or white (amt < 0). */
 export function shade(hex: string, amt: number): string {

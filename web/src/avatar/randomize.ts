@@ -19,11 +19,11 @@ export function randomizeAvatar(base?: PlayerAvatarConfig): PlayerAvatarConfig {
   next.eyes = pick(ids(EYES))
   next.eyebrows = pick(ids(EYEBROWS))
   next.nose = pick(ids(NOSES))
-  next.mouth = pick(ids(MOUTHS))
+  next.mouth = pick(ids(MOUTHS).filter((m) => m !== 'mouth_confident'))
   next.hair = pick(ids(HAIRS))
   next.hairColor = Math.random() > 0.35 ? pick(['black', 'dark_brown']) : pick(ids(HAIR_COLORS))
   next.facialHair = Math.random() > 0.5 ? 'beard_none' : pick(ids(FACIAL_HAIR))
-  next.headwear = Math.random() > 0.7 ? pick(ids(HEADWEAR)) : null
+  next.headwear = Math.random() > 0.88 ? pick(ids(HEADWEAR)) : null
   next.eyewear = Math.random() > 0.85 ? pick(ids(EYEWEAR)) : null
   next.accessory = Math.random() > 0.55 ? pick(ids(ACCESSORIES)) : null
   next.pose = Math.random() > 0.5 ? 'action' : 'standing'

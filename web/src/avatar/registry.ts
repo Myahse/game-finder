@@ -37,19 +37,20 @@ export const FACES = assets('face', [
 ])
 
 export const EYES = assets('eyes', [
-  ['eyes_01', 'Classic'],
+  ['eyes_01', 'Default'],
+  ['eyes_03', 'Happy'],
   ['eyes_02', 'Focused'],
-  ['eyes_03', 'Bright'],
-  ['eyes_04', 'Narrow'],
+  ['eyes_04', 'Side glance'],
   ['eyes_05', 'Wide'],
+  ['eyes_wink', 'Wink'],
 ])
 
 export const EYEBROWS = assets('eyebrows', [
-  ['brow_straight', 'Straight'],
-  ['brow_curved', 'Curved'],
-  ['brow_thick', 'Thick'],
-  ['brow_thin', 'Thin'],
-  ['brow_athletic', 'Athletic'],
+  ['brow_curved', 'Natural'],
+  ['brow_straight', 'Flat'],
+  ['brow_thick', 'Bold'],
+  ['brow_thin', 'Raised'],
+  ['brow_athletic', 'Determined'],
   ['brow_expressive', 'Expressive'],
 ])
 
@@ -64,37 +65,43 @@ export const NOSES = assets('nose', [
 ])
 
 export const MOUTHS = assets('mouth', [
-  ['mouth_neutral', 'Neutral'],
+  ['mouth_neutral', 'Grin'],
   ['mouth_smile', 'Smile'],
   ['mouth_big_smile', 'Big smile'],
   ['mouth_serious', 'Serious'],
-  ['mouth_confident', 'Confident'],
-  ['mouth_relaxed', 'Relaxed'],
+  ['mouth_confident', 'Cheeky'],
 ])
 
 export const HAIRS = assets('hair', [
   ['hair_buzz', 'Buzz cut'],
-  ['hair_fade_low', 'Low fade'],
-  ['hair_fade_mid', 'Mid fade'],
-  ['hair_fade_high', 'High fade'],
-  ['hair_crop', 'Textured crop'],
+  ['hair_short_flat', 'Short'],
+  ['hair_short_round', 'Short round'],
+  ['hair_side_part', 'Side part'],
+  ['hair_waves', 'Waves'],
   ['hair_curls_short', 'Short curls'],
-  ['hair_wavy_med', 'Wavy medium'],
-  ['hair_afro', 'Afro'],
+  ['hair_quiff', 'Quiff'],
   ['hair_twists', 'Twists'],
   ['hair_locs', 'Locs'],
-  ['hair_braids', 'Braids'],
-  ['hair_ponytail', 'Ponytail'],
-  ['hair_box_braids', 'Box braids'],
-  ['hair_cornrows', 'Cornrows'],
-  ['hair_hightop', 'High-top'],
-  ['hair_mohawk', 'Mohawk'],
-  ['hair_bun', 'Top bun'],
-  ['hair_bantu_knots', 'Bantu knots'],
-  ['hair_puff', 'Afro puff'],
-  ['hair_pixie', 'Pixie'],
+  ['hair_locs_long', 'Long locs'],
+  ['hair_afro', 'Afro'],
+  ['hair_puff', 'Afro + band'],
+  ['hair_curly', 'Curly'],
+  ['hair_long_curly', 'Long curly'],
+  ['hair_big', 'Big hair'],
+  ['hair_bun', 'Bun'],
+  ['hair_braid_crown', 'Braid crown'],
+  ['hair_bob', 'Bob'],
+  ['hair_bob_bangs', 'Bob + bangs'],
+  ['hair_shaggy', 'Shaggy'],
+  ['hair_mullet', 'Mullet'],
+  ['hair_shaved_side', 'Shaved side'],
+  ['hair_long_wavy', 'Long wavy'],
   ['hair_long_straight', 'Long straight'],
-  ['hair_headwrap', 'Headwrap'],
+  ['hair_long_sleek', 'Long sleek'],
+  ['hair_long_strand', 'Long + strand'],
+  ['hair_balding', 'Balding'],
+  ['hair_headwrap', 'Turban'],
+  ['hair_hijab', 'Hijab'],
 ])
 
 export const HAIR_COLORS = assets('hair', [
@@ -110,12 +117,11 @@ export const HAIR_COLORS = assets('hair', [
 
 export const FACIAL_HAIR = assets('facialHair', [
   ['beard_none', 'None'],
-  ['beard_stubble', 'Stubble'],
-  ['beard_mustache', 'Moustache'],
-  ['beard_short', 'Short beard'],
+  ['beard_stubble', 'Light beard'],
+  ['beard_short', 'Beard'],
   ['beard_full', 'Full beard'],
-  ['beard_goatee', 'Goatee'],
-  ['beard_full_mustache', 'Beard + moustache'],
+  ['beard_mustache', 'Moustache'],
+  ['beard_goatee', 'Big moustache'],
 ])
 
 export const TOPS = assets('top', [
@@ -152,15 +158,17 @@ export const SHOES_LIST = assets('shoes', [
 ])
 
 export const HEADWEAR = assets('headwear', [
-  ['head_cap', 'Cap'],
-  ['head_headband', 'Headband'],
-  ['head_bandana', 'Bandana'],
+  ['head_cap', 'Hat'],
+  ['head_beanie', 'Beanie'],
+  ['head_bobble', 'Bobble hat'],
+  ['head_earflap', 'Earflap hat'],
 ])
 
 export const EYEWEAR = assets('eyewear', [
   ['eye_glasses', 'Glasses'],
+  ['eye_round', 'Round'],
+  ['eye_sport', 'Wayfarers'],
   ['eye_sunglasses', 'Sunglasses'],
-  ['eye_sport', 'Sport shades'],
 ])
 
 export const ACCESSORIES = assets('accessory', [
