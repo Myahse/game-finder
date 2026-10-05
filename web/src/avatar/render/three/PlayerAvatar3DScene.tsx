@@ -1,4 +1,4 @@
-import { Center, ContactShadows, Environment, Html, OrbitControls, useGLTF } from '@react-three/drei'
+import { Center, ContactShadows, Html, OrbitControls, useGLTF } from '@react-three/drei'
 import { Suspense, useEffect, useMemo } from 'react'
 import * as THREE from 'three'
 import type { PlayerAvatarConfig } from '../../schema'
@@ -79,7 +79,10 @@ export function PlayerAvatar3DScene({
 }) {
   return (
     <>
-      <ambientLight intensity={0.65} />
+      {/* Local lights only — drei's <Environment preset> downloads an HDR from a third-party CDN,
+          which the site CSP blocks and which crashed the whole app when unreachable. */}
+      <hemisphereLight args={['#ffffff', '#b9c3cf', 0.9]} />
+      <ambientLight intensity={0.35} />
       <directionalLight position={[-4, 6, 4]} intensity={1.15} castShadow />
       <directionalLight position={[3, 2, -2]} intensity={0.2} />
       <Suspense
@@ -92,7 +95,6 @@ export function PlayerAvatar3DScene({
         <AvatarRig config={config} />
       </Suspense>
       <ContactShadows position={[0, 0, 0]} opacity={0.35} scale={2.5} blur={2.5} far={2.5} />
-      <Environment preset="city" />
       {interactive && <OrbitControls enablePan={false} minPolarAngle={Math.PI / 3.2} maxPolarAngle={Math.PI / 2.02} />}
     </>
   )

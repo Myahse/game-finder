@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from './lib/auth'
+import { Spinner } from './components/ui'
 import { AppShell } from './components/AppShell'
 import { WelcomePage } from './routes/WelcomePage'
 import { PrivacyPage, TermsPage } from './routes/LegalPage'
@@ -52,8 +53,17 @@ function legacyGamePath(path: string): string | null {
 }
 
 /** Logged-out: welcome at `/` (and `/welcome`). Logged-in: app shell or onboarding. */
+/** Shown while the cookie session is restored on a deep link, so a reload doesn't bounce to `/`. */
+function SessionSplash() {
+  return (
+    <div className="flex min-h-full items-center justify-center bg-bg">
+      <Spinner className="text-brand" />
+    </div>
+  )
+}
+
 function RootAuthLayout() {
-  const { user } = useAuth()
+  const { user, sessionReady } = useAuth()
   const loc = useLocation()
   const path = loc.pathname
 
@@ -66,6 +76,7 @@ function RootAuthLayout() {
     if (legacyGameId) return <GameJoinLanding gameId={legacyGameId} />
     if (path === '/' || path === '/welcome') return <WelcomePage />
     if (GUEST_PATHS.has(path)) return <Outlet />
+    if (!sessionReady) return <SessionSplash />
     return <Navigate to="/" replace state={{ from: path }} />
   }
 
