@@ -4,6 +4,7 @@ import Supercluster, { type ClusterProperties } from 'supercluster'
 import type { Coords } from '../lib/location'
 import { UserLocationPulse } from './UserLocationPulse'
 import { configureEarthMap } from '../lib/mapboxEarth'
+import { clampMapZoom, MAP_MAX_ZOOM, MAP_MIN_ZOOM } from '../lib/mapZoom'
 import { MAPBOX_ACCESS_TOKEN, MAPBOX_MAP_PROPS, mapboxConfigured, mapboxTokenSetupError } from '../lib/mapbox'
 import { mapStyleForTheme } from '../theme/mapStyle'
 import { useTheme } from '../theme/ThemeProvider'
@@ -62,7 +63,7 @@ export function CourtMap({
   const index = useMemo(() => {
     const sc = new Supercluster<PointProps, ClusterProps>({
       radius: 56,
-      maxZoom: 15,
+      maxZoom: MAP_MAX_ZOOM - 2,
       map: (p) => ({ players: p.court.player_count, live: p.court.activity === 'active' ? 1 : 0 }),
       reduce: (acc, p) => {
         acc.players += p.players
@@ -168,8 +169,8 @@ export function CourtMap({
         ref={mapRef}
         mapboxAccessToken={MAPBOX_ACCESS_TOKEN}
         initialViewState={{ longitude: center.longitude, latitude: center.latitude, zoom: 13, bearing: 0, pitch: 0 }}
-        minZoom={2}
-        maxZoom={18}
+        minZoom={MAP_MIN_ZOOM}
+        maxZoom={MAP_MAX_ZOOM}
         mapStyle={mapStyleForTheme(isDark)}
         onLoad={onMapReady}
         onMove={scheduleSync}
@@ -201,7 +202,7 @@ export function CourtMap({
                   onClick={() =>
                     mapRef.current?.flyTo({
                       center: [lng, lat],
-                      zoom: Math.min(index.getClusterExpansionZoom(p.cluster_id), 17),
+                      zoom: clampMapZoom(index.getClusterExpansionZoom(p.cluster_id)),
                       duration: 600,
                     })
                   }

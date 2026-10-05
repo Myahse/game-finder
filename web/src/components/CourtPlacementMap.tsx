@@ -3,6 +3,7 @@ import Map, { AttributionControl, Marker, type MapRef } from 'react-map-gl/mapbo
 import { LocateFixed, MapPin, Minus, Plus } from './icons'
 import type { Coords } from '../lib/location'
 import { configureEarthMap } from '../lib/mapboxEarth'
+import { clampMapZoom, MAP_MAX_ZOOM, MAP_MIN_ZOOM } from '../lib/mapZoom'
 import { offscreenEdgeHint } from '../lib/mapOffscreenEdge'
 import { useTheme } from '../theme/ThemeProvider'
 import { mapStyleForTheme } from '../theme/mapStyle'
@@ -78,7 +79,7 @@ export function CourtPlacementMap({
   const zoomBy = (delta: number) => {
     const map = ref.current?.getMap()
     if (!map) return
-    map.zoomTo(Math.min(18, Math.max(2, map.getZoom() + delta)), { duration: 200 })
+    map.zoomTo(clampMapZoom(map.getZoom() + delta), { duration: 200 })
   }
 
   const goToMe = () => {
@@ -107,8 +108,8 @@ export function CourtPlacementMap({
         ref={ref}
         mapboxAccessToken={MAPBOX_ACCESS_TOKEN}
         initialViewState={{ longitude: initial.longitude, latitude: initial.latitude, zoom: 15, bearing: 0, pitch: 0 }}
-        minZoom={2}
-        maxZoom={18}
+        minZoom={MAP_MIN_ZOOM}
+        maxZoom={MAP_MAX_ZOOM}
         mapStyle={mapStyleForTheme(isDark)}
         onClick={readOnly ? undefined : (e) => onChange({ latitude: e.lngLat.lat, longitude: e.lngLat.lng })}
         onMove={syncEdge}

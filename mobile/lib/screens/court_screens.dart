@@ -12,6 +12,7 @@ import '../core/format.dart';
 import '../core/media_url.dart';
 import '../core/location.dart';
 import '../core/map_tiles.dart';
+import '../core/map_zoom.dart';
 import '../core/models.dart';
 import '../core/opening_hours.dart';
 import '../core/reverse_geocode.dart';
@@ -983,8 +984,8 @@ class AddCourtScreen extends StatefulWidget {
 }
 
 class _AddCourtScreenState extends State<AddCourtScreen> {
-  static const _mapMinZoom = 10.0;
-  static const _mapMaxZoom = 19.0;
+  static const _mapMinZoom = mapMinZoom;
+  static const _mapMaxZoom = mapMaxZoom;
 
   final _name = TextEditingController();
   final _description = TextEditingController();
@@ -1054,13 +1055,13 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
   void _zoomCourtMap(double delta) {
     if (!_courtMapReady) return;
     final cam = _courtMap.camera;
-    final z = (cam.zoom + delta).clamp(_mapMinZoom, _mapMaxZoom);
+    final z = clampMapZoom(cam.zoom + delta);
     _courtMap.move(cam.center, z);
   }
 
   void _centerCourtMapOn(LatLng p) {
     if (!_courtMapReady) return;
-    final z = _courtMap.camera.zoom.clamp(_mapMinZoom, _mapMaxZoom);
+    final z = clampMapZoom(_courtMap.camera.zoom);
     _courtMap.move(p, z < 14 ? 16 : z);
   }
 

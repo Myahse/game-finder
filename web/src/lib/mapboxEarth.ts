@@ -1,5 +1,7 @@
 import type { Map as MapboxMap } from 'mapbox-gl'
 
+import { MAP_MAX_ZOOM, MAP_MIN_ZOOM } from './mapZoom'
+
 /** Street-level maps use Mercator so pins sit on true coordinates (globe skews on mobile Safari). */
 const LOCAL_ZOOM = 10
 
@@ -36,6 +38,6 @@ export function configureEarthMap(map: MapboxMap) {
   map.on('zoom', run)
   map.on('zoomend', run)
 
-  map.setMinZoom(2)
-  map.setMaxZoom(18)
+  map.setMinZoom(MAP_MIN_ZOOM)
+  map.setMaxZoom(MAP_MAX_ZOOM)
 }

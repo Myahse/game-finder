@@ -6,6 +6,7 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 import '../core/format.dart';
 import '../core/map_tiles.dart';
+import '../core/map_zoom.dart';
 import '../core/models.dart';
 import 'court_map_pin.dart';
 
@@ -88,7 +89,7 @@ class _HomeGlobeMapState extends State<HomeGlobeMap> {
     await map.gestures.updateSettings(GesturesSettings(rotateEnabled: false, pitchEnabled: false));
     await map.scaleBar.updateSettings(ScaleBarSettings(enabled: false));
     await map.compass.updateSettings(CompassSettings(enabled: false));
-    await map.setBounds(CameraBoundsOptions(minZoom: 2, maxZoom: 18));
+    await map.setBounds(CameraBoundsOptions(minZoom: mapMinZoom, maxZoom: mapMaxZoom));
     await _applyGlobe();
     await _updateLocationPuck();
     widget.onReady(HomeGlobeMapController(map));
