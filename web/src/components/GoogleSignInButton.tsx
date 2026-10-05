@@ -58,16 +58,19 @@ export function GoogleSignInButton({
   showTerms?: boolean
   navigateAfterSignIn?: string | null
 }) {
-  const { googleSignIn } = useAuth()
+  const { googleSignIn, sessionReady } = useAuth()
   const { t, locale } = useLocale()
   const navigate = useNavigate()
   const box = useRef<HTMLDivElement>(null)
+  const signInFlight = useRef(false)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [ready, setReady] = useState(useFirebase)
   const { isDark: dark } = useTheme()
 
   const finish = async (idToken: string, viaFirebase: boolean) => {
+    if (!sessionReady || signInFlight.current) return
+    signInFlight.current = true
     setBusy(true)
     setError('')
     try {
@@ -77,6 +80,7 @@ export function GoogleSignInButton({
     } catch (e) {
       setError(errorMessage(e))
     } finally {
+      signInFlight.current = false
       setBusy(false)
     }
   }
@@ -97,7 +101,7 @@ export function GoogleSignInButton({
           client_id: CLIENT_ID,
           callback: (r) => handler.current(r),
           ux_mode: 'popup',
-          use_fedcm_for_button: true,
+          use_fedcm_for_button: false,
         })
         g.accounts.id.renderButton(box.current, {
           type: 'standard',
@@ -138,8 +142,9 @@ export function GoogleSignInButton({
       <div className="grid gap-2">
         <button
           type="button"
-          disabled={busy}
+          disabled={busy || !sessionReady}
           onClick={() => {
+            if (!sessionReady) return
             void firebaseGoogleIdToken()
               .then((token) => finish(token, true))
               .catch((e) => setError(errorMessage(e)))
@@ -162,8 +167,11 @@ export function GoogleSignInButton({
   return (
     <div className="grid gap-2">
       <div className="relative flex min-h-11 items-center justify-center">
-        <div ref={box} className={`flex w-full justify-center ${busy ? 'pointer-events-none opacity-50' : ''}`} />
-        {(!ready || busy) && !error && <Spinner className="absolute text-ink-2" />}
+        <div
+          ref={box}
+          className={`flex w-full justify-center ${busy || !sessionReady ? 'pointer-events-none opacity-50' : ''}`}
+        />
+        {(!ready || !sessionReady || busy) && !error && <Spinner className="absolute text-ink-2" />}
       </div>
       <ErrorText>{error}</ErrorText>
       {terms}

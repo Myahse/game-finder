@@ -206,7 +206,44 @@ export async function accessToken(): Promise<string | null> {
   if (exp && new Date(exp).getTime() - Date.now() < 30_000) {
     await refreshSession()
   }
-  return sessionTokens?.access_token ?? null
+  const tok = sessionTokens?.access_token ?? null
+  if (tok && exp && new Date(exp).getTime() <= Date.now()) return null
+  return tok
+}
+
+const TRANSIENT_AUTH_STATUSES = new Set([502, 503, 504])
+
+/**
+ * Login / register / OAuth token exchange. Never sends Authorization — a stale Bearer
+ * token makes the global auth middleware reject the request before the handler runs.
+ */
+export async function exchangeSession(path: string, json: Record<string, unknown>): Promise<Session> {
+  const post = async (): Promise<Session> => {
+    const res = await fetch(`${apiOrigin()}${path}`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(json),
+    })
+    const data = await res.json().catch(() => null)
+    if (!res.ok) {
+      throw new ApiError(res.status, data?.error ?? 'error', data?.message ?? 'Something went wrong.')
+    }
+    return data as Session
+  }
+  try {
+    return await post()
+  } catch (e) {
+    if (e instanceof ApiError && TRANSIENT_AUTH_STATUSES.has(e.status)) {
+      await new Promise((r) => setTimeout(r, 900))
+      return await post()
+    }
+    if (e instanceof TypeError) {
+      await new Promise((r) => setTimeout(r, 900))
+      return await post()
+    }
+    throw e
+  }
 }
 
 export async function api<T>(path: string, init: RequestInit & { json?: unknown } = {}, retry = true): Promise<T> {

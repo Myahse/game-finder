@@ -1,8 +1,17 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { api, bootstrapSession, currentRefreshToken, establishSession, getSession, onSessionChange, setSession } from './api'
+import {
+  api,
+  bootstrapSession,
+  currentRefreshToken,
+  establishSession,
+  exchangeSession,
+  getSession,
+  onSessionChange,
+  setSession,
+} from './api'
 import { acceptPendingFriendInvite, clearFriendInviteToken, friendInviteTokenForAuth } from './friendInvite'
-import type { Me, Session } from './types'
+import type { Me } from './types'
 
 interface AuthState {
   user: Me | null
@@ -38,20 +47,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const login = useCallback(async (loginId: string, password: string) => {
-    const data = await api<Session>('/api/auth/login', {
-      method: 'POST',
-      json: { login: loginId.trim(), password },
-    })
+    const data = await exchangeSession('/api/auth/login', { login: loginId.trim(), password })
     await establishSession(data)
     await acceptPendingFriendInvite()
   }, [])
 
   const register = useCallback<AuthState['register']>(async (input) => {
     const friend_invite_token = input.friend_invite_token ?? friendInviteTokenForAuth()
-    const data = await api<Session>('/api/auth/register', {
-      method: 'POST',
-      json: { ...input, friend_invite_token },
-    })
+    const data = await exchangeSession('/api/auth/register', { ...input, friend_invite_token })
     await establishSession(data)
     clearFriendInviteToken()
   }, [])
@@ -59,10 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const googleSignIn = useCallback(async (idToken: string, viaFirebase = false) => {
     const path = viaFirebase ? '/api/auth/firebase' : '/api/auth/google'
     const friend_invite_token = friendInviteTokenForAuth()
-    const s = await api<Session>(path, {
-      method: 'POST',
-      json: { id_token: idToken, friend_invite_token },
-    })
+    const s = await exchangeSession(path, { id_token: idToken, friend_invite_token })
     await establishSession(s)
     clearFriendInviteToken()
     return !s.user.onboarded
