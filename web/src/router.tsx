@@ -14,6 +14,7 @@ import { PlayPage } from './routes/PlayPage'
 import { MyGamesPage } from './routes/MyGamesPage'
 import { ProfilePage, UserPage } from './routes/ProfilePage'
 import { ChallengesPage } from './routes/ChallengesPage'
+import { NotFoundPage, RouteErrorPage } from './routes/NotFoundPage'
 import { AvatarStudioPage } from './routes/AvatarStudioPage'
 import { NotificationsPage } from './routes/NotificationsPage'
 import { AddCourtPage } from './routes/AddCourtPage'
@@ -112,6 +113,7 @@ export const router = createBrowserRouter([
   {
     path: '/',
     element: <RootAuthLayout />,
+    errorElement: <RouteErrorPage />,
     children: [
       { path: 'welcome', element: <Navigate to="/" replace /> },
       { path: 'terms', element: <TermsPage /> },
@@ -160,5 +162,5 @@ export const router = createBrowserRouter([
       },
     ],
   },
-  { path: '*', element: <Navigate to="/" replace /> },
+  { path: '*', element: <NotFoundPage /> },
 ])

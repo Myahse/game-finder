@@ -1,0 +1,23 @@
+# Find the Game — https://game-finder-swart.vercel.app
+# Public pages may be indexed; signed-in screens, private links and the API may not.
+User-agent: *
+Allow: /$
+Allow: /terms
+Allow: /privacy
+Disallow: /api/
+Disallow: /admin
+Disallow: /profile
+Disallow: /notifications
+Disallow: /my-games
+Disallow: /challenges
+Disallow: /play
+Disallow: /users/
+Disallow: /u/
+Disallow: /games/
+Disallow: /courts/
+Disallow: /g/
+Disallow: /friend/
+Disallow: /login
+Disallow: /register
+Disallow: /verify-email
+Disallow: /uploads/

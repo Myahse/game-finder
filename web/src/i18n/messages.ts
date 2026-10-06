@@ -160,6 +160,16 @@ const en = {
     added: 'Password added — you can now log in with @{user}.',
     changed: 'Password changed.',
   },
+  notFound: {
+    code: '404',
+    title: 'Out of bounds',
+    body: 'This page doesn’t exist — the link may be old or mistyped. The game’s still on, though.',
+    toMap: 'Find a game',
+    back: 'Go back',
+    errorTitle: 'Foul on our side',
+    errorBody: 'Something broke while loading this screen. Try again — if it keeps happening, let us know.',
+    reload: 'Reload',
+  },
   pushSetup: {
     title: 'Phone notifications',
     off: 'Get challenges, invites and reminders even when the app is closed.',
@@ -695,6 +705,16 @@ const fr: MessageTree = {
     save: 'Enregistrer',
     added: 'Mot de passe ajouté — vous pouvez vous connecter avec @{user}.',
     changed: 'Mot de passe modifié.',
+  },
+  notFound: {
+    code: '404',
+    title: 'Hors du terrain',
+    body: 'Cette page n’existe pas — le lien est peut-être ancien ou mal tapé. Mais le match continue.',
+    toMap: 'Trouver un match',
+    back: 'Retour',
+    errorTitle: 'Faute de notre côté',
+    errorBody: 'Un problème est survenu en chargeant cet écran. Réessayez — si ça continue, prévenez-nous.',
+    reload: 'Recharger',
   },
   pushSetup: {
     title: 'Notifications sur le téléphone',

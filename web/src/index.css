@@ -447,3 +447,18 @@ body {
   color: var(--ink) !important;
 }
 
+
+/* 404: the ball bouncing out of bounds */
+@keyframes ftg-oob-bounce {
+  0%, 100% { transform: translateY(0) rotate(0deg); animation-timing-function: cubic-bezier(0.3, 0, 0.7, 0.4); }
+  50% { transform: translateY(78px) rotate(160deg); animation-timing-function: cubic-bezier(0.3, 0.6, 0.7, 1); }
+}
+@keyframes ftg-oob-shadow {
+  0%, 100% { transform: scale(0.6); opacity: 0.4; }
+  50% { transform: scale(1); opacity: 1; }
+}
+.ftg-oob-ball { animation: ftg-oob-bounce 1.4s infinite; }
+.ftg-oob-shadow { animation: ftg-oob-shadow 1.4s infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .ftg-oob-ball, .ftg-oob-shadow { animation: none; }
+}
