@@ -22,6 +22,9 @@ export type Challenge = {
   score_opponent: string | null
   reported_by: string | null
   created_at: string
+  players?: { user: PublicUser; side: 'challenger' | 'opponent'; status: 'invited' | 'accepted' }[]
+  my_side?: 'challenger' | 'opponent' | null
+  my_status?: 'invited' | 'accepted' | 'declined' | null
 }
 
 export type ChallengeList = {
@@ -100,10 +103,15 @@ export function useChallengeActions() {
       api<Challenge>(`/api/challenges/${id}/${action}`, { method: 'POST' }),
     onSuccess: done,
   })
+  const addPlayer = useMutation({
+    mutationFn: ({ id, username, side }: { id: string; username: string; side: 'challenger' | 'opponent' }) =>
+      api<Challenge>(`/api/challenges/${id}/players`, { method: 'POST', json: { username, side } }),
+    onSuccess: done,
+  })
   const report = useMutation({
     mutationFn: ({ id, ...body }: { id: string; winner_id: string; score_challenger: string; score_opponent: string }) =>
       api<Challenge>(`/api/challenges/${id}/result`, { method: 'POST', json: body }),
     onSuccess: done,
   })
-  return { create, act, report }
+  return { create, act, report, addPlayer }
 }

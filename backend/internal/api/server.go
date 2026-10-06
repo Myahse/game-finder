@@ -191,6 +191,7 @@ func (s *Server) Routes() http.Handler {
 			r.Post("/challenges/{id}/decline", s.challengeAction(`select respond_challenge($1, false)`))
 			r.Post("/challenges/{id}/cancel", s.challengeAction(`select cancel_challenge($1)`))
 			r.Post("/challenges/{id}/result", s.reportChallenge)
+			r.With(s.rateLimitedUser("game")).Post("/challenges/{id}/players", s.addChallengePlayer)
 			r.Post("/challenges/{id}/confirm", s.challengeAction(`select confirm_challenge($1, true)`))
 			r.Post("/challenges/{id}/dispute", s.challengeAction(`select confirm_challenge($1, false)`))
 			r.Get("/courts/{id}/challenges", s.openChallengesAtCourt)
@@ -488,6 +489,8 @@ var appErrors = map[string]struct {
 	"challenge_closed":           {http.StatusConflict, "This challenge is no longer open."},
 	"challenge_pending":          {http.StatusConflict, "You already have a pending challenge with this player."},
 	"too_many_challenges":        {http.StatusTooManyRequests, "Too many open challenges. Wait for answers first."},
+	"side_full":                  {http.StatusConflict, "This side is already full."},
+	"already_invited":            {http.StatusConflict, "That player is already in this challenge."},
 	"result_awaiting_you":        {http.StatusConflict, "The other player reported a result — confirm or dispute it."},
 	"game_not_started":           {http.StatusUnprocessableEntity, "Scores and stats can be added once the game has started."},
 }

@@ -49,7 +49,8 @@ func (s *Server) listChallenges(w http.ResponseWriter, r *http.Request) {
 func (s *Server) getChallenge(w http.ResponseWriter, r *http.Request) {
 	b, err := s.db.JSON(r.Context(), uid(r), `
 		select challenge_json(c) from challenges c
-		where c.id = $1 and (c.opponent_id is null or app_uid() in (c.challenger_id, c.opponent_id) or is_admin())`,
+		where c.id = $1 and (c.opponent_id is null or app_uid() in (c.challenger_id, c.opponent_id) or is_admin()
+		  or exists (select 1 from challenge_players cp where cp.challenge_id = c.id and cp.user_id = app_uid()))`,
 		chi.URLParam(r, "id"))
 	if err != nil {
 		writeDBError(w, r, err)
@@ -102,6 +103,30 @@ func (s *Server) openChallengesAtCourt(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) headToHead(w http.ResponseWriter, r *http.Request) {
 	b, err := s.db.JSON(r.Context(), uid(r), `select head_to_head($1)`, chi.URLParam(r, "id"))
+	if err != nil {
+		writeDBError(w, r, err)
+		return
+	}
+	writeRaw(w, http.StatusOK, b)
+}
+
+// addChallengePlayer invites @username to a side ("challenger" = my team, "opponent").
+func (s *Server) addChallengePlayer(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		Username string `json:"username"`
+		Side     string `json:"side"`
+	}
+	if !readJSON(w, r, &in) {
+		return
+	}
+	if in.Username == "" {
+		writeError(w, http.StatusUnprocessableEntity, "invalid_input", "Enter a username.")
+		return
+	}
+	if in.Side == "" {
+		in.Side = "opponent"
+	}
+	b, err := s.db.JSON(r.Context(), uid(r), `select add_challenge_player($1, $2, $3)`, chi.URLParam(r, "id"), in.Username, in.Side)
 	if err != nil {
 		writeDBError(w, r, err)
 		return

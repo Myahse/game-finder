@@ -139,16 +139,24 @@ class _ChallengeCardState extends State<ChallengeCard> {
     final theme = Theme.of(context);
     final format = formatById(c.format);
     final iAmChallenger = me == c.challenger.id;
-    final iAmOpponent = c.opponent != null && me == c.opponent!.id;
+    final myAccepted = c.myStatus == 'accepted' || iAmChallenger;
+    final mySide = c.mySide ?? (iAmChallenger ? 'challenger' : null);
+    final reporterSide = c.players.where((p) => p.user.id == c.reportedBy).map((p) => p.side).firstOrNull;
+    final invited = c.myStatus == 'invited';
+    final addable = [
+      for (final side in const ['challenger', 'opponent'])
+        if ((side == 'opponent' || c.teamSize > 1) && c.acceptedOn(side) < c.teamSize && (iAmChallenger || (c.myStatus == 'accepted' && mySide == side))) side
+    ];
+    final canAdd = (c.status == 'pending' || c.status == 'accepted') && addable.isNotEmpty;
     final won = c.status == 'completed' ? c.winnerId : null;
     final score = (c.scoreChallenger != null || c.scoreOpponent != null) ? '${c.scoreChallenger ?? '–'}–${c.scoreOpponent ?? '–'}' : '';
     PublicUser? reporter = c.reportedBy == c.challenger.id ? c.challenger : c.opponent;
     PublicUser? winner = c.winnerId == c.challenger.id ? c.challenger : c.opponent;
 
     final actions = <Widget>[];
-    if (c.status == 'pending' && !iAmChallenger && (c.isOpen || iAmOpponent)) {
-      actions.add(Expanded(child: FilledButton(onPressed: _busy ? null : () => _act('accept'), child: Text(c.isOpen ? tr('TAKE IT', 'RELEVER') : tr('ACCEPT', 'ACCEPTER')))));
-      if (!c.isOpen) {
+    if (invited || (c.status == 'pending' && c.isOpen && !iAmChallenger && c.myStatus == null)) {
+      actions.add(Expanded(child: FilledButton(onPressed: _busy ? null : () => _act('accept'), child: Text(invited ? tr('ACCEPT', 'ACCEPTER') : tr('TAKE IT', 'RELEVER')))));
+      if (invited) {
         actions.add(const SizedBox(width: 8));
         actions.add(Expanded(child: OutlinedButton(onPressed: _busy ? null : () => _act('decline'), child: Text(tr('DECLINE', 'REFUSER')))));
       }
@@ -156,7 +164,7 @@ class _ChallengeCardState extends State<ChallengeCard> {
     if ((c.status == 'pending' || c.status == 'accepted') && iAmChallenger) {
       actions.add(Expanded(child: TextButton(onPressed: _busy ? null : () => _act('cancel'), child: Text(tr('CANCEL', 'ANNULER')))));
     }
-    if (c.status == 'accepted' && (iAmChallenger || iAmOpponent)) {
+    if (c.status == 'accepted' && myAccepted) {
       if (actions.isNotEmpty) actions.add(const SizedBox(width: 8));
       actions.add(Expanded(
         child: FilledButton(
@@ -170,7 +178,7 @@ class _ChallengeCardState extends State<ChallengeCard> {
         ),
       ));
     }
-    if (c.status == 'reported' && (iAmChallenger || iAmOpponent) && c.reportedBy != me) {
+    if (c.status == 'reported' && myAccepted && reporterSide != mySide) {
       actions.add(Expanded(child: FilledButton(onPressed: _busy ? null : () => _act('confirm'), child: Text(tr('CONFIRM', 'CONFIRMER')))));
       actions.add(const SizedBox(width: 8));
       actions.add(Expanded(child: OutlinedButton(onPressed: _busy ? null : () => _act('dispute'), child: Text(tr('DISPUTE', 'CONTESTER')))));
@@ -223,10 +231,23 @@ class _ChallengeCardState extends State<ChallengeCard> {
               textAlign: TextAlign.center,
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
-            if (c.reportedBy == me)
+            if (myAccepted && reporterSide == mySide)
               Text(tr('Waiting for the other player to confirm', 'En attente de confirmation de l’adversaire'),
                   textAlign: TextAlign.center, style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
           ],
+          if (c.teamSize > 1 || c.players.length > 2) ...[const SizedBox(height: 10), _Rosters(challenge: c)],
+          if (canAdd)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  final ok = await showAddPlayerSheet(context, c, addable, mySide);
+                  if (ok == true) widget.onChanged();
+                },
+                icon: const Icon(Icons.person_add_alt_1),
+                label: Text(tr('ADD A PLAYER', 'AJOUTER UN JOUEUR')),
+              ),
+            ),
           if (actions.isNotEmpty) ...[const SizedBox(height: 12), Row(children: actions)],
           if (c.gameId != null && const ['accepted', 'reported', 'completed'].contains(c.status))
             TextButton(onPressed: () => openGameScreen(context, c.gameId!), child: Text(tr('OPEN GAME', 'VOIR LE MATCH'))),
@@ -652,5 +673,141 @@ class _CourtChallengesState extends State<CourtChallenges> {
         label: Text(tr('POST AN OPEN CHALLENGE', 'LANCER UN DÉFI OUVERT')),
       ),
     ]);
+  }
+}
+
+class _Rosters extends StatelessWidget {
+  final Challenge challenge;
+  const _Rosters({required this.challenge});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = challenge;
+    final theme = Theme.of(context);
+    Widget side(String side) {
+      final list = c.players.where((p) => p.side == side).toList();
+      final head = side == 'challenger' ? '@${c.challenger.username}' : (c.opponent != null ? '@${c.opponent!.username}' : tr('Opponents', 'Adversaires'));
+      return Expanded(
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('$head · ${c.acceptedOn(side)}/${c.teamSize}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: theme.colorScheme.onSurfaceVariant)),
+            const SizedBox(height: 4),
+            for (final p in list)
+              Opacity(
+                opacity: p.status == 'invited' ? 0.5 : 1,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(children: [
+                    UserAvatar(p.user, size: 22),
+                    const SizedBox(width: 6),
+                    Expanded(child: Text('@${p.user.username}', overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700))),
+                    if (p.status == 'invited') Text(tr('INVITED', 'INVITÉ'), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900)),
+                  ]),
+                ),
+              ),
+          ]),
+        ),
+      );
+    }
+
+    return Column(children: [
+      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [side('challenger'), const SizedBox(width: 8), side('opponent')]),
+      if (c.teamSize == 1 && c.status == 'pending')
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Text(tr('First invited player to accept plays.', 'Le premier invité qui accepte joue.'),
+              style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
+        ),
+    ]);
+  }
+}
+
+/// Invite @username to a side of the challenge.
+Future<bool?> showAddPlayerSheet(BuildContext context, Challenge c, List<String> sides, String? mySide) {
+  return showModalBottomSheet<bool>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    builder: (_) => Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: _AddPlayerSheet(challenge: c, sides: sides, mySide: mySide),
+    ),
+  );
+}
+
+class _AddPlayerSheet extends StatefulWidget {
+  final Challenge challenge;
+  final List<String> sides;
+  final String? mySide;
+  const _AddPlayerSheet({required this.challenge, required this.sides, required this.mySide});
+  @override
+  State<_AddPlayerSheet> createState() => _AddPlayerSheetState();
+}
+
+class _AddPlayerSheetState extends State<_AddPlayerSheet> {
+  final _username = TextEditingController();
+  late String _side = widget.sides.contains('opponent') && widget.mySide != 'opponent' ? 'opponent' : widget.sides.first;
+  bool _busy = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _username.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await context.read<Api>().post('/api/challenges/${widget.challenge.id}/players', {
+        'username': _username.text.trim().replaceFirst(RegExp(r'^@'), ''),
+        'side': _side,
+      });
+      if (!mounted) return;
+      Navigator.pop(context, true);
+      showSnack(context, tr('Player added — they’ve been notified.', 'Joueur ajouté — il a été prévenu.'));
+    } catch (e) {
+      if (mounted) setState(() => _error = errorText(e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    String label(String s) => s == widget.mySide ? tr('My team', 'Mon équipe') : tr('Opponents', 'Adversaires');
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text(tr('ADD A PLAYER', 'AJOUTER UN JOUEUR'), style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 12),
+          if (widget.sides.length > 1) ...[
+            SegmentedButton<String>(
+              segments: [for (final s in widget.sides) ButtonSegment(value: s, label: Text(label(s)))],
+              selected: {_side},
+              onSelectionChanged: (v) => setState(() => _side = v.first),
+            ),
+            const SizedBox(height: 12),
+          ],
+          TextField(
+            controller: _username,
+            autocorrect: false,
+            textInputAction: TextInputAction.done,
+            decoration: InputDecoration(labelText: tr('@username', '@pseudo'), prefixIcon: const Icon(Icons.alternate_email)),
+            onChanged: (_) => setState(() {}),
+            onSubmitted: (_) => _username.text.trim().length >= 3 && !_busy ? _submit() : null,
+          ),
+          if (_error != null) Padding(padding: const EdgeInsets.only(top: 8), child: ErrorBanner(_error!)),
+          const SizedBox(height: 16),
+          FilledButton(onPressed: _busy || _username.text.trim().length < 3 ? null : _submit, child: Text(tr('ADD', 'AJOUTER'))),
+        ]),
+      ),
+    );
   }
 }

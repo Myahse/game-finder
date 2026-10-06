@@ -12,8 +12,19 @@ class CourtRef {
         name = j['name'] ?? '';
 }
 
+class ChallengePlayer {
+  final PublicUser user;
+  final String side, status; // side: challenger|opponent · status: invited|accepted
+  ChallengePlayer.fromJson(Map<String, dynamic> j)
+      : user = PublicUser.fromJson(Map<String, dynamic>.from(j['user'])),
+        side = j['side'],
+        status = j['status'];
+}
+
 class Challenge {
   final String id, format, status;
+  final List<ChallengePlayer> players;
+  final String? mySide, myStatus;
   final Sport sport;
   final int teamSize;
   final PublicUser challenger;
@@ -40,7 +51,12 @@ class Challenge {
         scoreChallenger = j['score_challenger'],
         scoreOpponent = j['score_opponent'],
         reportedBy = j['reported_by'],
-        isOpen = j['is_open'] ?? false;
+        isOpen = j['is_open'] ?? false,
+        players = [for (final p in (j['players'] ?? const [])) ChallengePlayer.fromJson(Map<String, dynamic>.from(p))],
+        mySide = j['my_side'],
+        myStatus = j['my_status'];
+
+  int acceptedOn(String side) => players.where((p) => p.side == side && p.status == 'accepted').length;
 }
 
 class ChallengeList {

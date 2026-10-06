@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Crown, MapPin, Zap } from 'lucide-react'
+import { toast } from 'sonner'
+import { Crown, MapPin, UserPlus, Zap } from 'lucide-react'
 import { useLocale } from '../i18n/LocaleProvider'
 import { errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
@@ -40,7 +41,20 @@ export function ChallengeCard({ c }: { c: Challenge }) {
   const [reporting, setReporting] = useState(false)
   const me = user?.id
   const iAmChallenger = me === c.challenger.id
-  const iAmOpponent = !!c.opponent && me === c.opponent.id
+  const players = c.players ?? []
+  const myAccepted = c.my_status === 'accepted' || iAmChallenger
+  const mySide = c.my_side ?? (iAmChallenger ? 'challenger' : null)
+  const reporterSide = players.find((p) => p.user.id === c.reported_by)?.side
+  const invited = c.my_status === 'invited'
+  const sideCount = (side: 'challenger' | 'opponent') => players.filter((p) => p.side === side && p.status === 'accepted').length
+  const addableSides = (['challenger', 'opponent'] as const).filter(
+    (side) =>
+      (side === 'opponent' || c.team_size > 1) &&
+      sideCount(side) < c.team_size &&
+      (iAmChallenger || (c.my_status === 'accepted' && mySide === side)),
+  )
+  const canAdd = (c.status === 'pending' || c.status === 'accepted') && addableSides.length > 0
+  const [adding, setAdding] = useState(false)
   const meta = t.challenge.formats[c.format]
   const start = new Date(c.start_time)
   const soon = start.getTime() <= Date.now() + 10 * 60_000
@@ -84,6 +98,16 @@ export function ChallengeCard({ c }: { c: Challenge }) {
       </div>
       {c.message && <p className="rounded-xl bg-surface-2 px-3 py-2 text-center text-sm italic">“{c.message}”</p>}
 
+      {(c.team_size > 1 || players.length > 2) && <Rosters c={c} />}
+      {canAdd &&
+        (adding ? (
+          <AddPlayerForm c={c} sides={addableSides} mine={mySide} onDone={() => setAdding(false)} />
+        ) : (
+          <button type="button" onClick={() => setAdding(true)} className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-line px-3 py-2 text-sm font-bold text-ink-2 hover:text-ink">
+            <UserPlus className="size-4" aria-hidden /> {t.challenge.addPlayer}
+          </button>
+        ))}
+
       {c.status === 'reported' && reporter && winner && (
         <p className="text-center text-sm font-semibold">
           {t.challenge.confirmPrompt.replace('{user}', playerUsernameLabel(reporter)).replace('{winner}', playerUsernameLabel(winner)).replace('{score}', score)}
@@ -104,12 +128,12 @@ export function ChallengeCard({ c }: { c: Challenge }) {
         />
       ) : (
         <div className="grid grid-cols-2 gap-2 empty:hidden">
-          {c.status === 'pending' && !iAmChallenger && (c.is_open || iAmOpponent) && (
+          {(invited || (c.status === 'pending' && c.is_open && !iAmChallenger && !c.my_status)) && (
             <>
-              <Button type="button" variant="live" className={c.is_open ? 'col-span-2' : ''} onClick={() => run('accept')} loading={act.isPending}>
-                {c.is_open ? t.challenge.take : t.challenge.accept}
+              <Button type="button" variant="live" className={invited ? '' : 'col-span-2'} onClick={() => run('accept')} loading={act.isPending}>
+                {invited ? t.challenge.accept : t.challenge.take}
               </Button>
-              {!c.is_open && (
+              {invited && (
                 <Button type="button" variant="secondary" onClick={() => run('decline')}>
                   {t.challenge.decline}
                 </Button>
@@ -121,12 +145,12 @@ export function ChallengeCard({ c }: { c: Challenge }) {
               {t.challenge.cancel}
             </Button>
           )}
-          {c.status === 'accepted' && (iAmChallenger || iAmOpponent) && (
+          {c.status === 'accepted' && myAccepted && (
             <Button type="button" className="col-span-2" onClick={() => setReporting(true)}>
               {t.challenge.report}
             </Button>
           )}
-          {c.status === 'reported' && (iAmChallenger || iAmOpponent) && c.reported_by !== me && (
+          {c.status === 'reported' && myAccepted && reporterSide !== mySide && (
             <>
               <Button type="button" variant="live" onClick={() => run('confirm')} loading={act.isPending}>
                 {t.challenge.confirm}
@@ -136,7 +160,7 @@ export function ChallengeCard({ c }: { c: Challenge }) {
               </Button>
             </>
           )}
-          {c.status === 'reported' && c.reported_by === me && <p className="col-span-2 text-center text-sm text-ink-2">{t.challenge.waitingConfirm}</p>}
+          {c.status === 'reported' && myAccepted && reporterSide === mySide && <p className="col-span-2 text-center text-sm text-ink-2">{t.challenge.waitingConfirm}</p>}
           {c.game_id && ['accepted', 'reported', 'completed'].includes(c.status) && (
             <Link to={`/games/${c.game_id}`} className="display col-span-2 flex min-h-12 items-center justify-center rounded-xl bg-surface-2 text-lg font-bold">
               {t.challenge.goToGame}
@@ -189,5 +213,76 @@ function ReportForm({ c, pending, onSubmit, onCancel }: { c: Challenge; pending:
         </Button>
       </div>
     </div>
+  )
+}
+
+/** Both sides with their players; invited ones are faded. */
+function Rosters({ c }: { c: Challenge }) {
+  const { t } = useLocale()
+  const players = c.players ?? []
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {(['challenger', 'opponent'] as const).map((side) => {
+        const list = players.filter((p) => p.side === side)
+        const filled = list.filter((p) => p.status === 'accepted').length
+        return (
+          <div key={side} className="rounded-xl bg-surface-2 p-2">
+            <p className="mb-1 text-xs font-bold text-ink-2">
+              {side === 'challenger' ? `@${c.challenger.username}` : c.opponent ? `@${c.opponent.username}` : t.challenge.theirTeam} · {filled}/{c.team_size}
+            </p>
+            <div className="grid gap-1">
+              {list.map((p) => (
+                <span key={p.user.id} className={`flex items-center gap-1.5 text-sm ${p.status === 'invited' ? 'opacity-50' : ''}`}>
+                  <Avatar user={p.user} size={22} />
+                  <span className="min-w-0 truncate font-semibold">@{p.user.username}</span>
+                  {p.status === 'invited' && <span className="shrink-0 text-[10px] font-bold uppercase">{t.challenge.invitedTag}</span>}
+                </span>
+              ))}
+            </div>
+          </div>
+        )
+      })}
+      {c.team_size === 1 && c.status === 'pending' && <p className="col-span-2 text-center text-xs text-ink-2">{t.challenge.firstToAccept}</p>}
+    </div>
+  )
+}
+
+function AddPlayerForm({ c, sides, mine, onDone }: { c: Challenge; sides: ('challenger' | 'opponent')[]; mine: 'challenger' | 'opponent' | null; onDone: () => void }) {
+  const { t } = useLocale()
+  const { addPlayer } = useChallengeActions()
+  const [username, setUsername] = useState('')
+  const [side, setSide] = useState<'challenger' | 'opponent'>(sides.includes('opponent') && mine !== 'opponent' ? 'opponent' : sides[0])
+  const [error, setError] = useState('')
+  const label = (s: 'challenger' | 'opponent') => (s === mine ? t.challenge.myTeam : t.challenge.theirTeam)
+  return (
+    <form
+      className="grid gap-2 rounded-2xl bg-surface-2 p-3"
+      onSubmit={(e) => {
+        e.preventDefault()
+        setError('')
+        addPlayer.mutate(
+          { id: c.id, username: username.trim().replace(/^@/, ''), side },
+          { onSuccess: () => { toast.success(t.challenge.added); onDone() }, onError: (err) => setError(errorMessage(err)) },
+        )
+      }}
+    >
+      {sides.length > 1 && (
+        <div className="flex items-center gap-2 text-sm">
+          <span className="font-semibold text-ink-2">{t.challenge.addTo}</span>
+          {sides.map((s) => (
+            <button key={s} type="button" onClick={() => setSide(s)} aria-pressed={side === s} className={`rounded-lg px-2.5 py-1 font-bold ${side === s ? 'bg-brand text-brand-ink' : 'bg-surface'}`}>
+              {label(s)}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="flex gap-2">
+        <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder={t.challenge.usernamePh} autoCapitalize="none" autoCorrect="off" className="flex-1" aria-label={t.challenge.usernamePh} />
+        <Button type="submit" className="text-base" loading={addPlayer.isPending} disabled={username.trim().length < 3}>
+          {t.challenge.add}
+        </Button>
+      </div>
+      <ErrorText>{error}</ErrorText>
+    </form>
   )
 }
