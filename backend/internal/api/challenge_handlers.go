@@ -17,6 +17,7 @@ func (s *Server) createChallenge(w http.ResponseWriter, r *http.Request) {
 		CourtID    string     `json:"court_id"`
 		StartTime  *time.Time `json:"start_time"`
 		Message    string     `json:"message"`
+		IsPublic   bool       `json:"is_public"`
 	}
 	if !readJSON(w, r, &in) {
 		return
@@ -28,7 +29,11 @@ func (s *Server) createChallenge(w http.ResponseWriter, r *http.Request) {
 	if in.OpponentID != nil && *in.OpponentID == "" {
 		in.OpponentID = nil
 	}
-	b, err := s.db.JSON(r.Context(), uid(r), `select create_challenge($1, $2, $3, $4, $5, $6)`,
+	sql := `select create_challenge($1, $2, $3, $4, $5, $6)`
+	if in.IsPublic && in.OpponentID != nil {
+		sql = `select set_challenge_visibility((create_challenge($1, $2, $3, $4, $5, $6)->>'id')::uuid, true)`
+	}
+	b, err := s.db.JSON(r.Context(), uid(r), sql,
 		in.OpponentID, in.SportID, in.Format, in.CourtID, in.StartTime, in.Message)
 	if err != nil {
 		writeDBError(w, r, err)
@@ -49,7 +54,7 @@ func (s *Server) listChallenges(w http.ResponseWriter, r *http.Request) {
 func (s *Server) getChallenge(w http.ResponseWriter, r *http.Request) {
 	b, err := s.db.JSON(r.Context(), uid(r), `
 		select challenge_json(c) from challenges c
-		where c.id = $1 and (c.opponent_id is null or app_uid() in (c.challenger_id, c.opponent_id) or is_admin()
+		where c.id = $1 and (c.opponent_id is null or c.is_public or app_uid() in (c.challenger_id, c.opponent_id) or is_admin()
 		  or exists (select 1 from challenge_players cp where cp.challenge_id = c.id and cp.user_id = app_uid()))`,
 		chi.URLParam(r, "id"))
 	if err != nil {
@@ -143,6 +148,23 @@ func (s *Server) updateChallengeMessage(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	b, err := s.db.JSON(r.Context(), uid(r), `select update_challenge_message($1, $2)`, chi.URLParam(r, "id"), in.Message)
+	if err != nil {
+		writeDBError(w, r, err)
+		return
+	}
+	writeRaw(w, http.StatusOK, b)
+}
+
+// setChallengeVisibility makes a direct challenge public (anyone with the link
+// can follow it) or private (only its players). Challenger only.
+func (s *Server) setChallengeVisibility(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		IsPublic bool `json:"is_public"`
+	}
+	if !readJSON(w, r, &in) {
+		return
+	}
+	b, err := s.db.JSON(r.Context(), uid(r), `select set_challenge_visibility($1, $2)`, chi.URLParam(r, "id"), in.IsPublic)
 	if err != nil {
 		writeDBError(w, r, err)
 		return

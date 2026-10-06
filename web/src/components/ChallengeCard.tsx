@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Crown, MapPin, Pencil, Share2, UserPlus, Zap } from 'lucide-react'
+import { Crown, Globe, Lock, MapPin, Pencil, Share2, UserPlus, Zap } from 'lucide-react'
 import { useLocale } from '../i18n/LocaleProvider'
 import { errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
@@ -9,6 +9,7 @@ import { challengeShareUrl, useChallengeActions, type Challenge } from '../lib/c
 import { playerUsernameLabel } from '../lib/format'
 import { useFriends } from '../lib/queries'
 import type { PublicUser } from '../lib/types'
+import { VisibilityPicker } from './ChallengeComposer'
 import { MoveCourtButton } from './MoveCourtSheet'
 import { Avatar, Button, Card, ErrorText, Input } from './ui'
 
@@ -38,7 +39,7 @@ function Side({ user, won, fallback }: { user: PublicUser | null; won: boolean; 
 export function ChallengeCard({ c }: { c: Challenge }) {
   const { t, locale } = useLocale()
   const { user } = useAuth()
-  const { act, report } = useChallengeActions()
+  const { act, report, setVisibility } = useChallengeActions()
   const [error, setError] = useState('')
   const [reporting, setReporting] = useState(false)
   const me = user?.id
@@ -82,6 +83,11 @@ export function ChallengeCard({ c }: { c: Challenge }) {
         </span>
         <span className="flex shrink-0 items-center gap-1">
           <span className={`rounded-md px-2 py-0.5 text-xs font-bold ${STATUS_CLS[c.status]}`}>{c.is_open && c.status === 'pending' ? t.challenge.open : t.challenge.status[c.status]}</span>
+          {!c.is_open && (
+            <span className="text-ink-2" title={c.is_public ? t.challenge.public : t.challenge.private} aria-label={c.is_public ? t.challenge.public : t.challenge.private}>
+              {c.is_public ? <Globe className="size-4" aria-hidden /> : <Lock className="size-4" aria-hidden />}
+            </span>
+          )}
           <ShareChallengeButton c={c} when={when} />
         </span>
       </div>
@@ -131,6 +137,21 @@ export function ChallengeCard({ c }: { c: Challenge }) {
             <UserPlus className="size-4" aria-hidden /> {t.challenge.addPlayer}
           </button>
         ))}
+
+      {iAmChallenger && !c.is_open && !['declined', 'cancelled', 'expired'].includes(c.status) && (
+        <VisibilityPicker
+          isPublic={!!c.is_public}
+          disabled={setVisibility.isPending}
+          onChange={(v) => {
+            if (v === !!c.is_public) return
+            setError('')
+            setVisibility.mutate(
+              { id: c.id, is_public: v },
+              { onSuccess: () => toast.success(v ? t.challenge.madePublic : t.challenge.madePrivate), onError: (e) => setError(errorMessage(e)) },
+            )
+          }}
+        />
+      )}
 
       {c.status === 'reported' && reporter && winner && (
         <p className="text-center text-sm font-semibold">
@@ -386,7 +407,7 @@ function ShareChallengeButton({ c, when }: { c: Challenge; when: string }) {
     try {
       await navigator.clipboard.writeText(`${text} ${url}`)
       setCopied(true)
-      toast.success(t.challenge.copied)
+      toast.success(c.is_public || c.is_open ? t.challenge.copied : t.challenge.privateShareHint)
       window.setTimeout(() => setCopied(false), 2500)
     } catch {
       toast.error(url)

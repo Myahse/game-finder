@@ -143,7 +143,26 @@ class _ChallengeCardState extends State<ChallengeCard> {
     final text = tr('$a vs $b · $format at ${c.court.name}, ${_when(c.startTime)}. Who you got?',
         '$a contre $b · $format à ${c.court.name}, ${_when(c.startTime)}. Tu paries sur qui ?');
     await Clipboard.setData(ClipboardData(text: '$text $url'));
-    if (mounted) showSnack(context, tr('Challenge link copied — paste it anywhere', 'Lien du défi copié — colle-le où tu veux'));
+    if (!mounted) return;
+    showSnack(
+        context,
+        c.isPublic
+            ? tr('Challenge link copied — paste it anywhere', 'Lien du défi copié — colle-le où tu veux')
+            : tr('Link copied — it’s private, so only its players can open it.', 'Lien copié — le défi est privé, seuls ses joueurs peuvent l’ouvrir.'));
+  }
+
+  Future<void> _setVisibility(Challenge c, bool isPublic) async {
+    if (isPublic == c.isPublic) return;
+    setState(() => _busy = true);
+    try {
+      await context.read<Api>().patch('/api/challenges/${c.id}/visibility', {'is_public': isPublic});
+      if (mounted) showSnack(context, isPublic ? tr('Challenge is now public.', 'Le défi est maintenant public.') : tr('Challenge is now private.', 'Le défi est maintenant privé.'));
+      widget.onChanged();
+    } catch (e) {
+      if (mounted) showSnack(context, errorText(e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   Future<void> _editMessage(Challenge c) async {
@@ -226,6 +245,14 @@ class _ChallengeCardState extends State<ChallengeCard> {
               decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)),
               child: Text(_statusLabel(c), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
             ),
+            if (!c.isOpen)
+              Padding(
+                padding: const EdgeInsets.only(left: 6),
+                child: Tooltip(
+                  message: c.isPublic ? tr('Public', 'Public') : tr('Private', 'Privé'),
+                  child: Icon(c.isPublic ? Icons.public : Icons.lock_outline, size: 18, color: theme.colorScheme.onSurfaceVariant),
+                ),
+              ),
             IconButton(
               onPressed: () => _share(c),
               icon: const Icon(Icons.share_outlined, size: 20),
@@ -272,6 +299,10 @@ class _ChallengeCardState extends State<ChallengeCard> {
               icon: const Icon(Icons.edit_outlined, size: 16),
               label: Text(tr('Add a message', 'Ajouter un message')),
             ),
+          if (iAmChallenger && !c.isOpen && !const ['declined', 'cancelled', 'expired'].contains(c.status)) ...[
+            const SizedBox(height: 10),
+            _VisibilityPicker(isPublic: c.isPublic, onChanged: _busy ? null : (v) => _setVisibility(c, v)),
+          ],
           if (c.status == 'reported' && reporter != null && winner != null) ...[
             const SizedBox(height: 8),
             Text(
@@ -462,6 +493,7 @@ class _ComposerState extends State<_Composer> {
   Sport? _sport;
   String? _format;
   bool _live = true;
+  bool _public = false;
   DateTime _when = DateTime.now().add(const Duration(hours: 1));
   List<Court> _courts = [];
   String? _courtId;
@@ -534,6 +566,7 @@ class _ComposerState extends State<_Composer> {
         'court_id': _courtId,
         if (!_live) 'start_time': _when.toUtc().toIso8601String(),
         if (_message.text.trim().isNotEmpty) 'message': _message.text.trim(),
+        if (widget.opponent != null) 'is_public': _public,
       });
       if (!mounted) return;
       Navigator.pop(context);
@@ -644,6 +677,10 @@ class _ComposerState extends State<_Composer> {
                   onSelected: (_) => setState(() => _message.text = idea),
                 ),
             ]),
+          ],
+          if (widget.opponent != null) ...[
+            const SizedBox(height: 10),
+            _VisibilityPicker(isPublic: _public, onChanged: (v) => setState(() => _public = v)),
           ],
           if (_error != null) ErrorBanner(_error!),
           const SizedBox(height: 10),
@@ -985,5 +1022,36 @@ class _MessageSheetState extends State<_MessageSheet> {
         ]),
       ),
     );
+  }
+}
+
+/// Public (anyone with the link can follow) or private (players only).
+class _VisibilityPicker extends StatelessWidget {
+  final bool isPublic;
+  final ValueChanged<bool>? onChanged;
+  const _VisibilityPicker({required this.isPublic, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Text(tr('Who can see it', 'Qui peut le voir'), style: const TextStyle(fontWeight: FontWeight.w700)),
+      const SizedBox(height: 6),
+      SegmentedButton<bool>(
+        segments: [
+          ButtonSegment(value: false, icon: const Icon(Icons.lock_outline), label: Text(tr('Private', 'Privé'))),
+          ButtonSegment(value: true, icon: const Icon(Icons.public), label: Text(tr('Public', 'Public'))),
+        ],
+        selected: {isPublic},
+        onSelectionChanged: onChanged == null ? null : (v) => onChanged!(v.first),
+      ),
+      const SizedBox(height: 4),
+      Text(
+        isPublic
+            ? tr('Anyone with the link can follow it. Only invited players can play.', 'Tout le monde avec le lien peut le suivre. Seuls les invités jouent.')
+            : tr('Only the players and people invited can see it.', 'Seuls les joueurs et les invités peuvent le voir.'),
+        style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
+      ),
+    ]);
   }
 }

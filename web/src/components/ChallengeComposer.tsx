@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Swords, X, Zap, CalendarClock } from 'lucide-react'
+import { Swords, X, Zap, CalendarClock, Globe, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import { useLocale } from '../i18n/LocaleProvider'
 import { errorMessage } from '../lib/api'
@@ -46,6 +46,7 @@ export function ChallengeComposer({ opponent, court: fixedCourt, onClose }: { op
   const [when, setWhen] = useState(nextHourLocal)
   const [courtId, setCourtId] = useState(fixedCourt?.id ?? '')
   const [message, setMessage] = useState('')
+  const [isPublic, setIsPublic] = useState(false)
   const [error, setError] = useState('')
 
   // Default sport: the opponent's sport if we share it, else my main one.
@@ -84,6 +85,7 @@ export function ChallengeComposer({ opponent, court: fixedCourt, onClose }: { op
         court_id: courtId,
         start_time: live ? null : new Date(when).toISOString(),
         message: message.trim() || undefined,
+        is_public: opponent ? isPublic : undefined,
       },
       {
         onSuccess: () => {
@@ -207,11 +209,38 @@ export function ChallengeComposer({ opponent, court: fixedCourt, onClose }: { op
           ))}
         </div>
 
+        {opponent && <VisibilityPicker isPublic={isPublic} onChange={setIsPublic} className="mt-3" />}
+
         <ErrorText>{error}</ErrorText>
         <Button type="button" className="mt-4 w-full" onClick={submit} loading={create.isPending} disabled={!sportId || !format || !courtId}>
           <Swords className="size-5" aria-hidden /> {opponent ? t.challenge.send : t.challenge.post}
         </Button>
       </div>
+    </div>
+  )
+}
+
+/** Public (anyone with the link can follow) or private (players only). */
+export function VisibilityPicker({ isPublic, onChange, disabled, className = '' }: { isPublic: boolean; onChange: (v: boolean) => void; disabled?: boolean; className?: string }) {
+  const { t } = useLocale()
+  return (
+    <div className={className}>
+      <p className="mb-1 text-sm font-semibold text-ink-2">{t.challenge.visibility}</p>
+      <div className="grid grid-cols-2 gap-2">
+        {([false, true] as const).map((v) => (
+          <button
+            key={String(v)}
+            type="button"
+            disabled={disabled}
+            onClick={() => onChange(v)}
+            aria-pressed={isPublic === v}
+            className={`flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 font-bold disabled:opacity-60 ${isPublic === v ? 'bg-ink text-bg' : 'bg-surface-2'}`}
+          >
+            {v ? <Globe className="size-4" aria-hidden /> : <Lock className="size-4" aria-hidden />} {v ? t.challenge.public : t.challenge.private}
+          </button>
+        ))}
+      </div>
+      <p className="mt-1 text-xs text-ink-2">{isPublic ? t.challenge.publicHint : t.challenge.privateHint}</p>
     </div>
   )
 }
