@@ -122,6 +122,7 @@ export interface AppNotification {
     | 'friend_request'
     | 'friend_accepted'
     | 'achievement'
+    | 'challenge'
     | 'system'
   title: string
   body: string
@@ -131,7 +132,8 @@ export interface AppNotification {
     presence_id?: string
     user_id?: string
     friend_request_id?: string
-    kind?: 'badge' | 'streak' | 'king'
+    kind?: 'badge' | 'streak' | 'king' | 'challenge'
+    challenge_id?: string
     badge_id?: string
   }
   read: boolean

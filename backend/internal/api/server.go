@@ -169,6 +169,17 @@ func (s *Server) Routes() http.Handler {
 			r.Get("/me/progress", s.getMyProgress)
 			r.Get("/users/{id}/progress", s.getUserProgress)
 			r.Get("/kings", s.getKings)
+			r.Get("/users/{id}/head-to-head", s.headToHead)
+			r.Get("/challenges", s.listChallenges)
+			r.With(s.rateLimitedUser("game")).Post("/challenges", s.createChallenge)
+			r.Get("/challenges/{id}", s.getChallenge)
+			r.Post("/challenges/{id}/accept", s.challengeAction(`select respond_challenge($1, true)`))
+			r.Post("/challenges/{id}/decline", s.challengeAction(`select respond_challenge($1, false)`))
+			r.Post("/challenges/{id}/cancel", s.challengeAction(`select cancel_challenge($1)`))
+			r.Post("/challenges/{id}/result", s.reportChallenge)
+			r.Post("/challenges/{id}/confirm", s.challengeAction(`select confirm_challenge($1, true)`))
+			r.Post("/challenges/{id}/dispute", s.challengeAction(`select confirm_challenge($1, false)`))
+			r.Get("/courts/{id}/challenges", s.openChallengesAtCourt)
 			r.Post("/friend-invites/{token}/accept", s.acceptFriendInviteLink)
 			r.Get("/me/games", s.myGames)
 			r.Get("/me/presence", s.myPresence)
@@ -458,6 +469,11 @@ var appErrors = map[string]struct {
 	"browse_location_mismatch":   {http.StatusUnprocessableEntity, "Map center is too far from your alert area. Update alerts or check in nearby."},
 	"too_many_pending_courts":    {http.StatusUnprocessableEntity, "You already have pending court proposals. Wait for review."},
 	"invalid_location":           {http.StatusUnprocessableEntity, "Invalid coordinates."},
+	"challenge_not_found":        {http.StatusNotFound, "Challenge not found."},
+	"challenge_closed":           {http.StatusConflict, "This challenge is no longer open."},
+	"challenge_pending":          {http.StatusConflict, "You already have a pending challenge with this player."},
+	"too_many_challenges":        {http.StatusTooManyRequests, "Too many open challenges. Wait for answers first."},
+	"result_awaiting_you":        {http.StatusConflict, "The other player reported a result — confirm or dispute it."},
 	"game_not_started":           {http.StatusUnprocessableEntity, "Scores and stats can be added once the game has started."},
 }
 

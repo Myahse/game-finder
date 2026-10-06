@@ -7,7 +7,7 @@ import { useLocale } from '../i18n/LocaleProvider'
 import type { SkillLevel } from '../lib/types'
 import { useSports, useUpdateMe, useUser } from '../lib/queries'
 import type { Me, PublicUser } from '../lib/types'
-import { Star } from 'lucide-react'
+import { Star, Swords } from 'lucide-react'
 import { SportIcon, SportName, Wrench } from '../components/icons'
 import { FriendsPanel } from '../components/FriendsPanel'
 import { ProfileFriendActions } from '../components/ProfileFriendActions'
@@ -17,6 +17,7 @@ import { ShareProfileButton } from '../components/ShareProfileSheet'
 import { StickerButton } from '../components/StickerSheet'
 import { RecapButton } from '../components/RecapSheet'
 import { MyProgressCard, UserProgressCard } from '../components/ProgressCard'
+import { PlayerChallengeBlock } from '../components/PlayerChallengeBlock'
 import { AvatarPortrait } from '../avatar/render/AvatarPortrait'
 import { AVATAR_SPORTS, defaultConfig } from '../avatar/presets'
 import { useMySport } from '../lib/mySport'
@@ -113,6 +114,7 @@ export function PlayerProfileView({
           <>
             <ProfileCard user={profile} viewerIsAdmin={viewerIsAdmin} />
             <ProfileFriendActions user={profile} viewerIsAdmin={viewerIsAdmin} />
+            {signedIn && viewer?.id !== profile.id && <PlayerChallengeBlock player={profile} />}
             {signedIn && <UserProgressCard userId={profile.id} avatar={playerAvatarForUser(profile)} />}
           </>
         ) : (
@@ -169,6 +171,12 @@ export function ProfilePage() {
             <MyProgressCard avatar={playerAvatar} />
             <ShareProfileButton me={current} />
             <div className="grid grid-cols-2 gap-2">
+              <Link
+                to="/challenges"
+                className="display col-span-2 flex min-h-12 items-center justify-center gap-2 rounded-xl bg-brand text-lg font-bold text-brand-ink"
+              >
+                <Swords className="size-5" aria-hidden /> {t.challenge.myChallenges}
+              </Link>
               <RecapButton me={current} />
               {playerAvatar && <StickerButton avatar={playerAvatar} />}
             </div>

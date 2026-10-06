@@ -133,6 +133,10 @@ export function apply(qc: QueryClient, ev: RealtimeEvent, notify: Notify) {
     case 'notification':
       qc.invalidateQueries({ queryKey: qk.notifications })
       if (ev.notification_type === 'presence_check') qc.invalidateQueries({ queryKey: qk.presence })
+      if (ev.notification_type === 'challenge') {
+        qc.invalidateQueries({ queryKey: ['challenges'] })
+        qc.invalidateQueries({ queryKey: qk.myGames })
+      }
       if (ev.notification_type === 'friend_request' || ev.notification_type === 'friend_accepted') {
         qc.invalidateQueries({ queryKey: ['friend-requests'] })
         qc.invalidateQueries({ queryKey: ['friends'] })

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
-	"math"
 	"net/http"
 	"time"
 
@@ -26,7 +25,8 @@ func (s *Server) afterScoreboard(ctx context.Context, gameID string) {
 
 func (s *Server) recordGameWeather(ctx context.Context, gameID string) {
 	b, err := s.db.JSON(ctx, "", `
-		select jsonb_build_object('lat', c.latitude, 'lng', c.longitude, 'start', extract(epoch from g.start_time)::bigint)
+		select jsonb_build_object('lat', c.latitude, 'lng', c.longitude, 'start', extract(epoch from g.start_time)::bigint,
+			'minutes', g.duration_minutes)
 		from games g join courts c on c.id = g.court_id
 		where g.id = $1 and g.start_time <= now() and not exists (select 1 from game_weather w where w.game_id = g.id)`, gameID)
 	if err != nil {
@@ -35,6 +35,7 @@ func (s *Server) recordGameWeather(ctx context.Context, gameID string) {
 	var g struct {
 		Lat, Lng float64
 		Start    int64
+		Minutes  int64
 	}
 	if json.Unmarshal(b, &g) != nil {
 		return
@@ -49,13 +50,19 @@ func (s *Server) recordGameWeather(ctx context.Context, gameID string) {
 	if json.Unmarshal(data, &f) != nil || len(f.Hours) == 0 {
 		return
 	}
-	best := f.Hours[0]
-	for _, h := range f.Hours {
-		if math.Abs(float64(h.Time-g.Start)) < math.Abs(float64(best.Time-g.Start)) {
-			best = h
+	// The wettest forecast hour during the game window counts.
+	from := g.Start - g.Start%3600
+	to := g.Start + g.Minutes*60
+	var best *weatherHour
+	for i, h := range f.Hours {
+		if h.Time < from || h.Time >= to {
+			continue
+		}
+		if best == nil || h.Rain > best.Rain || (h.Rain == best.Rain && h.Precip > best.Precip) {
+			best = &f.Hours[i]
 		}
 	}
-	if math.Abs(float64(best.Time-g.Start)) > 2*3600 {
+	if best == nil {
 		return
 	}
 	if err := s.db.Exec(ctx, "", `insert into game_weather (game_id, code, rain_pct, precip_mm, temp) values ($1, $2, $3, $4, $5)
