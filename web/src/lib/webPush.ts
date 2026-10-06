@@ -13,8 +13,12 @@ const config = {
   messagingSenderId: env('VITE_FIREBASE_MESSAGING_SENDER_ID'),
   authDomain: env('VITE_FIREBASE_AUTH_DOMAIN') || (env('VITE_FIREBASE_PROJECT_ID') ? `${env('VITE_FIREBASE_PROJECT_ID')}.firebaseapp.com` : ''),
 }
-/** Web Push certificate (Firebase console → Cloud Messaging → Web Push certificates). */
-const vapidKey = env('VITE_FIREBASE_VAPID_KEY')
+/**
+ * Web Push certificate public key (Firebase console → Cloud Messaging → Web Push certificates).
+ * Public by design (it ships to every browser); VITE_FIREBASE_VAPID_KEY overrides it.
+ */
+const DEFAULT_VAPID_KEY = 'BBEZUnwRaDGdOz2EFjIAZhsttAzYuJq6SPsec_sYXY2eFxlPprkmmVrchpYWGydsBf4NT2alSRAxwNw7RjcrSec'
+const vapidKey = env('VITE_FIREBASE_VAPID_KEY') || DEFAULT_VAPID_KEY
 const TOKEN_KEY = 'ftg_web_push_token'
 
 export const webPushConfigured = !!(config.apiKey && config.projectId && config.appId && config.messagingSenderId && vapidKey)

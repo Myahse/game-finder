@@ -127,7 +127,7 @@ VITE_FIREBASE_PROJECT_ID=your-project-id
    - Download `google-services.json` and `GoogleService-Info.plist` into repo root, then `.\mobile\scripts\sync-firebase-native.ps1`.
    - Open the **mobile app**, sign in, allow notifications — admin will show **Push on (1 device)**.
 8. **Render (send push)** — `FCM_PROJECT_ID` + `FCM_SERVICE_ACCOUNT_JSON` (Firebase → Project settings → Service accounts → Generate key). Without these, devices can register but the API only delivers in-app notifications.
-9. **Web push (browser / installed PWA)** — Firebase console → Project settings → **Cloud Messaging** → *Web Push certificates* → **Generate key pair**. Copy the public key into Vercel as `VITE_FIREBASE_VAPID_KEY` (plus the other `VITE_FIREBASE_*` values) and redeploy the web app. Players then tap **Alerts → Phone notifications → Turn on**, and **Send a test** confirms delivery. On iPhone, web push only works from the app added to the Home Screen (iOS 16.4+).
+9. **Web push (browser / installed PWA)** — Firebase console → Project settings → **Cloud Messaging** → *Web Push certificates* → **Generate key pair**. The project's public key is already built into `web/src/lib/webPush.ts`; set `VITE_FIREBASE_VAPID_KEY` in Vercel only to override it. The other `VITE_FIREBASE_*` values must be set in Vercel. Players then tap **Alerts → Phone notifications → Turn on**, and **Send a test** confirms delivery. On iPhone, web push only works from the app added to the Home Screen (iOS 16.4+).
 
 Web and mobile call `POST /api/auth/firebase` with the Firebase ID token. You do **not** need `GOOGLE_CLIENT_IDS` or `VITE_GOOGLE_CLIENT_ID` when Firebase is configured.
 
