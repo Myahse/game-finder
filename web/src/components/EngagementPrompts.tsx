@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { registerWebPush } from '../lib/webPush'
 import { toast } from 'sonner'
 import { dismissPromptLater, isIos, isStandalonePwa, promptDismissed, PROMPT_KEYS } from '../lib/promptDismiss'
 
@@ -60,6 +61,7 @@ function showNotificationPrompt(onDone: () => void) {
         void Notification.requestPermission().then((perm) => {
           toast.dismiss(NOTIFY_TOAST_ID)
           if (perm === 'granted') {
+            void registerWebPush()
             toast.success('Notifications enabled')
           } else if (perm === 'denied') {
             toast.message('Notifications blocked', {

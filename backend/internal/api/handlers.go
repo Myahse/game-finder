@@ -1073,3 +1073,20 @@ func (s *Server) readAllNotifications(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// pushTest queues a notification to the caller's own devices, so players can
+// check that push works on their phone. Reports how many devices are registered.
+func (s *Server) pushTest(w http.ResponseWriter, r *http.Request) {
+	b, err := s.db.JSON(r.Context(), uid(r), `
+		with n as (
+			insert into notifications (user_id, type, title, body, data, push)
+			values (app_uid(), 'system', 'Notifications are on 🎉', 'You will get game invites, challenges and reminders here.', '{}'::jsonb, true)
+			returning id
+		)
+		select jsonb_build_object('devices', (select count(*) from push_tokens where user_id = app_uid()), 'id', (select id from n))`)
+	if err != nil {
+		writeDBError(w, r, err)
+		return
+	}
+	writeRaw(w, http.StatusOK, b)
+}

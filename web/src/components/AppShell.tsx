@@ -8,6 +8,7 @@ import { useNotifications } from '../lib/queries'
 import { useLocation as useGeoLocation } from '../lib/location'
 import { syncNotifyArea, type NotifyAreaState } from '../lib/notifyArea'
 import { notificationLink } from '../lib/notificationLinks'
+import { registerWebPush, showSystemNotification } from '../lib/webPush'
 import { usePolledNotificationToasts } from '../lib/usePolledNotificationToasts'
 import { EngagementPrompts } from './EngagementPrompts'
 import { hasPlayerAvatar } from '../avatar/resolve'
@@ -56,16 +57,16 @@ export function AppShell() {
             }
           : undefined,
       })
-      if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
-        const n = new Notification(ev.title, { body: ev.body, tag: ev.id, icon: '/favicon.svg' })
-        n.onclick = () => {
-          window.focus()
-          if (link) navigate(link)
-        }
-      }
+      if (document.hidden) void showSystemNotification(ev.title, ev.body, ev.id, link)
     },
     [navigate, t.common.open],
   )
+
+  // Re-register this device for push on each start (tokens rotate; permission may have been granted elsewhere).
+  const userId = user?.id
+  useEffect(() => {
+    if (sessionReady && userId) void registerWebPush()
+  }, [sessionReady, userId])
 
   useRealtime(sessionReady ? (user?.id ?? null) : null, onNotification)
   const { data: notes } = useNotifications(!!user && sessionReady, 15_000)

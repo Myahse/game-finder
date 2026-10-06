@@ -16,9 +16,12 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
-      workbox: {
+      // Custom worker (sw/sw.ts): same precache + navigation fallback, plus web push.
+      strategies: 'injectManifest',
+      srcDir: 'sw',
+      filename: 'sw.ts',
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        navigateFallback: '/index.html',
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
       },
       manifest: {

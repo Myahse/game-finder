@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { PushSetupCard } from '../components/PushSetupCard'
 import { useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import { timeAgo } from '../lib/format'
@@ -48,6 +49,7 @@ export function NotificationsPage() {
         }
       />
       <div className="mx-auto max-w-2xl p-4">
+        <PushSetupCard />
         {isLoading ? (
           <Loading />
         ) : !data?.items.length ? (

@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { unregisterWebPush } from './webPush'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   api,
@@ -70,6 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     const refresh_token = currentRefreshToken()
+    await unregisterWebPush()
     await api('/api/auth/logout', { method: 'POST', json: refresh_token ? { refresh_token } : undefined }).catch(() => {})
     setSession(null)
     qc.clear()

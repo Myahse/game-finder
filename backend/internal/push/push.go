@@ -45,6 +45,8 @@ func (f *FCM) Send(ctx context.Context, token, title, body string, data map[stri
 			"notification": map[string]string{"title": title, "body": body},
 			"data":         data,
 			"android":      map[string]any{"priority": "high"},
+			// Web push: deliver promptly and keep for a day if the device is offline.
+			"webpush": map[string]any{"headers": map[string]string{"Urgency": "high", "TTL": "86400"}},
 		},
 	}
 	b, _ := json.Marshal(msg)
@@ -107,6 +109,7 @@ func (d *Dispatcher) Run(ctx context.Context) error {
 		return nil
 	}
 
+	sent := 0
 	for _, it := range items {
 		tokens, err := d.tokens(ctx, it.userID)
 		if err != nil {
@@ -125,9 +128,12 @@ func (d *Dispatcher) Run(ctx context.Context) error {
 			}
 			if err != nil {
 				slog.Warn("push failed", "notification", it.id, "err", err)
+			} else {
+				sent++
 			}
 		}
 	}
+	slog.Info("push dispatched", "notifications", len(items), "delivered", sent)
 	return nil
 }
 

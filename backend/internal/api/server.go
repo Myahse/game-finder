@@ -157,6 +157,7 @@ func (s *Server) Routes() http.Handler {
 			r.Post("/me/ws-ticket", s.issueWsTicket)
 			r.Post("/me/push-tokens", s.registerPushToken)
 			r.Delete("/me/push-tokens", s.deletePushToken)
+			r.With(s.rateLimitedUser("game")).Post("/me/push-test", s.pushTest)
 			r.Get("/me/friends", s.listFriends)
 			r.Get("/me/friend-requests", s.listFriendRequests)
 			r.Post("/me/friend-requests", s.sendFriendRequest)

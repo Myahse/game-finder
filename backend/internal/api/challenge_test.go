@@ -141,3 +141,21 @@ func TestChallenges(t *testing.T) {
 	}
 	e.must(409, ben.Token, "POST", "/api/challenges/"+old["id"].(string)+"/accept", nil)
 }
+
+func TestPushTest(t *testing.T) {
+	e := setup(t)
+	u := e.register("ana")
+	r, _ := e.must(200, u.Token, "POST", "/api/me/push-test", nil)
+	if r["devices"] != 0.0 {
+		t.Fatalf("push test = %v", r)
+	}
+	e.must(204, u.Token, "POST", "/api/me/push-tokens", map[string]any{"token": "web-token-1", "platform": "web"})
+	r, _ = e.must(200, u.Token, "POST", "/api/me/push-test", nil)
+	if r["devices"] != 1.0 {
+		t.Fatalf("push test with device = %v", r)
+	}
+	var queued int
+	if err := e.db.Pool.QueryRow(t.Context(), `select count(*) from notifications where user_id = $1 and push and type = 'system'`, u.ID).Scan(&queued); err != nil || queued != 2 {
+		t.Fatalf("queued = %d %v", queued, err)
+	}
+}
