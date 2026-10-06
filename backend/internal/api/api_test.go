@@ -66,7 +66,13 @@ func setup(t *testing.T) *env {
 	}
 
 	google := newFakeGoogle(t)
+	weather := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		now := time.Now().UTC().Truncate(time.Hour).Unix()
+		_, _ = fmt.Fprintf(w, `{"hourly":{"time":[%d,%d],"temperature_2m":[27.4,26.1],"precipitation_probability":[80,10],"precipitation":[2.5,0],"weather_code":[63,2],"wind_speed_10m":[12.2,8]}}`, now, now+3600)
+	}))
+	t.Cleanup(weather.Close)
 	cfg := config.Config{
+		WeatherURL:           weather.URL,
 		GoogleClientIDs:      []string{fakeGoogleClientID},
 		GoogleJWKSURL:        google.jwks.URL,
 		JWTSecret:            []byte(strings.Repeat("s", 32)),

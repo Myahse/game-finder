@@ -21,6 +21,8 @@ import { useLocation } from '../lib/location'
 import { useGame, useGameAction } from '../lib/queries'
 import { clearPendingGameNavigation } from '../lib/gameInvite'
 import { ShareGameButton } from '../components/ShareGameButton'
+import { GameWeather } from '../components/GameWeather'
+import { GameScoreboard } from '../components/GameScoreboard'
 import { AppAlert, Avatar, Button, Card, Empty, ErrorText, PageHeader } from '../components/ui'
 import { Loading } from './CourtPage'
 
@@ -170,7 +172,11 @@ export function GamePage() {
           </div>
         </Card>
 
+        <GameWeather game={game} isHost={isCreator || viewerIsAdmin} />
+
         {open && game.joined && <GameInviteField gameId={game.id} />}
+
+        <GameScoreboard game={game} canEdit={isCreator || game.joined || viewerIsAdmin} />
 
         <section>
           <h2 className="display mb-2 text-2xl font-bold">Players</h2>

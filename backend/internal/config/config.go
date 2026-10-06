@@ -21,11 +21,11 @@ type Config struct {
 	PasswordRegistration bool
 	// When false, only CORS_ORIGINS are allowed (no wildcard *.vercel.app).
 	AllowVercelPreviews bool
-	UploadDir       string
-	PublicBaseURL   string // used to build absolute upload URLs
-	MaxUploadBytes  int64
-	TickInterval    time.Duration
-	SeedDemo        bool
+	UploadDir           string
+	PublicBaseURL       string // used to build absolute upload URLs
+	MaxUploadBytes      int64
+	TickInterval        time.Duration
+	SeedDemo            bool
 	// Firebase Cloud Messaging (HTTP v1). Push is disabled when empty.
 	FCMProjectID          string
 	FCMServiceAccountJSON string
@@ -41,6 +41,8 @@ type Config struct {
 	// iOS). Empty disables /api/auth/google.
 	GoogleClientIDs []string
 	GoogleJWKSURL   string // override Google's key set URL (tests only)
+	// Open-Meteo forecast endpoint; override in tests.
+	WeatherURL string
 	// Firebase Auth (Google via Firebase). Project ID verifies ID tokens on
 	// /api/auth/firebase. Falls back to FCM_PROJECT_ID when empty.
 	FirebaseProjectID string
@@ -56,11 +58,11 @@ func (c Config) R2Enabled() bool {
 
 func Load() (Config, error) {
 	c := Config{
-		Addr:                  env("ADDR", ":8080"),
-		DatabaseURL:           env("DATABASE_URL", ""),
-		JWTSecret:             []byte(env("JWT_SECRET", "")),
-		AccessTokenTTL:        duration("ACCESS_TOKEN_TTL", 15*time.Minute),
-		RefreshTokenTTL:       duration("REFRESH_TOKEN_TTL", 30*24*time.Hour),
+		Addr:            env("ADDR", ":8080"),
+		DatabaseURL:     env("DATABASE_URL", ""),
+		JWTSecret:       []byte(env("JWT_SECRET", "")),
+		AccessTokenTTL:  duration("ACCESS_TOKEN_TTL", 15*time.Minute),
+		RefreshTokenTTL: duration("REFRESH_TOKEN_TTL", 30*24*time.Hour),
 		CORSOrigins: list(
 			"CORS_ORIGINS",
 			"http://localhost:5173,http://localhost:9099,https://game-finder-swart.vercel.app",

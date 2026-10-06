@@ -41,24 +41,26 @@ type Server struct {
 	google          *auth.GoogleVerifier
 	firebase        *auth.FirebaseVerifier
 	mailer          *mail.Resend
+	weather         *weatherCache
 }
 
 func New(cfg config.Config, d *db.DB, hub *realtime.Hub, media *storage.Media) *Server {
 	return &Server{
-		cfg:            cfg,
-		db:             d,
-		tokens:         auth.NewIssuer(cfg.JWTSecret, cfg.AccessTokenTTL),
-		hub:            hub,
+		cfg:             cfg,
+		db:              d,
+		tokens:          auth.NewIssuer(cfg.JWTSecret, cfg.AccessTokenTTL),
+		hub:             hub,
 		limit:           newRateLimiter(30, time.Minute),
 		browseLimit:     newRateLimiter(90, time.Minute),
 		userCourtLimit:  newRateLimiter(10, time.Hour),
 		userGameLimit:   newRateLimiter(40, time.Hour),
 		userNotifyLimit: newRateLimiter(6, time.Hour),
-		trustedProxies: parseTrustedCIDRs(cfg.TrustedProxyCIDRs),
-		media:          media,
-		google:         newGoogleVerifier(cfg),
-		firebase:       newFirebaseVerifier(cfg),
-		mailer:         mail.NewResend(cfg.ResendAPIKey, cfg.EmailFrom),
+		trustedProxies:  parseTrustedCIDRs(cfg.TrustedProxyCIDRs),
+		media:           media,
+		google:          newGoogleVerifier(cfg),
+		firebase:        newFirebaseVerifier(cfg),
+		mailer:          mail.NewResend(cfg.ResendAPIKey, cfg.EmailFrom),
+		weather:         newWeatherCache(cfg.WeatherURL),
 	}
 }
 
@@ -171,6 +173,8 @@ func (s *Server) Routes() http.Handler {
 			r.Get("/users/{id}", s.getUser)
 
 			r.Get("/courts/{id}", s.getCourt)
+			r.Get("/courts/{id}/weather", s.courtWeather)
+			r.Get("/courts/{id}/leaderboard", s.courtLeaderboard)
 			r.With(s.rateLimitedUser("court")).Post("/courts", s.proposeCourt)
 			r.With(s.rateLimitedUser("court")).Post("/courts/{id}/photos", s.addCourtPhotos)
 			r.With(s.rateLimitedUser("court")).Delete("/courts/{id}/photos", s.removeCourtPhotos)
@@ -187,6 +191,8 @@ func (s *Server) Routes() http.Handler {
 			r.Post("/games/{id}/cancel", s.cancelGame)
 			r.Post("/games/{id}/invite", s.inviteToGame)
 			r.Post("/games/{id}/share-link", s.createGameShareLink)
+			r.Get("/games/{id}/scoreboard", s.getScoreboard)
+			r.Put("/games/{id}/scoreboard", s.putScoreboard)
 
 			r.Post("/presence", s.markPresent)
 			r.Post("/presence/confirm", s.confirmPresence)
@@ -449,6 +455,7 @@ var appErrors = map[string]struct {
 	"browse_location_mismatch":   {http.StatusUnprocessableEntity, "Map center is too far from your alert area. Update alerts or check in nearby."},
 	"too_many_pending_courts":    {http.StatusUnprocessableEntity, "You already have pending court proposals. Wait for review."},
 	"invalid_location":           {http.StatusUnprocessableEntity, "Invalid coordinates."},
+	"game_not_started":           {http.StatusUnprocessableEntity, "Scores and stats can be added once the game has started."},
 }
 
 // writeDBError maps errors from the SQL layer to HTTP responses.

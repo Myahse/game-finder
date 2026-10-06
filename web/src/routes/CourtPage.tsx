@@ -11,6 +11,7 @@ import { CourtActions } from '../components/CourtActions'
 import { ShareCourtButton } from '../components/ShareCourtButton'
 import { MAP_NEARBY_RADIUS_KM } from '../lib/nearby'
 import { GameCard } from '../components/GameCard'
+import { CourtLeaderboard } from '../components/CourtLeaderboard'
 import { DistanceText, Hourglass, Lightbulb, SearchX, SportName, X } from '../components/icons'
 import { Card, Empty, PageHeader, Spinner, StatusPill } from '../components/ui'
 
@@ -99,6 +100,8 @@ export function CourtPage() {
             <p className="text-sm text-ink-2">No games yet. Create one and players nearby will see it.</p>
           )}
         </section>
+
+        <CourtLeaderboard courtId={court.id} />
 
         {!canEditCourt && (
           <Card>
