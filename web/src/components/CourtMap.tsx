@@ -13,6 +13,8 @@ import { courtPhotoUrl } from '../lib/mediaUrl'
 import { courtPinTone, type CourtPinTone } from '../lib/sort'
 import type { Court, Game } from '../lib/types'
 import { useLocale } from '../i18n/LocaleProvider'
+import { CloudRain } from 'lucide-react'
+import { useCourtsRain, type CourtRain } from '../lib/weather'
 type Props = {
   courts: Court[]
   nearbyGames?: Game[]
@@ -48,6 +50,7 @@ export function CourtMap({
     return m
   }, [nearbyGames])
   const { t } = useLocale()
+  const { data: rain } = useCourtsRain(courts.map((c) => c.id))
   const innerRef = useRef<MapRef>(null)
   const mapRef = mapRefProp ?? innerRef
   const { isDark } = useTheme()
@@ -225,6 +228,7 @@ export function CourtMap({
                 court={court}
                 sportSlug={sportSlug}
                 pinTone={courtPinTone(court, gamesByCourt[court.id] ?? [])}
+                rain={rain?.[court.id]}
                 selected={court.id === selectedId}
                 onClick={() => onSelect(court)}
               />
@@ -345,16 +349,18 @@ export function CourtPin({
   court,
   sportSlug,
   pinTone,
+  rain,
   selected,
   onClick,
 }: {
   court: Court
   sportSlug: string | null
   pinTone?: CourtPinTone
+  rain?: CourtRain
   selected?: boolean
   onClick?: () => void
 }) {
-  const { t } = useLocale()
+  const { t, locale } = useLocale()
   const sport = court.sports.find((s) => s.slug === sportSlug) ?? court.sports[0]
   const photo = courtPhotoUrl(court.photos ?? [])
   const preview = court.status === 'pending'
@@ -369,6 +375,13 @@ export function CourtPin({
   )
     .replace('{name}', court.name)
     .replace('{n}', String(court.player_count))
+  const rainText = rain
+    ? rain.now
+      ? t.courts.map.rainNow
+      : t.courts.map.rainSoon
+          .replace('{time}', new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(new Date(rain.at * 1000)))
+          .replace('{p}', String(rain.rain_pct))
+    : ''
   const activity = pinTone ?? court.activity
   const showCount = !preview && activity !== 'inactive' && court.player_count > 0
   const slug = sport?.slug ?? 'basketball'
@@ -380,7 +393,8 @@ export function CourtPin({
         e.stopPropagation()
         onClick?.()
       }}
-      aria-label={label}
+      aria-label={rainText ? `${label} · ${rainText}` : label}
+      title={rainText || undefined}
       className={`ftg-court-pin group relative flex flex-col items-center transition-transform duration-150 ${
         selected ? 'z-10' : ''
       }`}
@@ -425,6 +439,14 @@ export function CourtPin({
           </svg>
         ) : (
           <PinStick activity={activity} />
+        )}
+        {rain && (
+          <span
+            className={`absolute -left-1 -top-2 flex size-6 items-center justify-center rounded-full border-2 border-white bg-sky-500 text-white shadow-md ${rain.now ? 'ftg-rain-badge' : ''}`}
+            aria-hidden
+          >
+            <CloudRain className="size-3.5" strokeWidth={2.6} />
+          </span>
         )}
         {showCount && (
           <span

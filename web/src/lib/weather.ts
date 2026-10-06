@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudRain, CloudSun, Sun, type LucideIcon } from 'lucide-react'
-import { api } from './api'
+import { api, getSession } from './api'
 
 export type WeatherHour = { t: number; temp: number; rain_pct: number; precip_mm: number; code: number; wind_kmh: number }
 export type Forecast = { hours: WeatherHour[] }
@@ -92,4 +92,19 @@ export function drierSlot(f: Forecast | undefined, start: Date, minutes: number,
     if (rain < DRY_PCT && !isRainy(window)) return { at, rain }
   }
   return null
+}
+
+export type CourtRain = { rain_pct: number; at: number; now: boolean }
+
+/** Courts (by id) where rain is likely in the next 3 hours — for map badges. */
+export function useCourtsRain(courtIds: string[]) {
+  const ids = [...new Set(courtIds)].sort().slice(0, 150)
+  return useQuery({
+    queryKey: ['courts-rain', ids.join(',')],
+    queryFn: () => api<Record<string, CourtRain>>(`/api/courts/rain?ids=${ids.join(',')}`),
+    enabled: ids.length > 0 && !!getSession(),
+    staleTime: 15 * 60_000,
+    placeholderData: (prev) => prev,
+    retry: 0,
+  })
 }

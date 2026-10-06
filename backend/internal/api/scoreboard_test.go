@@ -119,4 +119,15 @@ func TestCourtWeather(t *testing.T) {
 		t.Fatalf("hour = %v", h)
 	}
 	e.must(404, u.Token, "GET", "/api/courts/00000000-0000-0000-0000-000000000000/weather", nil)
+
+	// Map rain badges: the fake forecast has rain in the current hour.
+	rain, _ := e.must(200, u.Token, "GET", "/api/courts/rain?ids="+iugb["id"].(string)+",not-a-court", nil)
+	c, ok := rain[iugb["id"].(string)].(map[string]any)
+	if !ok || c["now"] != true || c["rain_pct"] != 80.0 || len(rain) != 1 {
+		t.Fatalf("rain = %v", rain)
+	}
+	empty, _ := e.must(200, u.Token, "GET", "/api/courts/rain?ids=", nil)
+	if len(empty) != 0 {
+		t.Fatalf("empty rain = %v", empty)
+	}
 }

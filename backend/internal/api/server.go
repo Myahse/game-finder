@@ -201,6 +201,7 @@ func (s *Server) Routes() http.Handler {
 			r.Get("/users/{id}", s.getUser)
 
 			r.Get("/courts/{id}", s.getCourt)
+			r.Get("/courts/rain", s.courtsRain)
 			r.Get("/courts/{id}/weather", s.courtWeather)
 			r.Get("/courts/{id}/leaderboard", s.courtLeaderboard)
 			r.With(s.rateLimitedUser("court")).Post("/courts", s.proposeCourt)

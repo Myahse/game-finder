@@ -8,6 +8,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -153,4 +154,116 @@ func (s *Server) courtWeather(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Cache-Control", "private, max-age=600")
 	writeRaw(w, http.StatusOK, data)
+}
+
+// courtRainSoon marks courts where rain is likely in the next 3 hours.
+type courtRainSoon struct {
+	RainPct int   `json:"rain_pct"`
+	At      int64 `json:"at"`  // unix time of the wettest hour
+	Now     bool  `json:"now"` // raining in the current hour
+}
+
+// courtsRain answers, for up to 150 courts (?ids=a,b,c), which ones expect rain
+// soon. Courts share cached forecasts per ~2 km cell, so a whole map costs a
+// handful of upstream calls at most every 30 minutes.
+func (s *Server) courtsRain(w http.ResponseWriter, r *http.Request) {
+	ids := strings.Split(r.URL.Query().Get("ids"), ",")
+	if len(ids) > 150 {
+		ids = ids[:150]
+	}
+	clean := make([]string, 0, len(ids))
+	for _, id := range ids {
+		if id = strings.TrimSpace(id); id != "" {
+			clean = append(clean, id)
+		}
+	}
+	out := map[string]courtRainSoon{}
+	if len(clean) == 0 {
+		writeJSON(w, http.StatusOK, out)
+		return
+	}
+	rows, err := s.db.Pool.Query(r.Context(), `select id::text, latitude, longitude from courts where id::text = any($1)`, clean)
+	if err != nil {
+		writeDBError(w, r, err)
+		return
+	}
+	type court struct {
+		id       string
+		lat, lng float64
+	}
+	var courts []court
+	for rows.Next() {
+		var c court
+		if err := rows.Scan(&c.id, &c.lat, &c.lng); err != nil {
+			rows.Close()
+			writeDBError(w, r, err)
+			return
+		}
+		courts = append(courts, c)
+	}
+	rows.Close()
+
+	// One forecast per cell, fetched in parallel (bounded).
+	cell := func(c court) string {
+		return fmt.Sprintf("%.2f,%.2f", math.Round(c.lat*50)/50, math.Round(c.lng*50)/50)
+	}
+	forecasts := map[string]*weatherForecast{}
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, 6)
+	seen := map[string]bool{}
+	ctx, cancel := context.WithTimeout(r.Context(), 8*time.Second)
+	defer cancel()
+	for _, c := range courts {
+		k := cell(c)
+		if seen[k] || len(seen) >= 30 {
+			continue
+		}
+		seen[k] = true
+		wg.Add(1)
+		go func(k string, c court) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			data, err := s.weather.get(ctx, c.lat, c.lng)
+			if err != nil {
+				return
+			}
+			var f weatherForecast
+			if json.Unmarshal(data, &f) == nil {
+				mu.Lock()
+				forecasts[k] = &f
+				mu.Unlock()
+			}
+		}(k, c)
+	}
+	wg.Wait()
+
+	now := time.Now().Unix()
+	hourStart := now - now%3600
+	for _, c := range courts {
+		f := forecasts[cell(c)]
+		if f == nil {
+			continue
+		}
+		var best *weatherHour
+		raining := false
+		for i, h := range f.Hours {
+			if h.Time < hourStart || h.Time > now+3*3600 {
+				continue
+			}
+			wet := h.Precip >= 0.3 || (h.Code >= 51 && h.Code <= 67) || h.Code >= 80
+			if h.Time == hourStart && wet {
+				raining = true
+			}
+			if best == nil || h.Rain > best.Rain {
+				best = &f.Hours[i]
+			}
+		}
+		if best != nil && (raining || best.Rain >= 50) {
+			out[c.id] = courtRainSoon{RainPct: best.Rain, At: best.Time, Now: raining}
+		}
+	}
+	w.Header().Set("Cache-Control", "private, max-age=600")
+	writeJSON(w, http.StatusOK, out)
 }
