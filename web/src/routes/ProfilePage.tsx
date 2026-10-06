@@ -12,8 +12,10 @@ import { SportIcon, SportName, Wrench } from '../components/icons'
 import { FriendsPanel } from '../components/FriendsPanel'
 import { ProfileFriendActions } from '../components/ProfileFriendActions'
 import { playerDisplayLabel, playerFullName, playerUsernameLabel } from '../lib/format'
-import { hasPlayerAvatar } from '../avatar/resolve'
+import { hasPlayerAvatar, playerAvatarForUser } from '../avatar/resolve'
 import { ShareProfileButton } from '../components/ShareProfileSheet'
+import { StickerButton } from '../components/StickerSheet'
+import { RecapButton } from '../components/RecapSheet'
 import { AvatarPortrait } from '../avatar/render/AvatarPortrait'
 import { AVATAR_SPORTS, defaultConfig } from '../avatar/presets'
 import { useMySport } from '../lib/mySport'
@@ -126,6 +128,7 @@ export function ProfilePage() {
   const current = me ?? user
   const viewerIsAdmin = user.role === 'admin'
   const canEditPlayerAvatar = hasPlayerAvatar(current)
+  const playerAvatar = playerAvatarForUser(current)
 
   return (
     <div className="pb-10">
@@ -160,6 +163,10 @@ export function ProfilePage() {
               <CreateAvatarCard />
             )}
             <ShareProfileButton me={current} />
+            <div className="grid grid-cols-2 gap-2">
+              <RecapButton me={current} />
+              {playerAvatar && <StickerButton avatar={playerAvatar} />}
+            </div>
             <FriendsPanel viewerIsAdmin={viewerIsAdmin} />
           </>
         )}

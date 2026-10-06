@@ -131,8 +131,15 @@ const NUMBERED = new Set(['top_basketball_jersey', 'top_football_jersey', 'top_t
 
 const hex = (h: string) => h.replace('#', '')
 
+/** Face override for stickers (eyes / brows / mouth in Avataaars' own names). */
+export type Expression = {
+  eyes?: Opts['eyes'][number]
+  eyebrows?: Opts['eyebrows'][number]
+  mouth?: Opts['mouth'][number]
+}
+
 /** SVG markup for a player's portrait (head and shoulders, 280×280 viewBox, transparent background). */
-export function avataaarsSvg(c: PlayerAvatarConfig): string {
+export function avataaarsSvg(c: PlayerAvatarConfig, expression: Expression = {}): string {
   const kit = kitOf(c)
   const hair = HAIR_COLORS[c.hairColor] ?? HAIR_COLORS.black
   const skin = (SKIN_PALETTE[c.skinTone] ?? SKIN_PALETTE.skin_04).base
@@ -145,9 +152,9 @@ export function avataaarsSvg(c: PlayerAvatarConfig): string {
     hairColor: [hex(hair)],
     hatColor: [hex(kit.accent)],
     skinColor: [hex(skin)],
-    eyes: [EYES[c.eyes] ?? 'default'],
-    eyebrows: [BROWS[c.eyebrows] ?? 'defaultNatural'],
-    mouth: [MOUTHS[c.mouth] ?? 'smile'],
+    eyes: [expression.eyes ?? EYES[c.eyes] ?? 'default'],
+    eyebrows: [expression.eyebrows ?? BROWS[c.eyebrows] ?? 'defaultNatural'],
+    mouth: [expression.mouth ?? MOUTHS[c.mouth] ?? 'smile'],
     facialHair: beard ? [beard] : undefined,
     facialHairProbability: beard ? 100 : 0,
     facialHairColor: [hex(hair)],

@@ -7,6 +7,7 @@ import { useFriendRequests, useFriends } from '../lib/queries'
 import { playerDisplayLabel } from '../lib/format'
 import type { PublicUser } from '../lib/types'
 import { Avatar, Button, Card, ErrorText, Field, Input } from './ui'
+import { BumpConnectButton } from './BumpConnect'
 
 export function FriendsPanel({ viewerIsAdmin = false }: { viewerIsAdmin?: boolean }) {
   const qc = useQueryClient()
@@ -59,6 +60,9 @@ export function FriendsPanel({ viewerIsAdmin = false }: { viewerIsAdmin?: boolea
       <div>
         <h2 className="display text-2xl font-bold">Friends</h2>
         <p className="mt-1 text-sm text-ink-2">Add players to invite them to games quickly.</p>
+        <div className="mt-3 grid">
+          <BumpConnectButton />
+        </div>
         <Button
           type="button"
           variant="ghost"

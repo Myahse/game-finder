@@ -67,16 +67,17 @@ func setup(t *testing.T) *env {
 
 	google := newFakeGoogle(t)
 	cfg := config.Config{
-		GoogleClientIDs: []string{fakeGoogleClientID},
-		GoogleJWKSURL:   google.jwks.URL,
-		JWTSecret:       []byte(strings.Repeat("s", 32)),
-		AccessTokenTTL:  time.Hour,
-		RefreshTokenTTL: time.Hour,
-		CORSOrigins:     []string{"*"},
-		AdminEmails:     []string{"admin@example.com"},
-		UploadDir:       t.TempDir(),
-		PublicBaseURL:   "http://test",
-		MaxUploadBytes:  1 << 20,
+		GoogleClientIDs:      []string{fakeGoogleClientID},
+		GoogleJWKSURL:        google.jwks.URL,
+		JWTSecret:            []byte(strings.Repeat("s", 32)),
+		AccessTokenTTL:       time.Hour,
+		RefreshTokenTTL:      time.Hour,
+		CORSOrigins:          []string{"*"},
+		AdminEmails:          []string{"admin@example.com"},
+		UploadDir:            t.TempDir(),
+		PublicBaseURL:        "http://test",
+		MaxUploadBytes:       1 << 20,
+		PasswordRegistration: true,
 	}
 	hub := realtime.NewHub()
 	go hub.Listen(ctx, d.Pool)
@@ -560,7 +561,6 @@ func TestEmptyGameIsNotActiveAndCreatorsCanBeDeleted(t *testing.T) {
 	if c := e.court("Terrain IUGB"); c["activity"] != "inactive" || c["player_count"].(float64) != 0 {
 		t.Fatalf("after everyone left: %v / %v", c["activity"], c["player_count"])
 	}
-
 
 	e.must(204, admin.Token, "DELETE", "/api/admin/users/"+host.ID, nil)
 	other := e.register("host2")

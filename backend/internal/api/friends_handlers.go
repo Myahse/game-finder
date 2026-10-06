@@ -97,3 +97,33 @@ func (s *Server) acceptFriendInviteLink(w http.ResponseWriter, r *http.Request) 
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// bumpConnect: both players tap "Connect" within a few seconds, close together → friends.
+// Clients poll this while waiting; the response is {"status":"waiting"} or {"status":"matched","friend":{…}}.
+func (s *Server) bumpConnect(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		Latitude  *float64 `json:"latitude"`
+		Longitude *float64 `json:"longitude"`
+	}
+	if !readJSON(w, r, &in) {
+		return
+	}
+	if in.Latitude == nil || in.Longitude == nil {
+		writeError(w, http.StatusUnprocessableEntity, "location_required", "Turn on location to connect.")
+		return
+	}
+	b, err := s.db.JSON(r.Context(), uid(r), `select bump_connect($1, $2)`, *in.Latitude, *in.Longitude)
+	if err != nil {
+		writeDBError(w, r, err)
+		return
+	}
+	writeRaw(w, http.StatusOK, b)
+}
+
+func (s *Server) bumpCancel(w http.ResponseWriter, r *http.Request) {
+	if err := s.db.Exec(r.Context(), uid(r), `select bump_cancel()`); err != nil {
+		writeDBError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
