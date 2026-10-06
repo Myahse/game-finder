@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query'
 import { Share2 } from 'lucide-react'
 import { createGameShareUrl } from '../lib/gameShare'
 import { Button } from './ui'
+import { useLocale } from '../i18n/LocaleProvider'
 
 type Props = {
   gameId: string
@@ -14,6 +15,7 @@ type Props = {
 }
 
 export function ShareGameButton({ gameId, title, variant = 'secondary', className, compact }: Props) {
+  const { t } = useLocale()
   const [copied, setCopied] = useState(false)
   const share = useMutation({
     mutationFn: async () => {
@@ -37,7 +39,7 @@ export function ShareGameButton({ gameId, title, variant = 'secondary', classNam
     },
   })
 
-  const label = copied ? 'Link copied!' : compact ? 'Share' : 'Share game'
+  const label = copied ? t.games.share.copied : compact ? t.games.share.short : t.games.share.long
 
   return (
     <Button

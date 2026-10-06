@@ -4,6 +4,7 @@ import { useAuth } from '../lib/auth'
 import { playerDisplayLabel } from '../lib/format'
 import { useFriends } from '../lib/queries'
 import { Button, Input } from './ui'
+import { useLocale } from '../i18n/LocaleProvider'
 
 type Props = {
   gameId: string
@@ -12,6 +13,8 @@ type Props = {
 /** Invite by picking a friend or typing any @username. */
 export function GameInviteField({ gameId }: Props) {
   const { user } = useAuth()
+  const { t } = useLocale()
+  const ti = t.games.invite
   const viewerIsAdmin = user?.role === 'admin'
   const { data: friends } = useFriends()
   const [username, setUsername] = useState('')
@@ -37,7 +40,7 @@ export function GameInviteField({ gameId }: Props) {
     setNotFound(null)
     try {
       await api(`/api/games/${gameId}/invite`, { method: 'POST', json: { username: u } })
-      setMsg(`Invited @${u} — they'll get a notification.`)
+      setMsg(ti.invited.replace('{user}', u))
       setUsername('')
     } catch (err) {
       if (err instanceof ApiError && err.code === 'user_not_found') {
@@ -68,7 +71,7 @@ export function GameInviteField({ gameId }: Props) {
       )}
       <form onSubmit={submit} className="mt-2 flex flex-wrap gap-2">
         <Input
-          placeholder="Invite by @username"
+          placeholder={ti.placeholder}
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           list="ftg-invite-friends"
@@ -81,7 +84,7 @@ export function GameInviteField({ gameId }: Props) {
           ))}
         </datalist>
         <Button type="submit" variant="secondary" loading={busy}>
-          Invite
+          {ti.button}
         </Button>
         {msg && <p className="w-full text-sm text-live">{msg}</p>}
         {error && <p className="w-full text-sm text-danger">{error}</p>}

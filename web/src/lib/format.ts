@@ -1,3 +1,4 @@
+import { currentLocale, currentT } from '../i18n/LocaleProvider'
 import type { Activity, Game, GameType, PublicUser, ReportType, SkillLevel } from './types'
 
 /** Public-facing label for a player (map, game lists) — username only. */
@@ -34,49 +35,52 @@ export function distanceM(lat1: number, lng1: number, lat2: number, lng2: number
 }
 
 export function timeAgo(iso: string | null | undefined, now = Date.now()): string {
-  if (!iso) return 'No recent activity'
+  const t = currentT().games.time
+  if (!iso) return t.noActivity
   const s = Math.max(0, Math.round((now - new Date(iso).getTime()) / 1000))
-  if (s < 60) return 'just now'
+  if (s < 60) return t.justNow
   const m = Math.round(s / 60)
-  if (m < 60) return `${m} minute${m === 1 ? '' : 's'} ago`
+  if (m < 60) return (m === 1 ? t.minuteAgo : t.minutesAgo).replace('{n}', String(m))
   const h = Math.round(m / 60)
-  if (h < 24) return `${h} hour${h === 1 ? '' : 's'} ago`
+  if (h < 24) return (h === 1 ? t.hourAgo : t.hoursAgo).replace('{n}', String(h))
   const d = Math.round(h / 24)
-  return `${d} day${d === 1 ? '' : 's'} ago`
+  return (d === 1 ? t.dayAgo : t.daysAgo).replace('{n}', String(d))
 }
 
 export function clock(iso: string): string {
-  return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return new Date(iso).toLocaleTimeString(currentLocale(), { hour: '2-digit', minute: '2-digit' })
 }
 
 export function dayAndClock(iso: string): string {
   const d = new Date(iso)
   const today = new Date()
   const tomorrow = new Date(today.getTime() + 86_400_000)
+  const t = currentT().games.time
   const day =
     d.toDateString() === today.toDateString()
-      ? 'Today'
+      ? t.today
       : d.toDateString() === tomorrow.toDateString()
-        ? 'Tomorrow'
-        : d.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })
+        ? t.tomorrow
+        : d.toLocaleDateString(currentLocale(), { weekday: 'short', day: 'numeric', month: 'short' })
   return `${day} ${clock(iso)}`
 }
 
 export function gameTimeLabel(g: Pick<Game, 'status' | 'start_time'>): string {
-  return g.status === 'active' ? `Started ${clock(g.start_time)}` : dayAndClock(g.start_time)
+  return g.status === 'active' ? currentT().games.time.started.replace('{time}', clock(g.start_time)) : dayAndClock(g.start_time)
 }
 
+/** Labels are getters so they follow the device language at read time. */
 export const activityMeta: Record<Activity, { label: string; tone: string }> = {
-  active: { label: 'GAME ACTIVE', tone: 'live' },
-  players: { label: 'PLAYERS PRESENT', tone: 'players' },
-  inactive: { label: 'INACTIVE', tone: 'idle' },
+  active: { get label() { return currentT().games.activity.active }, tone: 'live' },
+  players: { get label() { return currentT().games.activity.players }, tone: 'players' },
+  inactive: { get label() { return currentT().games.activity.inactive }, tone: 'idle' },
 }
 
 export const skillLabels: Record<SkillLevel, string> = {
-  beginner: 'Beginner',
-  intermediate: 'Intermediate',
-  advanced: 'Advanced',
-  all_levels: 'All levels',
+  get beginner() { return currentT().skill.beginner },
+  get intermediate() { return currentT().skill.intermediate },
+  get advanced() { return currentT().skill.advanced },
+  get all_levels() { return currentT().skill.all_levels },
 }
 
 /** Skill options for a player profile (not game hosting). */
@@ -101,7 +105,7 @@ export function maxPlayersApiToSlider(api: number): number {
 }
 
 export function maxPlayersSliderLabel(slider: number): string {
-  return slider >= MAX_PLAYERS_SLIDER_UNLIMITED ? 'Unlimited' : String(slider)
+  return slider >= MAX_PLAYERS_SLIDER_UNLIMITED ? currentT().games.unlimited : String(slider)
 }
 
 export function gamePlayerCountLabel(playerCount: number, maxPlayers: number): string {
@@ -115,20 +119,20 @@ export function gameHasOpenSpots(game: { max_players: number; spots_left: number
 }
 
 export const gameTypeLabels: Record<GameType, string> = {
-  pickup: 'Pickup',
-  training: 'Training',
-  match: 'Match',
-  tournament: 'Tournament',
+  get pickup() { return currentT().games.types.pickup },
+  get training() { return currentT().games.types.training },
+  get match() { return currentT().games.types.match },
+  get tournament() { return currentT().games.types.tournament },
 }
 
 export const reportLabels: Record<ReportType, string> = {
-  not_exist: "Court doesn't exist",
-  wrong_location: 'Wrong location',
-  closed: 'Closed',
-  wrong_info: 'Wrong information',
-  unsafe: 'Unsafe',
-  duplicate: 'Duplicate',
-  other: 'Other',
+  get not_exist() { return currentT().games.reports.not_exist },
+  get wrong_location() { return currentT().games.reports.wrong_location },
+  get closed() { return currentT().games.reports.closed },
+  get wrong_info() { return currentT().games.reports.wrong_info },
+  get unsafe() { return currentT().games.reports.unsafe },
+  get duplicate() { return currentT().games.reports.duplicate },
+  get other() { return currentT().games.reports.other },
 }
 
 /** Directions in the native maps app where possible. */

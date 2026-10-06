@@ -4,8 +4,8 @@ import { errorMessage } from '../lib/api'
 import {
   COURT_AT_RADIUS_M,
   isAtCourt,
-  NOT_AT_COURT_MESSAGE,
-  NOT_AT_COURT_TITLE,
+  notAtCourtMessage,
+  notAtCourtTitle,
 } from '../lib/courtProximity'
 import { directionsUrl, gameHasOpenSpots, gamePlayerCountLabel } from '../lib/format'
 import type { Coords } from '../lib/location'
@@ -84,8 +84,8 @@ export function CourtActions({ court, games, me }: { court: Court; games: Game[]
     <div className="grid gap-2">
       <AppAlert
         open={farModal}
-        title={NOT_AT_COURT_TITLE}
-        message={NOT_AT_COURT_MESSAGE}
+        title={notAtCourtTitle()}
+        message={notAtCourtMessage()}
         onClose={() => setFarModal(false)}
       />
       <ErrorText>{error}</ErrorText>

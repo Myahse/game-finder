@@ -1,3 +1,4 @@
+import { currentT } from '../i18n/LocaleProvider'
 import { distanceM } from './format'
 import type { Coords } from './location'
 
@@ -13,6 +14,10 @@ export function isAtCourt(
   return distanceM(me.latitude, me.longitude, court.latitude, court.longitude) <= maxM
 }
 
-export const NOT_AT_COURT_TITLE = "You're not at the court"
-export const NOT_AT_COURT_MESSAGE =
-  'Turn on location and move within about 500 m of the court to check in or join a live game. You can still join scheduled games from anywhere.'
+export function notAtCourtTitle(): string {
+  return currentT().games.notAtCourtTitle
+}
+
+export function notAtCourtMessage(): string {
+  return currentT().games.notAtCourtMessage
+}

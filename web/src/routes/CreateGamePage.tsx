@@ -13,7 +13,7 @@ import {
   maxPlayersSliderToApi,
   skillLabels,
 } from '../lib/format'
-import { isAtCourt, NOT_AT_COURT_MESSAGE, NOT_AT_COURT_TITLE } from '../lib/courtProximity'
+import { isAtCourt, notAtCourtMessage, notAtCourtTitle } from '../lib/courtProximity'
 import { useLocation } from '../lib/location'
 import { LIST_NEARBY_RADIUS_KM } from '../lib/nearby'
 import { useAuth } from '../lib/auth'
@@ -24,6 +24,7 @@ import { Clock, Flame, SportIcon, SportName } from '../components/icons'
 import { Plus } from 'lucide-react'
 import { ShareGameButton } from '../components/ShareGameButton'
 import { AppAlert, Button, ErrorText, Field, Input, PageHeader, Select } from '../components/ui'
+import { useLocale } from '../i18n/LocaleProvider'
 
 function localInputValue(d: Date) {
   const pad = (n: number) => String(n).padStart(2, '0')
@@ -35,6 +36,8 @@ export function CreateGamePage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const { user } = useAuth()
+  const { t } = useLocale()
+  const tc = t.games.create
   const mySport = useMySport()
   const { center, coords } = useLocation()
   const { data: sports } = useSports()
@@ -129,12 +132,12 @@ export function CreateGamePage() {
     return (
       <div className="mx-auto flex min-h-full max-w-md flex-col items-center justify-center p-8 text-center">
         <SportIcon slug={created.sport.slug} className="size-16 text-brand" />
-        <h1 className="display mt-3 text-5xl font-extrabold">Game created successfully.</h1>
+        <h1 className="display mt-3 text-5xl font-extrabold">{tc.successTitle}</h1>
         <p className="mt-2 text-ink-2">
-          You're in. Players near {created.court.name} can see it now.
+          {tc.successBody.replace('{court}', created.court.name)}
         </p>
         <Button className="mt-4 w-full" variant="live" onClick={() => navigate(`/games/${created.id}`, { replace: true })}>
-          View game
+          {tc.viewGame}
         </Button>
         <ShareGameButton
           gameId={created.id}
@@ -149,16 +152,16 @@ export function CreateGamePage() {
     <div className="pb-10">
       <AppAlert
         open={farModal}
-        title={NOT_AT_COURT_TITLE}
-        message={NOT_AT_COURT_MESSAGE}
+        title={notAtCourtTitle()}
+        message={notAtCourtMessage()}
         onClose={() => setFarModal(false)}
       />
-      <PageHeader title="Create game" back={courtId ? `/?court=${courtId}` : '/'} />
+      <PageHeader title={tc.title} back={courtId ? `/?court=${courtId}` : '/'} />
       <form onSubmit={submit} className="mx-auto grid max-w-md gap-5 p-5">
-        <Field label="Court" hint={<Link to="/courts/new" className="font-semibold text-brand">Court not listed? Add it →</Link>}>
+        <Field label={tc.court} hint={<Link to="/courts/new" className="font-semibold text-brand">{tc.courtNotListed}</Link>}>
           <Select required value={courtId} onChange={(e) => setCourtId(e.target.value)}>
             <option value="" disabled>
-              Choose a court
+              {tc.chooseCourt}
             </option>
             {courts?.map((c) => (
               <option key={c.id} value={c.id}>
@@ -170,11 +173,11 @@ export function CreateGamePage() {
 
         {courtId && (
           <Field
-            label="Photo of the place"
+            label={tc.placePhoto}
             hint={
               existingPhotos.length
-                ? 'This court already has photos. You can add another (optional).'
-                : 'Recommended — a photo helps others find the court. You can still create the game without one.'
+                ? tc.placePhotoHasPhotos
+                : tc.placePhotoRecommended
             }
           >
             <div className="flex flex-wrap gap-2">
@@ -199,7 +202,7 @@ export function CreateGamePage() {
           </Field>
         )}
 
-        <Field label="Sport">
+        <Field label={tc.sport}>
           {lockedSport ? (
             <p className="flex items-center gap-2 rounded-xl border border-line bg-surface-2 px-4 py-2.5 font-semibold">
               <SportName sport={lockedSport} />
@@ -221,7 +224,7 @@ export function CreateGamePage() {
           )}
         </Field>
 
-        <Field label="Start time">
+        <Field label={tc.startTime}>
           <div className="mb-2 grid grid-cols-2 gap-2">
             {(['now', 'later'] as const).map((w) => (
               <button
@@ -234,12 +237,12 @@ export function CreateGamePage() {
                 {w === 'now' ? (
                   <span className="inline-flex items-center justify-center gap-2">
                     <Flame className="size-4" aria-hidden />
-                    Right now
+                    {tc.rightNow}
                   </span>
                 ) : (
                   <span className="inline-flex items-center justify-center gap-2">
                     <Clock className="size-4" aria-hidden />
-                    Later
+                    {tc.later}
                   </span>
                 )}
               </button>
@@ -250,7 +253,7 @@ export function CreateGamePage() {
           )}
         </Field>
 
-        <Field label={`Maximum players: ${maxPlayersSliderLabel(maxPlayersSlider)}`}>
+        <Field label={tc.maxPlayers.replace('{value}', maxPlayersSliderLabel(maxPlayersSlider))}>
           <input
             type="range"
             min={MAX_PLAYERS_SLIDER_MIN}
@@ -261,11 +264,11 @@ export function CreateGamePage() {
             className="w-full accent-[var(--brand)]"
           />
           <p className="mt-1 text-xs text-ink-2">
-            Drag to the end for unlimited players ({MAX_PLAYERS_SLIDER_CAP}+).
+            {tc.unlimitedHint.replace('{cap}', String(MAX_PLAYERS_SLIDER_CAP))}
           </p>
         </Field>
 
-        <Field label="Skill level">
+        <Field label={tc.skillLevel}>
           <Select value={skill} onChange={(e) => setSkill(e.target.value as SkillLevel)}>
             {(Object.keys(skillLabels) as SkillLevel[]).map((k) => (
               <option key={k} value={k}>
@@ -275,7 +278,7 @@ export function CreateGamePage() {
           </Select>
         </Field>
 
-        <Field label="Game type">
+        <Field label={tc.gameType}>
           <Select value={type} onChange={(e) => setType(e.target.value as GameType)}>
             {(Object.keys(gameTypeLabels) as GameType[]).map((k) => (
               <option key={k} value={k}>
@@ -287,10 +290,10 @@ export function CreateGamePage() {
 
         <ErrorText>{error}</ErrorText>
         {suggestPlacePhoto && (
-          <p className="text-sm text-ink-2">No court photo yet — adding one is recommended but not required.</p>
+          <p className="text-sm text-ink-2">{tc.noPhotoYet}</p>
         )}
         <Button type="submit" loading={busy} disabled={!courtId || !chosenSport || uploading}>
-          Create game
+          {tc.submit}
         </Button>
       </form>
     </div>

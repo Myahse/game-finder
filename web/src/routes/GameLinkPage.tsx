@@ -12,6 +12,7 @@ import { gameTimeLabel, gameTypeLabels } from '../lib/format'
 import { SportIcon } from '../components/icons'
 import { Button, PageHeader, Spinner } from '../components/ui'
 import type { GameStatus, GameType } from '../lib/types'
+import { useLocale } from '../i18n/LocaleProvider'
 
 type Preview = {
   valid: boolean
@@ -28,6 +29,8 @@ export function GameLinkPage() {
   const { token = '' } = useParams()
   const { user, sessionReady } = useAuth()
   const navigate = useNavigate()
+  const { t } = useLocale()
+  const tl = t.games.link
 
   useEffect(() => {
     if (token) stashGameShareToken(token)
@@ -60,17 +63,17 @@ export function GameLinkPage() {
 
   return (
     <div className="mx-auto min-h-full max-w-md p-4 pb-10">
-      <PageHeader title="Join game" back={homeTo} />
+      <PageHeader title={tl.title} back={homeTo} />
       {isLoading ? (
         <div className="flex justify-center py-16">
           <Spinner className="text-brand" />
         </div>
       ) : error || !preview?.valid ? (
         <div className="rounded-2xl border border-line bg-surface p-6 text-center">
-          <p className="font-semibold">This game link isn&apos;t valid anymore.</p>
-          <p className="mt-2 text-sm text-ink-2">It may have ended or been cancelled.</p>
+          <p className="font-semibold">{tl.invalid}</p>
+          <p className="mt-2 text-sm text-ink-2">{tl.invalidHint}</p>
           <Link to={homeTo} className="mt-4 inline-block font-semibold text-brand">
-            {user?.onboarded ? 'Back to map' : 'Open Find the Game'}
+            {user?.onboarded ? tl.backToMap : tl.openApp}
           </Link>
         </div>
       ) : (
@@ -87,16 +90,16 @@ export function GameLinkPage() {
           <p className="mt-4 text-sm text-ink-2">
             {gameTimeLabel({ status: preview.status, start_time: preview.start_time })}
           </p>
-          <p className="mt-4 text-sm text-ink-2">Sign in to view details and join.</p>
+          <p className="mt-4 text-sm text-ink-2">{tl.signInHint}</p>
           <Button className="mt-4 w-full" onClick={() => navigate('/?login=1')}>
-            Sign in
+            {tl.signIn}
           </Button>
           <Link to="/register" className="mt-3 block text-center text-sm font-semibold text-brand">
-            Create account
+            {tl.createAccount}
           </Link>
           {user && !user.onboarded ? (
             <Link to="/" className="mt-3 block text-center text-sm font-semibold text-ink-2">
-              Finish setup first →
+              {tl.finishSetup}
             </Link>
           ) : null}
         </div>

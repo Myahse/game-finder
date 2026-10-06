@@ -16,7 +16,7 @@ import {
   playerDisplayLabel,
   skillLabels,
 } from '../lib/format'
-import { isAtCourt, NOT_AT_COURT_MESSAGE, NOT_AT_COURT_TITLE } from '../lib/courtProximity'
+import { isAtCourt, notAtCourtMessage, notAtCourtTitle } from '../lib/courtProximity'
 import { useLocation } from '../lib/location'
 import { useGame, useGameAction } from '../lib/queries'
 import { clearPendingGameNavigation } from '../lib/gameInvite'
@@ -25,17 +25,20 @@ import { GameWeather } from '../components/GameWeather'
 import { GameScoreboard } from '../components/GameScoreboard'
 import { AppAlert, Avatar, Button, Card, Empty, ErrorText, PageHeader } from '../components/ui'
 import { Loading } from './CourtPage'
+import { useLocale } from '../i18n/LocaleProvider'
 
 const statusLabel = {
-  active: { text: 'ACTIVE', cls: 'bg-live text-white', Icon: Flame },
-  scheduled: { text: 'UPCOMING', cls: 'bg-surface-2 text-ink', Icon: Clock },
-  completed: { text: 'FINISHED', cls: 'bg-surface-2 text-ink-2', Icon: Check },
-  cancelled: { text: 'CANCELLED', cls: 'bg-danger/15 text-danger', Icon: X },
+  active: { cls: 'bg-live text-white', Icon: Flame },
+  scheduled: { cls: 'bg-surface-2 text-ink', Icon: Clock },
+  completed: { cls: 'bg-surface-2 text-ink-2', Icon: Check },
+  cancelled: { cls: 'bg-danger/15 text-danger', Icon: X },
 }
 
 export function GamePage() {
   const { id } = useParams()
   const { user } = useAuth()
+  const { t } = useLocale()
+  const tp = t.games.page
 
   useEffect(() => {
     clearPendingGameNavigation()
@@ -47,17 +50,18 @@ export function GamePage() {
   const [farModal, setFarModal] = useState(false)
 
   if (isLoading) return <Loading />
-  if (!game) return <Empty icon={<SearchX className="size-14" strokeWidth={1.5} />} title="Game not found" />
+  if (!game) return <Empty icon={<SearchX className="size-14" strokeWidth={1.5} />} title={tp.notFound} />
 
   const open = game.status === 'active' || game.status === 'scheduled'
   const isCreator = game.creator_id === user?.id
   const viewerIsAdmin = user?.role === 'admin'
   const unlimited = isUnlimitedMaxPlayers(game.max_players)
   const pct = unlimited ? 0 : Math.min(100, (game.player_count / game.max_players) * 100)
-  const { cls: statusCls, text: statusText, Icon: StatusIcon } = statusLabel[game.status]
+  const { cls: statusCls, Icon: StatusIcon } = statusLabel[game.status]
+  const statusText = t.games.status[game.status]
   const run = (a: 'join' | 'leave' | 'cancel') => {
     setError('')
-    if (a === 'cancel' && !confirm('Cancel this game for everyone?')) return
+    if (a === 'cancel' && !confirm(tp.cancelConfirm)) return
     if (a === 'join' && game.status === 'active' && !isAtCourt(coords, game.court)) {
       setFarModal(true)
       return
@@ -86,8 +90,8 @@ export function GamePage() {
       <div className="mx-auto grid max-w-2xl gap-4 p-4">
         <AppAlert
           open={farModal}
-          title={NOT_AT_COURT_TITLE}
-          message={NOT_AT_COURT_MESSAGE}
+          title={notAtCourtTitle()}
+          message={notAtCourtMessage()}
           onClose={() => setFarModal(false)}
         />
         <Card>
@@ -102,7 +106,7 @@ export function GamePage() {
             </p>
             {game.distance_m != null && (
               <p className="text-ink-2">
-                <DistanceText>{formatDistance(game.distance_m)} away</DistanceText>
+                <DistanceText>{tp.away.replace('{distance}', formatDistance(game.distance_m))}</DistanceText>
               </p>
             )}
           </Link>
@@ -112,10 +116,10 @@ export function GamePage() {
               <p className="display text-5xl font-extrabold">{gamePlayerCountLabel(game.player_count, game.max_players)}</p>
               <p className={`font-semibold ${unlimited || game.spots_left ? 'text-live' : 'text-danger'}`}>
                 {unlimited
-                  ? 'Open to all'
+                  ? tp.openToAll
                   : game.spots_left
-                    ? `${game.spots_left} spot${game.spots_left === 1 ? '' : 's'} left`
-                    : 'Full'}
+                    ? (game.spots_left === 1 ? tp.spotLeft : tp.spotsLeft).replace('{n}', String(game.spots_left))
+                    : tp.full}
               </p>
             </div>
             {!unlimited && (
@@ -138,21 +142,21 @@ export function GamePage() {
             <TimeText>{gameTimeLabel(game)}</TimeText>
             <span className="inline-flex items-center gap-1">
               <Timer className="size-4 shrink-0" aria-hidden />
-              {game.duration_minutes} min
+              {t.games.time.minutes.replace('{n}', String(game.duration_minutes))}
             </span>
           </div>
-          {game.cancelled_reason && <p className="mt-2 text-sm text-danger">Reason: {game.cancelled_reason}</p>}
+          {game.cancelled_reason && <p className="mt-2 text-sm text-danger">{tp.reason.replace('{reason}', game.cancelled_reason)}</p>}
 
           <div className="mt-5 grid gap-2">
             <ErrorText>{error}</ErrorText>
             {open &&
               (game.joined ? (
                 <Button variant="danger" onClick={() => run('leave')} loading={action.isPending}>
-                  Leave game
+                  {tp.leave}
                 </Button>
               ) : (
                 <Button variant="live" onClick={() => run('join')} loading={action.isPending} disabled={!gameHasOpenSpots(game)}>
-                  {gameHasOpenSpots(game) ? 'Join game' : 'Game full'}
+                  {gameHasOpenSpots(game) ? tp.join : tp.gameFull}
                 </Button>
               ))}
             <a
@@ -162,11 +166,11 @@ export function GamePage() {
               className="display inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-surface-2 px-4 text-lg font-bold hover:bg-line"
             >
               <Navigation className="size-5 shrink-0" aria-hidden />
-              Get directions
+              {tp.directions}
             </a>
             {open && isCreator && (
               <Button variant="ghost" onClick={() => run('cancel')}>
-                Cancel game
+                {tp.cancel}
               </Button>
             )}
           </div>
@@ -179,13 +183,13 @@ export function GamePage() {
         <GameScoreboard game={game} canEdit={isCreator || game.joined || viewerIsAdmin} />
 
         <section>
-          <h2 className="display mb-2 text-2xl font-bold">Players</h2>
+          <h2 className="display mb-2 text-2xl font-bold">{tp.players}</h2>
           <div className="grid gap-2">
             {game.players?.map((p) => (
               <Link key={p.id} to={`/users/${p.id}`} className="flex items-center gap-3 rounded-xl bg-surface p-2.5">
                 <Avatar user={p} size={36} />
                 <span className="flex-1 font-medium">{playerDisplayLabel(p, viewerIsAdmin)}</span>
-                {p.id === game.creator_id && <span className="text-xs font-semibold text-brand">HOST</span>}
+                {p.id === game.creator_id && <span className="text-xs font-semibold text-brand">{tp.host}</span>}
               </Link>
             ))}
           </div>

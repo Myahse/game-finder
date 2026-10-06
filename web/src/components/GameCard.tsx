@@ -13,6 +13,7 @@ import {
 } from '../lib/format'
 import { courtPhotoUrl } from '../lib/mediaUrl'
 import type { Game } from '../lib/types'
+import { useLocale } from '../i18n/LocaleProvider'
 
 export type GameScheduleAccent = 'upcoming'
 
@@ -36,6 +37,8 @@ export function GameCard({
   scheduleAccent?: GameScheduleAccent
   className?: string
 }) {
+  const { t } = useLocale()
+  const tc = t.games.card
   const live = game.status === 'active'
   const upcoming = !live && scheduleAccent === 'upcoming'
   const full = !gameHasOpenSpots(game)
@@ -65,12 +68,12 @@ export function GameCard({
           )}
           {live && (
             <span className="display absolute left-0.5 top-0.5 rounded bg-live px-1 py-px text-[9px] font-bold leading-none text-white">
-              LIVE
+              {tc.live}
             </span>
           )}
           {upcoming && (
             <span className="display absolute left-0.5 top-0.5 rounded bg-upcoming px-1 py-px text-[9px] font-bold leading-none text-white">
-              LATER
+              {tc.later}
             </span>
           )}
           <span className="display absolute inset-x-0 bottom-0 bg-black/60 py-px text-center text-[10px] font-extrabold leading-tight text-white">
@@ -92,12 +95,12 @@ export function GameCard({
           {live && !mapLayout && (
             <span className="display inline-flex items-center gap-1 rounded bg-live px-1.5 py-0.5 text-sm font-bold text-white">
               <Flame className="size-3.5 shrink-0" aria-hidden />
-              LIVE
+              {tc.live}
             </span>
           )}
           {upcoming && !mapLayout && (
             <span className="display inline-flex rounded bg-upcoming px-1.5 py-0.5 text-sm font-bold text-white">
-              UPCOMING
+              {tc.upcoming}
             </span>
           )}
           <p className={`truncate font-semibold ${mapLayout ? 'text-sm leading-tight' : ''}`}>
@@ -133,7 +136,7 @@ export function GameCard({
         <span
           className={`font-semibold ${mapLayout ? 'text-[10px]' : 'text-xs'} ${full ? 'text-danger' : live ? 'text-live' : upcoming ? 'text-upcoming' : 'text-live'}`}
         >
-          {full ? 'Full' : isUnlimitedMaxPlayers(game.max_players) ? 'Open' : `${game.spots_left} spot${game.spots_left === 1 ? '' : 's'}`}
+          {full ? tc.full : isUnlimitedMaxPlayers(game.max_players) ? tc.open : (game.spots_left === 1 ? tc.spot : tc.spots).replace('{n}', String(game.spots_left))}
         </span>
       </div>
     </Link>
