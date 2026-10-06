@@ -1,8 +1,6 @@
 import { useState } from 'react'
 import { BellRing } from 'lucide-react'
-import { toast } from 'sonner'
 import { useLocale } from '../i18n/LocaleProvider'
-import { api, errorMessage } from '../lib/api'
 import { isIos, isStandalonePwa } from '../lib/promptDismiss'
 import { registerWebPush } from '../lib/webPush'
 import { Button, Card } from './ui'
@@ -35,30 +33,6 @@ export function PushSetupCard() {
     }
   }
 
-  const test = async () => {
-    setBusy(true)
-    setDetail('')
-    try {
-      const reg = await registerWebPush()
-      const r = await api<{ server_configured: boolean; devices: number; delivered: number; errors: string[] }>('/api/me/push-test', { method: 'POST' })
-      if (!r.server_configured) {
-        toast.message(t.pushSetup.serverOff)
-      } else if (r.devices === 0) {
-        toast.error(t.pushSetup.noDevice)
-        setDetail(reg.ok ? '' : reg.reason)
-      } else if (r.delivered > 0) {
-        toast.success(t.pushSetup.testSent)
-      } else {
-        toast.error(t.pushSetup.failed)
-        setDetail(r.errors.join(' · '))
-      }
-    } catch (e) {
-      toast.error(errorMessage(e))
-    } finally {
-      setBusy(false)
-    }
-  }
-
   const text = iosBrowser
     ? t.pushSetup.iosInstall
     : perm === 'unsupported'
@@ -78,11 +52,6 @@ export function PushSetupCard() {
         {!iosBrowser && perm === 'default' && (
           <Button type="button" className="mt-2 min-h-10 text-base" onClick={() => void enable()} loading={busy}>
             {t.pushSetup.enable}
-          </Button>
-        )}
-        {!iosBrowser && perm === 'granted' && (
-          <Button type="button" variant="secondary" className="mt-2 min-h-10 text-base" onClick={() => void test()} loading={busy}>
-            {t.pushSetup.test}
           </Button>
         )}
         {detail && (
