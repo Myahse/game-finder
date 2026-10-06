@@ -121,6 +121,7 @@ export interface AppNotification {
     | 'admin_court_request'
     | 'friend_request'
     | 'friend_accepted'
+    | 'achievement'
     | 'system'
   title: string
   body: string
@@ -130,6 +131,8 @@ export interface AppNotification {
     presence_id?: string
     user_id?: string
     friend_request_id?: string
+    kind?: 'badge' | 'streak' | 'king'
+    badge_id?: string
   }
   read: boolean
   created_at: string

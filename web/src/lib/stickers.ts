@@ -5,7 +5,7 @@ import { kitOf } from '../avatar/render/kit'
 /** WhatsApp sticker size. */
 const SIZE = 512
 
-export type StickerSpec = { id: string; caption: string; expression: Expression; tilt: number }
+export type StickerSpec = { id: string; caption: string; expression: Expression; tilt: number; medal?: { emoji: string; color: string } }
 
 const SPORT_CHEER: Partial<Record<SportSlug, { en: string; fr: string }>> = {
   basketball: { en: 'BUCKETS!', fr: 'PANIER !' },
@@ -84,6 +84,29 @@ export async function renderSticker(config: PlayerAvatarConfig, spec: StickerSpe
   ctx.drawImage(outline, 0, 0)
   ctx.restore()
   ctx.drawImage(art, 0, 0)
+
+  // Badge medal in the top corner.
+  if (spec.medal) {
+    const mx = SIZE - 96
+    const my = 98
+    ctx.save()
+    ctx.shadowColor = 'rgba(0,0,0,0.25)'
+    ctx.shadowBlur = 10
+    ctx.shadowOffsetY = 4
+    ctx.beginPath()
+    ctx.arc(mx, my, 80, 0, Math.PI * 2)
+    ctx.fillStyle = '#ffffff'
+    ctx.fill()
+    ctx.restore()
+    ctx.beginPath()
+    ctx.arc(mx, my, 68, 0, Math.PI * 2)
+    ctx.fillStyle = spec.medal.color
+    ctx.fill()
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.font = '72px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif'
+    ctx.fillText(spec.medal.emoji, mx, my + 4)
+  }
 
   // Caption: slight tilt, thick white stroke, kit-coloured fill.
   ctx.save()

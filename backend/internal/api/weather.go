@@ -71,6 +71,7 @@ func (c *weatherCache) get(ctx context.Context, lat, lng float64) ([]byte, error
 	q.Set("longitude", fmt.Sprintf("%.2f", lng))
 	q.Set("hourly", "temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m")
 	q.Set("forecast_days", fmt.Sprint(weatherDays))
+	q.Set("past_days", "2")
 	q.Set("timezone", "UTC")
 	q.Set("timeformat", "unixtime")
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.url+"?"+q.Encode(), nil)

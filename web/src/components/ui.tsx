@@ -7,6 +7,7 @@ import { PlayerAvatar } from '../avatar/components/PlayerAvatar'
 import { playerAvatarForUser } from '../avatar/resolve'
 import { isUploadedAvatar } from '../lib/avatarPresets'
 import { resolveMediaUrl } from '../lib/mediaUrl'
+import { useKings } from '../lib/progress'
 import type { Activity, PublicUser } from '../lib/types'
 
 type Variant = 'primary' | 'live' | 'secondary' | 'ghost' | 'danger'
@@ -138,16 +139,33 @@ export function StatusPill({ activity, className = '' }: { activity: Activity; c
   )
 }
 
-export function Avatar({
-  user,
-  size = 40,
-}: {
-  user: Pick<
-    PublicUser,
-    'username' | 'first_name' | 'last_name' | 'avatar_url' | 'avatar_config' | 'player_avatar' | 'player_avatar_public'
-  >
-  size?: number
-}) {
+type AvatarUser = Pick<
+  PublicUser,
+  'username' | 'first_name' | 'last_name' | 'avatar_url' | 'avatar_config' | 'player_avatar' | 'player_avatar_public'
+> & { id?: string }
+
+/** Player picture; this week's Kings of the Court wear a crown. */
+export function Avatar({ user, size = 40 }: { user: AvatarUser; size?: number }) {
+  const { data: kings } = useKings()
+  const king = !!user.id && !!kings?.some((k) => k.user_id === user.id)
+  if (!king) return <AvatarImage user={user} size={size} />
+  const crown = Math.max(12, Math.round(size * 0.42))
+  return (
+    <span className="relative inline-flex shrink-0" style={{ width: size, height: size }}>
+      <AvatarImage user={user} size={size} />
+      <span
+        className="pointer-events-none absolute leading-none drop-shadow"
+        style={{ fontSize: crown, top: -crown * 0.55, right: -crown * 0.3, transform: 'rotate(18deg)' }}
+        aria-label="King of the Court"
+        role="img"
+      >
+        👑
+      </span>
+    </span>
+  )
+}
+
+function AvatarImage({ user, size }: { user: AvatarUser; size: number }) {
   const handle = user.username?.replace(/^@/, '') ?? ''
   const initials = (handle.length >= 2 ? handle.slice(0, 2) : handle || `${user.first_name?.[0] ?? ''}${user.last_name?.[0] ?? ''}`).toUpperCase()
   const player = playerAvatarForUser(user)

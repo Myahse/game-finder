@@ -3,9 +3,10 @@ import { Crown, Minus, Pencil, Plus, Shuffle, Star, Trash2, Users } from 'lucide
 import { useLocale } from '../i18n/LocaleProvider'
 import { errorMessage } from '../lib/api'
 import { playerUsernameLabel } from '../lib/format'
-import { hasResult, splitTeams, TEAM_COLORS, useSaveScoreboard, useScoreboard, type Scoreboard, type ScoreTeam } from '../lib/scoreboard'
+import { hasResult, TEAM_COLORS, useSaveScoreboard, useScoreboard, type Scoreboard, type ScoreTeam } from '../lib/scoreboard'
 import type { Game, PublicUser } from '../lib/types'
 import { ShareResultButton } from './GameResultShare'
+import { balancedTeams } from '../lib/progress'
 import { Avatar, Button, Card, ErrorText, Input, Spinner } from './ui'
 
 type Player = PublicUser & { joined_at?: string }
@@ -183,7 +184,7 @@ function ScoreboardEditor({ sb, game, players, started, onDone }: { sb: Scoreboa
   const [teams, setTeams] = useState<ScoreTeam[]>(() =>
     sb.teams.length > 0
       ? sb.teams.map((x) => ({ ...x, players: x.players.filter((id) => ids.includes(id)) }))
-      : splitTeams(ids, 2).map((ps, i) => ({ name: defaultNames[i], color: TEAM_COLORS[i], score: 0, players: ps })),
+      : balancedTeams(ids, sb.ratings ?? {}, 2).map((ps, i) => ({ name: defaultNames[i], color: TEAM_COLORS[i], score: 0, players: ps })),
   )
   const [stats, setStats] = useState<Record<string, Record<string, number>>>(() => structuredClone(sb.stats))
   const [mvp, setMvp] = useState<string | null>(sb.mvp_user_id)
@@ -194,7 +195,7 @@ function ScoreboardEditor({ sb, game, players, started, onDone }: { sb: Scoreboa
     setTeams((ts) => ts.map((x, i) => ({ ...x, players: i === idx ? [...x.players.filter((p) => p !== id), id] : x.players.filter((p) => p !== id) })))
   const patchTeam = (idx: number, patch: Partial<ScoreTeam>) => setTeams((ts) => ts.map((x, i) => (i === idx ? { ...x, ...patch } : x)))
   const shuffle = () => {
-    const split = splitTeams(ids, Math.max(teams.length, 2))
+    const split = balancedTeams(ids, sb.ratings ?? {}, Math.max(teams.length, 2))
     setTeams((ts) => split.map((ps, i) => ({ ...(ts[i] ?? { name: defaultNames[i], color: TEAM_COLORS[i], score: 0 }), players: ps })))
   }
   const setStat = (id: string, key: string, n: number) => setStats((s) => ({ ...s, [id]: { ...s[id], [key]: n } }))
@@ -237,6 +238,11 @@ function ScoreboardEditor({ sb, game, players, started, onDone }: { sb: Scoreboa
                   />
                 ))}
               </div>
+              {team.players.length > 0 && (
+                <p className="text-xs font-semibold text-ink-2">
+                  ≈ {Math.round(team.players.reduce((sum, id) => sum + (sb.ratings?.[id] ?? 1000), 0) / team.players.length)}
+                </p>
+              )}
               {started && <Stepper value={team.score} onChange={(n) => patchTeam(i, { score: n })} label={`${team.name} ${t.scoreboard.score}`} big />}
               {teams.length > 2 && (
                 <button type="button" onClick={() => setTeams((ts) => ts.filter((_, j) => j !== i))} className="inline-flex items-center gap-1 text-xs font-semibold text-danger">
@@ -261,6 +267,7 @@ function ScoreboardEditor({ sb, game, players, started, onDone }: { sb: Scoreboa
             </Button>
           )}
         </div>
+        <p className="-mt-2 text-xs text-ink-2">{t.progress.balanced}</p>
         {!started && <p className="text-sm text-ink-2">{t.scoreboard.notStarted}</p>}
 
         <div className="grid gap-2">

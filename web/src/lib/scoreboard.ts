@@ -9,6 +9,7 @@ export type Scoreboard = {
   stat_keys: string[]
   teams: ScoreTeam[]
   stats: Record<string, Record<string, number>>
+  ratings?: Record<string, number>
   winner_position: number | null
   mvp_user_id: string | null
   updated_at: string | null
@@ -32,6 +33,7 @@ export function useSaveScoreboard(gameId: string) {
     onSuccess: (sb) => {
       qc.setQueryData(scoreboardKey(gameId), sb)
       void qc.invalidateQueries({ queryKey: ['leaderboard'] })
+      void qc.invalidateQueries({ queryKey: ['progress'] })
     },
   })
 }
@@ -49,16 +51,4 @@ export function topPerformers(sb: Scoreboard, limit = 3): { userId: string; valu
     .filter((p) => p.value > 0)
     .sort((a, b) => b.value - a.value)
     .slice(0, limit)
-}
-
-/** Fisher–Yates split of players into `n` balanced teams. */
-export function splitTeams(players: string[], n: number): string[][] {
-  const a = [...players]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
-  }
-  const teams: string[][] = Array.from({ length: n }, () => [])
-  a.forEach((p, i) => teams[i % n].push(p))
-  return teams
 }

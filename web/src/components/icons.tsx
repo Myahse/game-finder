@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import {
+  Trophy,
   Bell,
   CalendarDays,
   Check,
@@ -164,6 +165,7 @@ export const notificationIcons: Record<AppNotification['type'], LucideIcon> = {
   friend_accepted: Handshake,
   presence_check: MapPin,
   game_cancelled: X,
+  achievement: Trophy,
   system: Megaphone,
 }
 

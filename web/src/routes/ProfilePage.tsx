@@ -16,6 +16,7 @@ import { hasPlayerAvatar, playerAvatarForUser } from '../avatar/resolve'
 import { ShareProfileButton } from '../components/ShareProfileSheet'
 import { StickerButton } from '../components/StickerSheet'
 import { RecapButton } from '../components/RecapSheet'
+import { MyProgressCard, UserProgressCard } from '../components/ProgressCard'
 import { AvatarPortrait } from '../avatar/render/AvatarPortrait'
 import { AVATAR_SPORTS, defaultConfig } from '../avatar/presets'
 import { useMySport } from '../lib/mySport'
@@ -100,6 +101,8 @@ export function PlayerProfileView({
   viewerIsAdmin?: boolean
 }) {
   const { t } = useLocale()
+  const { user: viewer } = useAuth()
+  const signedIn = !!viewer
   const headerTitle =
     profile && viewerIsAdmin ? playerDisplayLabel(profile, true) : title
   return (
@@ -110,6 +113,7 @@ export function PlayerProfileView({
           <>
             <ProfileCard user={profile} viewerIsAdmin={viewerIsAdmin} />
             <ProfileFriendActions user={profile} viewerIsAdmin={viewerIsAdmin} />
+            {signedIn && <UserProgressCard userId={profile.id} avatar={playerAvatarForUser(profile)} />}
           </>
         ) : (
           <p>{t.common.playerNotFound}</p>
@@ -162,6 +166,7 @@ export function ProfilePage() {
             ) : (
               <CreateAvatarCard />
             )}
+            <MyProgressCard avatar={playerAvatar} />
             <ShareProfileButton me={current} />
             <div className="grid grid-cols-2 gap-2">
               <RecapButton me={current} />

@@ -28,7 +28,13 @@ func (s *Server) putScoreboard(w http.ResponseWriter, r *http.Request) {
 	if !readJSON(w, r, &in) {
 		return
 	}
-	b, err := s.db.JSON(r.Context(), uid(r), `select save_game_scoreboard($1, $2::jsonb)`, chi.URLParam(r, "id"), string(in))
+	id := chi.URLParam(r, "id")
+	if _, err := s.db.JSON(r.Context(), uid(r), `select save_game_scoreboard($1, $2::jsonb)`, id, string(in)); err != nil {
+		writeDBError(w, r, err)
+		return
+	}
+	s.afterScoreboard(r.Context(), id)
+	b, err := s.db.JSON(r.Context(), uid(r), `select game_scoreboard_json($1)`, id)
 	if err != nil {
 		writeDBError(w, r, err)
 		return

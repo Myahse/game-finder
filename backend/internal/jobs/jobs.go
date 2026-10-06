@@ -35,6 +35,11 @@ func RunOnce(ctx context.Context, d *db.DB, dispatcher *push.Dispatcher) {
 		return
 	}
 	slog.Debug("tick", "summary", string(summary))
+	if err := d.Pool.QueryRow(ctx, "select public.progress_tick()::text").Scan(&summary); err != nil {
+		if ctx.Err() == nil {
+			slog.Error("progress tick failed", "err", err)
+		}
+	}
 	if dispatcher != nil {
 		if err := dispatcher.Run(ctx); err != nil && ctx.Err() == nil {
 			slog.Error("push dispatch failed", "err", err)
