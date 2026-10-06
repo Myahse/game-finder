@@ -26,7 +26,7 @@ import { Avatar, Button, Card, ErrorText, Field, Input, PageHeader, Select } fro
 import { Loading } from './CourtPage'
 
 export function ProfileCard({ user, viewerIsAdmin = false }: { user: PublicUser; viewerIsAdmin?: boolean }) {
-  const { t } = useLocale()
+  const { t, locale } = useLocale()
   const { data: sports } = useSports()
   const sport = sports?.find((s) => s.id === user.preferred_sport_id)
   const skillLabels: Record<SkillLevel, string> = t.skill
@@ -58,7 +58,7 @@ export function ProfileCard({ user, viewerIsAdmin = false }: { user: PublicUser;
       </div>
       <p className="mt-4 text-xs text-ink-2">
         {t.profile.joined}{' '}
-        {new Date(user.created_at).toLocaleDateString([], { month: 'long', year: 'numeric' })}
+        {new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(new Date(user.created_at))}
       </p>
     </Card>
   )
@@ -110,7 +110,7 @@ export function PlayerProfileView({
   return (
     <div className="pb-10">
       <PageHeader title={headerTitle} back={back} />
-      <div className="mx-auto grid max-w-md gap-4 p-4">
+      <div className="mx-auto grid max-w-md grid-cols-[minmax(0,1fr)] gap-4 p-4">
         {profile ? (
           <>
             <ProfileCard user={profile} viewerIsAdmin={viewerIsAdmin} />
@@ -147,7 +147,7 @@ export function ProfilePage() {
           </Button>
         }
       />
-      <div className="mx-auto grid max-w-md gap-4 p-4">
+      <div className="mx-auto grid max-w-md grid-cols-[minmax(0,1fr)] gap-4 p-4">
         {editing ? (
           <EditProfile
             me={current}
@@ -171,7 +171,7 @@ export function ProfilePage() {
             )}
             <MyProgressCard avatar={playerAvatar} />
             <ShareProfileButton me={current} />
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 [&>*]:min-w-0 [&>button]:whitespace-normal [&>button]:leading-tight">
               <Link
                 to="/challenges"
                 className="display col-span-2 flex min-h-12 items-center justify-center gap-2 rounded-xl bg-brand text-lg font-bold text-brand-ink"

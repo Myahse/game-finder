@@ -7,6 +7,7 @@ import { GameCard } from './GameCard'
 import { MapBottomSheet } from './MapBottomSheet'
 import { BaseSportIcon } from './icons'
 import { ChevronRight, Plus } from 'lucide-react'
+import { useLocale } from '../i18n/LocaleProvider'
 
 type Props = {
   games: Game[] | undefined
@@ -26,6 +27,7 @@ function SkeletonCard({ className = '' }: { className?: string }) {
 }
 
 export function MapGamesRail({ games, isLoading, sport, viewerIsAdmin = false }: Props) {
+  const { t } = useLocale()
   const [pulseIds, setPulseIds] = useState<Set<string>>(() => new Set())
   useEffect(() => subscribeLiveGamePulse(setPulseIds), [])
 
@@ -35,12 +37,12 @@ export function MapGamesRail({ games, isLoading, sport, viewerIsAdmin = false }:
   const listHref = sport ? `/play?sport=${sport}` : '/play'
 
   return (
-    <MapBottomSheet ariaLabel="Games nearby" layout="dock">
+    <MapBottomSheet ariaLabel={t.courts.rail.title} layout="dock">
       <div className="flex items-end justify-between gap-2 px-3 pb-1 pt-0.5 md:px-4 md:pb-2 md:pt-1">
         <div>
-          <h2 className="display text-sm font-bold md:text-base">Games nearby</h2>
+          <h2 className="display text-sm font-bold md:text-base">{t.courts.rail.title}</h2>
           <p className="text-[11px] text-ink-2 md:text-xs">
-            {showSkeletons ? 'Loading…' : sorted.length === 0 ? 'No open games' : `${sorted.length} open`}
+            {showSkeletons ? t.courts.rail.loading : sorted.length === 0 ? t.courts.rail.noOpen : t.courts.rail.open.replace('{n}', String(sorted.length))}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2 pb-0.5">
@@ -49,11 +51,11 @@ export function MapGamesRail({ games, isLoading, sport, viewerIsAdmin = false }:
             className="inline-flex items-center gap-1 rounded-full border border-line bg-surface-2 px-2.5 py-1 text-xs font-semibold md:px-3 md:py-1.5 md:text-sm"
           >
             <Plus className="size-4" aria-hidden />
-            Create
+            {t.courts.rail.create}
           </Link>
           {sorted.length > 0 && (
             <Link to={listHref} className="inline-flex items-center gap-0.5 text-sm font-semibold text-brand">
-              See all
+              {t.courts.rail.seeAll}
               <ChevronRight className="size-4" aria-hidden />
             </Link>
           )}
@@ -72,8 +74,8 @@ export function MapGamesRail({ games, isLoading, sport, viewerIsAdmin = false }:
             <div className="flex items-center gap-2 md:gap-3">
               <BaseSportIcon className="size-8 shrink-0 text-brand md:size-10" />
               <div className="min-w-0">
-                <p className="text-sm font-semibold md:text-base">No open games yet</p>
-                <p className="text-xs text-ink-2 md:text-sm">Tap Create to start one.</p>
+                <p className="text-sm font-semibold md:text-base">{t.courts.rail.emptyTitle}</p>
+                <p className="text-xs text-ink-2 md:text-sm">{t.courts.rail.emptyBody}</p>
               </div>
             </div>
             <Link
@@ -81,7 +83,7 @@ export function MapGamesRail({ games, isLoading, sport, viewerIsAdmin = false }:
               className="display mt-2 flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-brand text-sm font-extrabold text-white md:mt-3 md:min-h-11 md:text-base"
             >
               <Plus className="size-5" aria-hidden />
-              Create game
+              {t.courts.rail.createGame}
             </Link>
           </div>
         ) : (

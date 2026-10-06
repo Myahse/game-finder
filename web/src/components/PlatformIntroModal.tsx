@@ -48,7 +48,7 @@ export function PlatformIntroModal({ open, onClose, variant = 'member' }: Props)
                 <Icon className="size-5" strokeWidth={2.2} />
               </span>
               <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-ink-2">Step {i + 1}</p>
+                <p className="text-xs font-bold uppercase tracking-wide text-ink-2">{t.account.step.replace('{n}', String(i + 1))}</p>
                 <p className="font-semibold text-ink">{title}</p>
                 <p className="mt-0.5 text-sm text-ink-2">{body}</p>
               </div>

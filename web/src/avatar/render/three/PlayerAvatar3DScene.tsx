@@ -3,6 +3,7 @@ import { Suspense, useEffect, useMemo } from 'react'
 import * as THREE from 'three'
 import type { PlayerAvatarConfig } from '../../schema'
 import { resolveGlbAvatar, skinTintHex } from '../glb/assetManifest'
+import { currentT } from '../../../i18n/LocaleProvider'
 
 function applySkinTint(root: THREE.Object3D, hex: string) {
   const c = new THREE.Color(hex)
@@ -43,13 +44,14 @@ function DemoBall({ show }: { show: boolean }) {
 
 function AvatarRig({ config }: { config: PlayerAvatarConfig }) {
   const resolved = resolveGlbAvatar(config)
+  const L = currentT().avatarLabels
 
   if (!resolved.displayUrl) {
     return (
       <Html center>
         <div className="max-w-[240px] rounded-xl border border-line bg-bg/95 px-4 py-3 text-center shadow-lg backdrop-blur">
-          <p className="text-sm font-bold text-ink">3D preview off</p>
-          <p className="mt-1 text-xs text-ink-2">Add GLBs to public/avatar/ or enable demo in dev.</p>
+          <p className="text-sm font-bold text-ink">{L.preview3dOff}</p>
+          <p className="mt-1 text-xs text-ink-2">{L.preview3dHint}</p>
         </div>
       </Html>
     )
@@ -63,7 +65,7 @@ function AvatarRig({ config }: { config: PlayerAvatarConfig }) {
       {resolved.mode === 'demo' && <DemoBall show={ball} />}
       {resolved.mode === 'modular' && (
         <Html position={[0, 2, 0]} center>
-          <span className="sr-only">Modular slots loaded</span>
+          <span className="sr-only">{L.modularLoaded}</span>
         </Html>
       )}
     </group>
@@ -88,7 +90,7 @@ export function PlayerAvatar3DScene({
       <Suspense
         fallback={
           <Html center>
-            <p className="text-sm font-semibold text-ink-2">Loading 3D…</p>
+            <p className="text-sm font-semibold text-ink-2">{currentT().avatarLabels.loading3d}</p>
           </Html>
         }
       >

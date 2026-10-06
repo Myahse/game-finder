@@ -5,10 +5,12 @@ import { reportLabels } from '../lib/format'
 import type { ReportType } from '../lib/types'
 import { CheckCircle } from '../components/icons'
 import { Button, ErrorText, Field, PageHeader, Textarea } from '../components/ui'
+import { useLocale } from '../i18n/LocaleProvider'
 
 export function ReportCourtPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { t } = useLocale()
   const [type, setType] = useState<ReportType | null>(null)
   const [description, setDescription] = useState('')
   const [error, setError] = useState('')
@@ -34,10 +36,10 @@ export function ReportCourtPage() {
     return (
       <div className="mx-auto flex min-h-full max-w-md flex-col items-center justify-center p-8 text-center">
         <CheckCircle className="size-16 text-brand" strokeWidth={1.5} aria-hidden />
-        <h1 className="display mt-3 text-5xl font-extrabold">Thanks for the report</h1>
-        <p className="mt-2 text-ink-2">An admin will review it.</p>
+        <h1 className="display mt-3 text-5xl font-extrabold">{t.courts.report.thanksTitle}</h1>
+        <p className="mt-2 text-ink-2">{t.courts.report.thanksBody}</p>
         <Button className="mt-8 w-full" onClick={() => navigate(`/?court=${id}`)}>
-          Back to court
+          {t.courts.report.backToCourt}
         </Button>
       </div>
     )
@@ -45,9 +47,9 @@ export function ReportCourtPage() {
 
   return (
     <div className="pb-10">
-      <PageHeader title="Report court" back={`/courts/${id}`} />
+      <PageHeader title={t.courts.report.title} back={`/courts/${id}`} />
       <form onSubmit={submit} className="mx-auto grid max-w-md gap-5 p-5">
-        <Field label="What's wrong?">
+        <Field label={t.courts.report.whatsWrong}>
           <div className="grid gap-2">
             {(Object.keys(reportLabels) as ReportType[]).map((k) => (
               <button
@@ -57,17 +59,17 @@ export function ReportCourtPage() {
                 aria-pressed={type === k}
                 className={`rounded-xl border-2 px-4 py-3 text-left font-semibold ${type === k ? 'border-brand bg-brand/10' : 'border-line bg-surface'}`}
               >
-                {reportLabels[k]}
+                {t.games.reports[k]}
               </button>
             ))}
           </div>
         </Field>
-        <Field label="Details (optional)">
+        <Field label={t.courts.report.details}>
           <Textarea maxLength={1000} value={description} onChange={(e) => setDescription(e.target.value)} />
         </Field>
         <ErrorText>{error}</ErrorText>
         <Button type="submit" loading={busy} disabled={!type}>
-          Send report
+          {t.courts.report.send}
         </Button>
       </form>
     </div>

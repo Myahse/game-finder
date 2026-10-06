@@ -6,6 +6,7 @@ import { useAuth } from '../lib/auth'
 import { OrDivider } from '../components/GoogleSignInButton'
 import { SocialSignInButtons } from '../components/SocialSignInButtons'
 import { Avatar, Button, ErrorText, Field, Input, PageHeader, PasswordInput } from '../components/ui'
+import { useLocale } from '../i18n/LocaleProvider'
 
 export function LoginPage() {
   return <Navigate to="/?login=1" replace />
@@ -13,6 +14,8 @@ export function LoginPage() {
 
 export function RegisterPage() {
   const { register } = useAuth()
+  const { t } = useLocale()
+  const a = t.account.register
   const navigate = useNavigate()
   const [form, setForm] = useState({ first_name: '', last_name: '', username: '', email: '', password: '' })
   const [photo, setPhoto] = useState<File | null>(null)
@@ -65,17 +68,17 @@ export function RegisterPage() {
   if (checkEmail) {
     return (
       <div className="min-h-full">
-        <PageHeader title="Check your email" back="/" />
+        <PageHeader title={a.checkEmailTitle} back="/" />
         <div className="mx-auto max-w-md p-5 text-center">
           <p className="text-ink">
-            We sent a verification link to <span className="font-semibold">{checkEmail}</span>. Open it, then sign in.
+            {a.checkEmailBefore}<span className="font-semibold">{checkEmail}</span>{a.checkEmailAfter}
           </p>
-          <p className="mt-3 text-sm text-ink-2">Email sign-up stays available — Google sign-in works too.</p>
+          <p className="mt-3 text-sm text-ink-2">{a.checkEmailNote}</p>
           <Link
             to="/?login=1"
             className="display mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white"
           >
-            Go to log in
+            {a.goToLogin}
           </Link>
         </div>
       </div>
@@ -84,7 +87,7 @@ export function RegisterPage() {
 
   return (
     <div className="min-h-full">
-      <PageHeader title="Create account" back="/" />
+      <PageHeader title={t.welcome.createAccount} back="/" />
       <form onSubmit={submit} className="mx-auto grid max-w-md gap-4 p-5">
         <SocialSignInButtons />
         <OrDivider className="text-ink-2" />
@@ -98,18 +101,18 @@ export function RegisterPage() {
               avatar_url: photo ? URL.createObjectURL(photo) : null,
             }}
           />
-          <span className="text-sm font-semibold text-brand">{photo ? 'Change photo' : 'Add profile photo (optional)'}</span>
+          <span className="text-sm font-semibold text-brand">{photo ? t.common.changePhoto : a.addPhoto}</span>
           <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} />
         </label>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="First name">
+          <Field label={t.profile.firstName}>
             <Input required autoComplete="given-name" value={form.first_name} onChange={set('first_name')} />
           </Field>
-          <Field label="Last name">
+          <Field label={t.profile.lastName}>
             <Input required autoComplete="family-name" value={form.last_name} onChange={set('last_name')} />
           </Field>
         </div>
-        <Field label="Username" hint={usernameTaken ? <span className="text-danger">That username is taken.</span> : '3–24 letters, numbers, _ or .'}>
+        <Field label={t.profile.username} hint={usernameTaken ? <span className="text-danger">{t.onboarding.usernameTaken}</span> : t.onboarding.usernameHint}>
           <Input
             required
             pattern="[A-Za-z0-9_.]{3,24}"
@@ -122,10 +125,10 @@ export function RegisterPage() {
             onBlur={checkUsername}
           />
         </Field>
-        <Field label="Email">
+        <Field label={t.onboarding.email}>
           <Input type="email" required autoComplete="email" value={form.email} onChange={set('email')} />
         </Field>
-        <Field label="Password" hint="At least 8 characters.">
+        <Field label={a.password} hint={a.passwordHint}>
           <PasswordInput required minLength={8} autoComplete="new-password" value={form.password} onChange={set('password')} />
         </Field>
         <label className="flex cursor-pointer items-start gap-3 text-sm text-ink-2">
@@ -137,25 +140,25 @@ export function RegisterPage() {
             required
           />
           <span>
-            I agree to the{' '}
+            {a.agreeTo}{' '}
             <Link to="/terms" className="font-semibold text-brand hover:underline" target="_blank" rel="noreferrer">
-              Terms
+              {t.welcome.terms}
             </Link>{' '}
-            and{' '}
+            {t.welcome.and}{' '}
             <Link to="/privacy" className="font-semibold text-brand hover:underline" target="_blank" rel="noreferrer">
-              Privacy Policy
+              {t.welcome.privacy}
             </Link>
-            .
+            {a.agreeEnd}
           </span>
         </label>
         <ErrorText>{error}</ErrorText>
         <Button type="submit" loading={busy} disabled={usernameTaken || !agreed}>
-          Create account
+          {t.welcome.createAccount}
         </Button>
         <p className="text-center text-sm text-ink-2">
-          Already playing?{' '}
+          {a.alreadyPlaying}{' '}
           <Link to="/?login=1" className="font-semibold text-brand">
-            Log in
+            {t.welcome.logIn}
           </Link>
         </p>
       </form>

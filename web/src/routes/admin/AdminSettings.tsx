@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, errorMessage } from '../../lib/api'
 import { Button, Card, ErrorText, Input } from '../../components/ui'
 import { Loading } from '../CourtPage'
+import { useLocale } from '../../i18n/LocaleProvider'
 
 interface Setting {
   key: string
@@ -12,6 +13,7 @@ interface Setting {
 
 /** Tunables like presence duration — changed live, no deploy. */
 export function AdminSettings() {
+  const { t } = useLocale()
   const qc = useQueryClient()
   const { data, isLoading } = useQuery({ queryKey: ['admin', 'settings'], queryFn: () => api<Setting[]>('/api/admin/settings') })
   const [draft, setDraft] = useState<Record<string, string>>({})
@@ -50,7 +52,7 @@ export function AdminSettings() {
       ))}
       <ErrorText>{error}</ErrorText>
       <Button onClick={() => save.mutate()} loading={save.isPending} disabled={!Object.keys(draft).length}>
-        Save settings
+        {t.admin.settings.save}
       </Button>
     </div>
   )

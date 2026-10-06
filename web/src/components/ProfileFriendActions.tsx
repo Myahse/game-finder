@@ -7,6 +7,7 @@ import { useFriendRequests, useFriends } from '../lib/queries'
 import { playerDisplayLabel } from '../lib/format'
 import type { PublicUser } from '../lib/types'
 import { Button, ErrorText } from './ui'
+import { useLocale } from '../i18n/LocaleProvider'
 
 type Relation = 'self' | 'guest' | 'friends' | 'incoming' | 'outgoing' | 'none'
 
@@ -28,6 +29,8 @@ function useRelation(target: PublicUser): { relation: Relation; incomingId?: str
 
 export function ProfileFriendActions({ user, viewerIsAdmin = false }: { user: PublicUser; viewerIsAdmin?: boolean }) {
   const qc = useQueryClient()
+  const { t } = useLocale()
+  const f = t.account.friends
   const { relation, incomingId } = useRelation(user)
   const [error, setError] = useState('')
 
@@ -57,24 +60,24 @@ export function ProfileFriendActions({ user, viewerIsAdmin = false }: { user: Pu
     <div className="grid gap-2">
       {relation === 'guest' ? (
         <p className="text-center text-sm text-ink-2">
-          <Link to="/?login=1" className="font-semibold text-brand">Log in</Link> to add {playerDisplayLabel(user, viewerIsAdmin)} as a friend.
+          <Link to="/?login=1" className="font-semibold text-brand">{f.guestLogIn}</Link>{f.guestToAdd.replace('{name}', playerDisplayLabel(user, viewerIsAdmin))}
         </p>
       ) : relation === 'friends' ? (
-        <p className="rounded-xl bg-surface-2 py-2 text-center text-sm font-semibold text-brand">Friends</p>
+        <p className="rounded-xl bg-surface-2 py-2 text-center text-sm font-semibold text-brand">{f.title}</p>
       ) : relation === 'outgoing' ? (
-        <p className="text-center text-sm text-ink-2">Friend request sent.</p>
+        <p className="text-center text-sm text-ink-2">{f.requestSent}</p>
       ) : relation === 'incoming' && incomingId ? (
         <div className="flex gap-2">
           <Button type="button" className="flex-1" loading={respond.isPending} onClick={() => respond.mutate({ id: incomingId, accept: true })}>
-            Accept friend request
+            {t.account.friendInvite.accept}
           </Button>
           <Button type="button" variant="ghost" className="flex-1" onClick={() => respond.mutate({ id: incomingId, accept: false })}>
-            Decline
+            {f.decline}
           </Button>
         </div>
       ) : (
         <Button type="button" loading={send.isPending} onClick={() => send.mutate()}>
-          Add friend
+          {f.addFriend}
         </Button>
       )}
       <ErrorText>{error}</ErrorText>

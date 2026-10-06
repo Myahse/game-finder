@@ -12,6 +12,7 @@ import { Hourglass, SportIcon, Users } from './icons'
 import { courtPhotoUrl } from '../lib/mediaUrl'
 import { courtPinTone, type CourtPinTone } from '../lib/sort'
 import type { Court, Game } from '../lib/types'
+import { useLocale } from '../i18n/LocaleProvider'
 type Props = {
   courts: Court[]
   nearbyGames?: Game[]
@@ -46,6 +47,7 @@ export function CourtMap({
     }
     return m
   }, [nearbyGames])
+  const { t } = useLocale()
   const innerRef = useRef<MapRef>(null)
   const mapRef = mapRefProp ?? innerRef
   const { isDark } = useTheme()
@@ -155,8 +157,7 @@ export function CourtMap({
     return (
       <div className="absolute inset-0 flex items-center justify-center bg-surface-2 p-6 text-center">
         <p className="max-w-sm text-sm text-ink-2">
-          {mapboxErr ??
-            'Set VITE_MAPBOX_ACCESS_TOKEN to a public pk.* token (mapbox.com → Tokens), then rebuild or redeploy.'}
+          {mapboxErr ?? t.courts.map.tokenMissing}
         </p>
       </div>
     )
@@ -209,10 +210,10 @@ export function CourtMap({
                   className={`display flex size-12 flex-col items-center justify-center rounded-full border-[3px] border-white text-white shadow-lg ${
                     p.live ? 'bg-live' : p.players ? 'bg-players text-ink' : 'bg-idle'
                   }`}
-                  aria-label={`${p.point_count} courts, ${p.players} players`}
+                  aria-label={t.courts.map.clusterLabel.replace('{courts}', String(p.point_count)).replace('{players}', String(p.players))}
                 >
                   <span className="text-lg font-extrabold leading-none">{p.point_count}</span>
-                  <span className="text-[9px] font-bold leading-none opacity-90">COURTS</span>
+                  <span className="text-[9px] font-bold leading-none opacity-90">{t.courts.map.clusterCourts}</span>
                 </button>
               </Marker>
             )
@@ -236,7 +237,7 @@ export function CourtMap({
         type="button"
         onClick={recenter}
         className="absolute bottom-[8.5rem] right-4 z-[5] flex size-11 items-center justify-center rounded-full border border-line bg-surface text-ink shadow-lg md:bottom-8 md:size-12"
-        aria-label="Center on my location"
+        aria-label={t.courts.map.centerOnMe}
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
           <circle cx="12" cy="12" r="4" />
@@ -353,14 +354,21 @@ export function CourtPin({
   selected?: boolean
   onClick?: () => void
 }) {
+  const { t } = useLocale()
   const sport = court.sports.find((s) => s.slug === sportSlug) ?? court.sports[0]
   const photo = courtPhotoUrl(court.photos ?? [])
   const preview = court.status === 'pending'
-  const label = preview
-    ? `${court.name}: preview (pending review)`
-    : court.activity === 'inactive'
-      ? `${court.name}: inactive`
-      : `${court.name}: ${court.player_count} players${court.activity === 'active' ? ', game active' : ''}`
+  const label = (
+    preview
+      ? t.courts.map.pinPreview
+      : court.activity === 'inactive'
+        ? t.courts.map.pinInactive
+        : court.activity === 'active'
+          ? t.courts.map.pinPlayersActive
+          : t.courts.map.pinPlayers
+  )
+    .replace('{name}', court.name)
+    .replace('{n}', String(court.player_count))
   const activity = pinTone ?? court.activity
   const showCount = !preview && activity !== 'inactive' && court.player_count > 0
   const slug = sport?.slug ?? 'basketball'
@@ -437,7 +445,7 @@ export function CourtPin({
               : 'border-line/80 bg-surface/95 text-ink'
         }`}
       >
-        {preview ? `Preview · ${court.name}` : court.name}
+        {preview ? t.courts.map.previewName.replace('{name}', court.name) : court.name}
       </span>
     </button>
   )

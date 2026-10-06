@@ -10,10 +10,13 @@ import { Plus, SportIcon, SportName } from '../../components/icons'
 import { LocationPicker } from '../../components/LocationPicker'
 import { Button, Card, Chip, ErrorText, Field, Input, Textarea } from '../../components/ui'
 import { Loading } from '../CourtPage'
+import { useLocale } from '../../i18n/LocaleProvider'
 
 type AdminCourt = Court & { creator: PublicUser | null; open_reports: number }
 
 export function AdminCourts() {
+  const { t } = useLocale()
+  const a = t.admin
   const [params, setParams] = useSearchParams()
   const status = params.get('status')
   const [q, setQ] = useState('')
@@ -56,14 +59,14 @@ export function AdminCourts() {
       <div className="flex flex-wrap items-center gap-2">
         {[null, 'pending', 'approved', 'rejected'].map((s) => (
           <Chip key={s ?? 'all'} active={status === s} onClick={() => setParams(s ? { status: s } : {})}>
-            {s ? s[0].toUpperCase() + s.slice(1) : 'All'}
+            {s ? a.courtStatus[s] : a.all}
           </Chip>
         ))}
-        <Input className="max-w-56 py-2" placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} />
+        <Input className="max-w-56 py-2" placeholder={a.search} value={q} onChange={(e) => setQ(e.target.value)} />
         <Button className="ml-auto min-h-10" onClick={() => setEditing('new')}>
           <span className="inline-flex items-center gap-2">
             <Plus className="size-4" aria-hidden />
-            Add court
+            {a.courts.addCourt}
           </span>
         </Button>
       </div>
@@ -79,9 +82,9 @@ export function AdminCourts() {
                   c.status === 'approved' ? 'bg-live/15 text-live' : c.status === 'pending' ? 'bg-players/25' : 'bg-danger/15 text-danger'
                 }`}
               >
-                {c.status}
+                {a.courtStatus[c.status] ?? c.status}
               </span>
-              {c.open_reports > 0 && <span className="ml-2 text-xs font-semibold text-danger">⚑ {c.open_reports} reports</span>}
+              {c.open_reports > 0 && <span className="ml-2 text-xs font-semibold text-danger">⚑ {a.courts.reports(c.open_reports)}</span>}
             </p>
             <p className="text-sm text-ink-2">
               <span className="inline-flex items-center gap-1">
@@ -91,7 +94,7 @@ export function AdminCourts() {
             </p>
             {c.creator && (
               <p className="text-xs text-ink-2">
-                Proposed by {playerDisplayLabel(c.creator, true)}
+                {a.proposedBy} {playerDisplayLabel(c.creator, true)}
               </p>
             )}
             {c.description && <p className="mt-1 text-sm">{c.description}</p>}
@@ -99,7 +102,7 @@ export function AdminCourts() {
           <div className="flex flex-wrap gap-2">
             <Link to={`/admin/courts/${c.id}`}>
               <Button type="button" variant="secondary" className="min-h-9 px-3 text-base">
-                Review
+                {a.courts.review}
               </Button>
             </Link>
             {c.status === 'approved' && (
@@ -107,32 +110,34 @@ export function AdminCourts() {
                 variant="ghost"
                 className="min-h-9 px-3 text-base"
                 onClick={() => {
-                  if (confirm(`Send "${c.name}" back to pending review? It will be hidden from the public map.`))
+                  if (confirm(a.courts.confirmUnapprove(c.name)))
                     act.mutate({ id: c.id, kind: 'pending' })
                 }}
               >
-                Unapprove
+                {a.courts.unapprove}
               </Button>
             )}
             <Button variant="secondary" className="min-h-9 px-3 text-base" onClick={() => setEditing(c)}>
-              Edit
+              {a.edit}
             </Button>
             <Button
               variant="ghost"
               className="min-h-9 px-3 text-base"
-              onClick={() => confirm(`Delete ${c.name}? Its games are deleted too.`) && act.mutate({ id: c.id, kind: 'delete' })}
+              onClick={() => confirm(a.courts.confirmDelete(c.name)) && act.mutate({ id: c.id, kind: 'delete' })}
             >
-              Delete
+              {a.delete}
             </Button>
           </div>
         </Card>
       ))}
-      {data?.length === 0 && <p className="p-6 text-center text-ink-2">No courts.</p>}
+      {data?.length === 0 && <p className="p-6 text-center text-ink-2">{a.courts.empty}</p>}
     </div>
   )
 }
 
 function CourtEditor({ court, onDone }: { court: AdminCourt | null; onDone: () => void }) {
+  const { t } = useLocale()
+  const a = t.admin
   const qc = useQueryClient()
   const { data: sports } = useSports()
   const [form, setForm] = useState({
@@ -151,7 +156,7 @@ function CourtEditor({ court, onDone }: { court: AdminCourt | null; onDone: () =
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
-    if (!where) return setError('Place the court on the map.')
+    if (!where) return setError(a.courts.placeOnMap)
     setBusy(true)
     try {
       const body = {
@@ -176,14 +181,14 @@ function CourtEditor({ court, onDone }: { court: AdminCourt | null; onDone: () =
 
   return (
     <form onSubmit={submit} className="mx-auto grid max-w-xl gap-4">
-      <h2 className="display text-3xl font-bold">{court ? `Edit ${court.name}` : 'New court'}</h2>
-      <Field label="Name">
+      <h2 className="display text-3xl font-bold">{court ? a.courts.editTitle(court.name) : a.courts.newCourt}</h2>
+      <Field label={a.courts.name}>
         <Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
       </Field>
-      <Field label="Location">
+      <Field label={a.courts.location}>
         <LocationPicker value={where} initial={where ?? DEFAULT_CENTER} onChange={setWhere} />
       </Field>
-      <Field label="Sports">
+      <Field label={a.courts.sports}>
         <div className="flex flex-wrap gap-2">
           {sports?.map((s) => (
             <Chip
@@ -201,31 +206,31 @@ function CourtEditor({ court, onDone }: { court: AdminCourt | null; onDone: () =
           ))}
         </div>
       </Field>
-      <Field label="Address">
+      <Field label={a.courts.address}>
         <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Opening hours">
+        <Field label={a.courts.openingHours}>
           <Input value={form.opening_hours} placeholder="06:00–22:00" onChange={(e) => setForm({ ...form, opening_hours: e.target.value })} />
         </Field>
-        <Field label="Surface">
-          <Input value={form.surface} placeholder="Concrete" onChange={(e) => setForm({ ...form, surface: e.target.value })} />
+        <Field label={a.courts.surface}>
+          <Input value={form.surface} placeholder={a.courts.surfacePlaceholder} onChange={(e) => setForm({ ...form, surface: e.target.value })} />
         </Field>
       </div>
       <label className="flex items-center gap-2 font-semibold">
         <input type="checkbox" checked={form.lighting} onChange={(e) => setForm({ ...form, lighting: e.target.checked })} className="size-5 accent-[var(--brand)]" />
-        Lit at night
+        {a.courts.litAtNight}
       </label>
-      <Field label="Description">
+      <Field label={a.courts.description}>
         <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
       </Field>
       <ErrorText>{error}</ErrorText>
       <div className="grid grid-cols-2 gap-2">
         <Button type="button" variant="secondary" onClick={onDone}>
-          Cancel
+          {a.cancel}
         </Button>
         <Button type="submit" loading={busy} disabled={!form.sport_ids.length}>
-          Save
+          {a.save}
         </Button>
       </div>
     </form>

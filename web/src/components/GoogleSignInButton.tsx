@@ -156,7 +156,7 @@ export function GoogleSignInButton({
           }
         >
           {busy ? <Spinner className={dark ? 'text-[#E3E3E3]' : 'text-ink-2'} /> : <GoogleGIcon />}
-          Continue with Google
+          {t.account.continueGoogle}
         </button>
         <ErrorText>{error}</ErrorText>
         {terms}

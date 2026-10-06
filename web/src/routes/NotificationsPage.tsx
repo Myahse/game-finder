@@ -8,11 +8,14 @@ import type { AppNotification } from '../lib/types'
 import { Bell, notificationIcons } from '../components/icons'
 import { Button, Empty, PageHeader } from '../components/ui'
 import { Loading } from './CourtPage'
+import { useLocale } from '../i18n/LocaleProvider'
 
 export function NotificationsPage() {
   const { data, isLoading } = useNotifications()
   const qc = useQueryClient()
   const navigate = useNavigate()
+  const { t } = useLocale()
+  const nt = t.account.notifications
 
   const open = async (n: AppNotification) => {
     if (!n.read) {
@@ -39,11 +42,11 @@ export function NotificationsPage() {
   return (
     <div className="pb-10">
       <PageHeader
-        title="Notifications"
+        title={nt.title}
         right={
           !!data?.unread && (
             <Button variant="ghost" className="min-h-9 px-3 text-base" onClick={readAll}>
-              Mark all read
+              {nt.markAllRead}
             </Button>
           )
         }
@@ -53,8 +56,8 @@ export function NotificationsPage() {
         {isLoading ? (
           <Loading />
         ) : !data?.items.length ? (
-          <Empty icon={<Bell className="size-14" strokeWidth={1.5} />} title="All quiet">
-            Nearby courts and games, invites from friends, and reminders show up here. Allow location on the map and turn on notifications.
+          <Empty icon={<Bell className="size-14" strokeWidth={1.5} />} title={nt.emptyTitle}>
+            {nt.emptyBody}
           </Empty>
         ) : (
           <ul className="grid gap-2">
@@ -73,7 +76,7 @@ export function NotificationsPage() {
                       <span className="block text-sm text-ink-2">{n.body}</span>
                       <span className="mt-1 block text-xs text-ink-2">{timeAgo(n.created_at)}</span>
                     </span>
-                    {!n.read && <span className="mt-2 size-2.5 shrink-0 rounded-full bg-brand" aria-label="Unread" />}
+                    {!n.read && <span className="mt-2 size-2.5 shrink-0 rounded-full bg-brand" aria-label={nt.unread} />}
                   </button>
                 </li>
               )

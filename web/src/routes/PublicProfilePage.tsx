@@ -5,35 +5,38 @@ import { useProfileByUsername } from '../lib/queries'
 import { PlayerProfileView } from './ProfilePage'
 import { Button } from '../components/ui'
 import { Loading } from './CourtPage'
+import { useLocale } from '../i18n/LocaleProvider'
 
 export function PublicProfilePage() {
   const { username = '' } = useParams()
   const { user } = useAuth()
+  const { t } = useLocale()
+  const pp = t.account.publicProfile
   const viewerIsAdmin = user?.role === 'admin'
   const { data: profile, isLoading, isError, isSelf } = useProfileByUsername(username)
 
   if (isLoading) return <Loading />
 
   const handle = username.trim().replace(/^@/, '')
-  const title = profile ? playerUsernameLabel(profile) : handle ? `@${handle}` : 'Player'
+  const title = profile ? playerUsernameLabel(profile) : handle ? `@${handle}` : t.common.player
 
   if (!profile && isError && !isSelf) {
     return (
       <div className="mx-auto max-w-md p-6 text-center">
-        <h1 className="display text-2xl font-bold">Player not found</h1>
+        <h1 className="display text-2xl font-bold">{pp.notFound}</h1>
         <p className="mt-2 text-ink-2">
           {handle ? (
             <>
-              There is no account <span className="font-semibold text-ink">@{handle}</span> on Find the Game yet.
+              {pp.noAccountBefore}<span className="font-semibold text-ink">@{handle}</span>{pp.noAccountAfter}
             </>
           ) : (
-            'This profile link is invalid.'
+            pp.invalidLink
           )}
         </p>
         {!user ? (
           <div className="mt-6 grid gap-2">
-            <Button type="button" onClick={() => (window.location.href = '/register')}>Create account</Button>
-            <Link to="/?login=1" className="text-sm font-semibold text-brand">Log in</Link>
+            <Button type="button" onClick={() => (window.location.href = '/register')}>{t.welcome.createAccount}</Button>
+            <Link to="/?login=1" className="text-sm font-semibold text-brand">{t.welcome.logIn}</Link>
           </div>
         ) : (
           <div className="mt-6 grid gap-2">
@@ -42,10 +45,10 @@ export function PublicProfilePage() {
                 to={`/u/${encodeURIComponent(user.username)}`}
                 className="text-sm font-semibold text-brand"
               >
-                View your profile (@{user.username})
+                {pp.viewYourProfile.replace('{user}', user.username)}
               </Link>
             ) : null}
-            <Link to="/" className="text-sm font-semibold text-ink-2">Back to map</Link>
+            <Link to="/" className="text-sm font-semibold text-ink-2">{pp.backToMap}</Link>
           </div>
         )}
       </div>

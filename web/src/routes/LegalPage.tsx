@@ -1,41 +1,44 @@
 import { Link } from 'react-router-dom'
-import { LEGAL_LAST_UPDATED, privacySections, termsSections } from '../content/legal'
+import type { LegalSection } from '../content/legal'
 import { PageHeader } from '../components/ui'
+import { useLocale } from '../i18n/LocaleProvider'
 
-function LegalDoc({ title, sections }: { title: string; sections: { title: string; body: string }[] }) {
+function LegalDoc({ title, sections }: { title: string; sections: LegalSection[] }) {
+  const { t } = useLocale()
   return (
     <div className="pb-12">
       <PageHeader title={title} back="/" />
       <article className="mx-auto max-w-lg space-y-6 p-5 text-sm leading-relaxed text-ink-2">
-        <p className="text-xs text-ink-2">Last updated: {LEGAL_LAST_UPDATED}</p>
+        <p className="text-xs text-ink-2">{t.legal.lastUpdatedLabel} {t.legal.lastUpdated}</p>
         {sections.map((s) => (
           <section key={s.title}>
             <h2 className="display text-lg font-bold text-ink">{s.title}</h2>
             <p className="mt-2">{s.body}</p>
           </section>
         ))}
-        <p className="border-t border-line pt-4 text-xs">
-          This is a community product template. Have a lawyer review before a large public launch.
-        </p>
+        <p className="border-t border-line pt-4 text-xs">{t.legal.disclaimer}</p>
       </article>
     </div>
   )
 }
 
 export function TermsPage() {
-  return <LegalDoc title="Terms of use" sections={termsSections} />
+  const { t } = useLocale()
+  return <LegalDoc title={t.legal.termsTitle} sections={t.legal.terms} />
 }
 
 export function PrivacyPage() {
-  return <LegalDoc title="Privacy policy" sections={privacySections} />
+  const { t } = useLocale()
+  return <LegalDoc title={t.legal.privacyTitle} sections={t.legal.privacy} />
 }
 
 export function LegalFooter({ className = '' }: { className?: string }) {
+  const { t } = useLocale()
   return (
     <p className={`text-center text-xs text-ink-2 ${className}`}>
-      <Link to="/terms" className="font-semibold text-brand hover:underline">Terms</Link>
+      <Link to="/terms" className="font-semibold text-brand hover:underline">{t.legal.termsLink}</Link>
       {' · '}
-      <Link to="/privacy" className="font-semibold text-brand hover:underline">Privacy</Link>
+      <Link to="/privacy" className="font-semibold text-brand hover:underline">{t.legal.privacyLink}</Link>
     </p>
   )
 }

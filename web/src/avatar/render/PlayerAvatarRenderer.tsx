@@ -2,6 +2,7 @@ import { Component, lazy, Suspense, type ReactNode } from 'react'
 import type { AvatarRenderProps } from './rendererTypes'
 import { avatarRendererMode } from './avatarRendererMode'
 import { AvatarPortrait } from './AvatarPortrait'
+import { useLocale } from '../../i18n/LocaleProvider'
 
 const GlbPlayerAvatarRenderer = lazy(() =>
   import('./glb/GlbPlayerAvatarRenderer').then((m) => ({ default: m.GlbPlayerAvatarRenderer })),
@@ -19,11 +20,12 @@ class FallbackOnError extends Component<{ fallback: ReactNode; children: ReactNo
 }
 
 export function PlayerAvatarRenderer(props: AvatarRenderProps) {
+  const { t } = useLocale()
   const portrait = <AvatarPortrait config={props.config} className={`h-full w-full ${props.className ?? ''}`} />
   if ((props.renderer ?? avatarRendererMode()) === 'glb') {
     return (
       <FallbackOnError fallback={portrait}>
-        <Suspense fallback={<div className="flex h-full items-center justify-center text-xs text-ink-2">Loading 3D…</div>}>
+        <Suspense fallback={<div className="flex h-full items-center justify-center text-xs text-ink-2">{t.avatarLabels.loading3d}</div>}>
           <GlbPlayerAvatarRenderer {...props} />
         </Suspense>
       </FallbackOnError>

@@ -10,6 +10,7 @@ import { mapStyleForTheme } from '../theme/mapStyle'
 import { MAPBOX_ACCESS_TOKEN, MAPBOX_MAP_PROPS, mapboxConfigured, mapboxTokenSetupError } from '../lib/mapbox'
 import type { Court } from '../lib/types'
 import { UserLocationPulse } from './UserLocationPulse'
+import { useLocale } from '../i18n/LocaleProvider'
 
 type Props = {
   value: Coords | null
@@ -36,6 +37,7 @@ export function CourtPlacementMap({
   edgePinHint = true,
   readOnly = false,
 }: Props) {
+  const { t } = useLocale()
   const { isDark } = useTheme()
   const innerRef = useRef<MapRef>(null)
   const ref = mapRef ?? innerRef
@@ -96,7 +98,7 @@ export function CourtPlacementMap({
   if (mapboxErr || !mapboxConfigured()) {
     return (
       <div className={`flex items-center justify-center bg-surface-2 p-4 text-center text-xs text-ink-2 ${className}`}>
-        {mapboxErr ?? 'Add VITE_MAPBOX_ACCESS_TOKEN (public pk.* token) to show the map.'}
+        {mapboxErr ?? t.courts.map.tokenMissingShort}
       </div>
     )
   }
@@ -151,17 +153,17 @@ export function CourtPlacementMap({
             draggable={!readOnly}
             onDragEnd={readOnly ? undefined : (e) => onChange({ latitude: e.lngLat.lat, longitude: e.lngLat.lng })}
           >
-            <MapPin className="size-10 text-brand drop-shadow" strokeWidth={2.4} aria-label="Court location" />
+            <MapPin className="size-10 text-brand drop-shadow" strokeWidth={2.4} aria-label={t.courts.map.courtLocation} />
           </Marker>
         )}
       </Map>
 
       <div className="absolute left-3 bottom-3 z-10 flex flex-col overflow-hidden rounded-xl border border-line bg-surface/95 shadow backdrop-blur">
-        <button type="button" className="flex size-10 items-center justify-center text-ink hover:bg-surface-2" onClick={() => zoomBy(1)} aria-label="Zoom in">
+        <button type="button" className="flex size-10 items-center justify-center text-ink hover:bg-surface-2" onClick={() => zoomBy(1)} aria-label={t.courts.map.zoomIn}>
           <Plus className="size-5" />
         </button>
         <div className="h-px bg-line" />
-        <button type="button" className="flex size-10 items-center justify-center text-ink hover:bg-surface-2" onClick={() => zoomBy(-1)} aria-label="Zoom out">
+        <button type="button" className="flex size-10 items-center justify-center text-ink hover:bg-surface-2" onClick={() => zoomBy(-1)} aria-label={t.courts.map.zoomOut}>
           <Minus className="size-5" />
         </button>
       </div>
@@ -171,7 +173,7 @@ export function CourtPlacementMap({
           type="button"
           onClick={goToMe}
           className="absolute right-3 bottom-3 z-10 flex size-11 items-center justify-center rounded-xl border border-line bg-surface/95 text-brand shadow backdrop-blur hover:bg-surface-2"
-          aria-label="Center on my position"
+          aria-label={t.courts.map.centerOnMyPosition}
         >
           <LocateFixed className="size-5" />
         </button>
@@ -183,7 +185,7 @@ export function CourtPlacementMap({
           onClick={goToPin}
           className="absolute z-20 flex size-11 items-center justify-center rounded-full border-2 border-brand bg-surface text-brand shadow-lg"
           style={{ left: edge.left, top: edge.top, transform: `translate(-50%, -50%) rotate(${edge.rotationDeg}deg)` }}
-          aria-label="Pan to court pin"
+          aria-label={t.courts.map.panToPin}
         >
           <MapPin className="size-6" strokeWidth={2.4} />
         </button>

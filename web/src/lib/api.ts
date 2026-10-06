@@ -1,4 +1,5 @@
 import type { Me, Session } from './types'
+import { currentT } from '../i18n/LocaleProvider'
 
 /** Production API fallback when VITE_API_URL was not set at build time (set VITE_API_URL on Vercel). */
 export const DEFAULT_REMOTE_API = 'https://game-finder-ddcm.onrender.com'
@@ -232,7 +233,7 @@ export async function exchangeSession(path: string, json: Record<string, unknown
     })
     const data = await res.json().catch(() => null)
     if (!res.ok) {
-      throw new ApiError(res.status, data?.error ?? 'error', data?.message ?? 'Something went wrong.')
+      throw new ApiError(res.status, data?.error ?? 'error', data?.message ?? currentT().errors.generic)
     }
     return data as Session
   }
@@ -267,7 +268,7 @@ export async function api<T>(path: string, init: RequestInit & { json?: unknown 
   if (res.status === 204) return undefined as T
   const data = await res.json().catch(() => null)
   if (!res.ok) {
-    throw new ApiError(res.status, data?.error ?? 'error', data?.message ?? 'Something went wrong.')
+    throw new ApiError(res.status, data?.error ?? 'error', data?.message ?? currentT().errors.generic)
   }
   return data as T
 }
@@ -315,10 +316,21 @@ export async function uploadImage(file: File, kind: 'avatar' | 'court'): Promise
   return url
 }
 
+/** Localized text for an API error code: exact-message variant, then the code's copy, then the server message. */
+export function apiErrorText(e: ApiError): string {
+  const t = currentT().errors
+  const variants = t.variants as Record<string, Record<string, string> | undefined>
+  const codes = t.codes as Record<string, string | undefined>
+  const text = variants[e.code]?.[e.message] ?? codes[e.code]
+  if (text) return text
+  if (e.code.startsWith('invalid:')) return t.invalidValue
+  return e.message || t.generic
+}
+
 export function errorMessage(e: unknown): string {
-  if (e instanceof ApiError) return e.message
-  if (e instanceof TypeError) return "Can't reach the server. Check your connection."
-  return 'Something went wrong.'
+  if (e instanceof ApiError) return apiErrorText(e)
+  if (e instanceof TypeError) return currentT().errors.network
+  return currentT().errors.generic
 }
 
 /** Restore the session on page load: cookies first, then the stored refresh token (cookie-blocking browsers). */

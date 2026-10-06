@@ -13,6 +13,7 @@ import { OrDivider } from '../components/GoogleSignInButton'
 import { SocialSignInButtons } from '../components/SocialSignInButtons'
 import { Avatar, Button, ErrorText, PageHeader, Spinner } from '../components/ui'
 import type { PublicUser } from '../lib/types'
+import { useLocale } from '../i18n/LocaleProvider'
 
 type Preview = {
   valid: boolean
@@ -23,6 +24,8 @@ type Preview = {
 export function FriendInvitePage() {
   const { token = '' } = useParams()
   const { user } = useAuth()
+  const { t } = useLocale()
+  const fi = t.account.friendInvite
   const viewerIsAdmin = user?.role === 'admin'
   const navigate = useNavigate()
   const [acceptError, setAcceptError] = useState('')
@@ -64,7 +67,7 @@ export function FriendInvitePage() {
 
   return (
     <div className="min-h-full">
-      <PageHeader title="Friend invite" back="/" />
+      <PageHeader title={fi.title} back="/" />
       <div className="mx-auto grid max-w-md gap-4 p-5">
         {isLoading ? (
           <div className="flex justify-center py-12">
@@ -72,28 +75,28 @@ export function FriendInvitePage() {
           </div>
         ) : error || !inviter ? (
           <div className="grid gap-3 text-center">
-            <p className="text-ink-2">This invite link is invalid or has expired.</p>
-            <Button type="button" onClick={() => navigate('/', { replace: true })}>Go to map</Button>
+            <p className="text-ink-2">{fi.invalid}</p>
+            <Button type="button" onClick={() => navigate('/', { replace: true })}>{fi.goToMap}</Button>
           </div>
         ) : (
           <>
             <div className="flex flex-col items-center gap-3 text-center">
               <Avatar size={72} user={inviter} />
               <p className="display text-2xl font-bold">{playerDisplayLabel(inviter, viewerIsAdmin)}</p>
-              <p className="text-ink-2">wants to be friends on Find the Game.</p>
+              <p className="text-ink-2">{fi.wantsToBeFriends}</p>
             </div>
 
             {user?.id === inviter.id ? (
-              <p className="text-center text-sm text-ink-2">This is your own invite link — share it with someone else.</p>
+              <p className="text-center text-sm text-ink-2">{fi.ownLink}</p>
             ) : user && !user.onboarded ? (
               <div className="grid gap-2">
-                <p className="text-center text-sm text-ink-2">Finish setting up your profile, then accept the invite from here or your profile.</p>
-                <Button type="button" onClick={() => navigate('/', { replace: true })}>Continue setup</Button>
+                <p className="text-center text-sm text-ink-2">{fi.finishSetup}</p>
+                <Button type="button" onClick={() => navigate('/', { replace: true })}>{fi.continueSetup}</Button>
               </div>
             ) : canAccept ? (
               <div className="grid gap-2">
                 <Button type="button" loading={accepting} onClick={() => void accept()}>
-                  Accept friend request
+                  {fi.accept}
                 </Button>
                 <ErrorText>{acceptError}</ErrorText>
               </div>
@@ -102,12 +105,12 @@ export function FriendInvitePage() {
                 <SocialSignInButtons showTerms onSignedIn={() => void afterAuth()} navigateAfterSignIn={null} />
                 <OrDivider className="text-ink-2" />
                 <Button type="button" onClick={() => navigate('/register', { replace: true })}>
-                  Create account
+                  {t.welcome.createAccount}
                 </Button>
                 <p className="text-center text-sm text-ink-2">
-                  Already playing?{' '}
+                  {t.account.register.alreadyPlaying}{' '}
                   <Link to="/?login=1" className="font-semibold text-brand">
-                    Log in
+                    {t.welcome.logIn}
                   </Link>
                 </p>
               </div>

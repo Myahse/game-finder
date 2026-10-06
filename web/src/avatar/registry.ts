@@ -1,7 +1,30 @@
 import type { AvatarAsset, AvatarCategory, SportSlug } from './schema'
+import { currentT } from '../i18n/LocaleProvider'
 
-function assets(category: AvatarCategory, items: [string, string][], sports?: SportSlug[]): AvatarAsset[] {
-  return items.map(([id, name]) => ({ id, category, name, compatibleSports: sports }))
+type AvatarLabels = ReturnType<typeof currentT>['avatarLabels']
+export type OptionGroup = keyof AvatarLabels['options']
+
+/** Display name of an option in the device language (English fallback). Read at call time, never at module load. */
+export function optionLabel(group: OptionGroup, id: string, fallback = id): string {
+  const names = currentT().avatarLabels?.options?.[group] as Record<string, string> | undefined
+  return names?.[id] ?? fallback
+}
+
+/** Display name of a studio category in the device language. */
+export function categoryLabel(id: AvatarCategory, fallback: string = id): string {
+  return (currentT().avatarLabels?.categories as Record<string, string> | undefined)?.[id] ?? fallback
+}
+
+/** `name` is a getter so every screen shows the current device language. */
+function named<T extends { id: string }>(group: OptionGroup, item: T, en: string): T & { name: string } {
+  return Object.defineProperty(item, 'name', {
+    get: () => optionLabel(group, item.id, en),
+    enumerable: true,
+  }) as T & { name: string }
+}
+
+function assets(category: AvatarCategory, items: [string, string][], sports?: SportSlug[], group: OptionGroup = category): AvatarAsset[] {
+  return items.map(([id, name]) => named(group, { id, category, compatibleSports: sports }, name))
 }
 
 export const BODY_TYPES = assets('body', [
@@ -113,7 +136,7 @@ export const HAIR_COLORS = assets('hair', [
   ['platinum', 'Platinum'],
   ['red', 'Red'],
   ['grey', 'Grey'],
-])
+], undefined, 'hairColor')
 
 export const FACIAL_HAIR = assets('facialHair', [
   ['beard_none', 'None'],
@@ -202,57 +225,57 @@ export const POSES = assets('pose', [['standing', 'Standing'], ['action', 'Actio
 
 /* Optional extras — ids must match backend/internal/avatar/catalog.go */
 export const FIGURES: { id: 'straight' | 'curvy'; name: string }[] = [
-  { id: 'straight', name: 'Straight' },
-  { id: 'curvy', name: 'Curvy' },
+  named('figure', { id: 'straight' }, 'Straight'),
+  named('figure', { id: 'curvy' }, 'Curvy'),
 ]
 
 export const EYE_COLORS: { id: string; name: string; hex: string }[] = [
-  { id: 'brown', name: 'Brown', hex: '#5a3520' },
-  { id: 'dark', name: 'Dark brown', hex: '#2b1a10' },
-  { id: 'hazel', name: 'Hazel', hex: '#7b6a2e' },
-  { id: 'green', name: 'Green', hex: '#3f7a4a' },
-  { id: 'blue', name: 'Blue', hex: '#3b6fb6' },
-  { id: 'grey', name: 'Grey', hex: '#6f7d88' },
+  named('eyeColor', { id: 'brown', hex: '#5a3520' }, 'Brown'),
+  named('eyeColor', { id: 'dark', hex: '#2b1a10' }, 'Dark brown'),
+  named('eyeColor', { id: 'hazel', hex: '#7b6a2e' }, 'Hazel'),
+  named('eyeColor', { id: 'green', hex: '#3f7a4a' }, 'Green'),
+  named('eyeColor', { id: 'blue', hex: '#3b6fb6' }, 'Blue'),
+  named('eyeColor', { id: 'grey', hex: '#6f7d88' }, 'Grey'),
 ]
 
 export const LASHES: { id: 'none' | 'natural' | 'bold'; name: string }[] = [
-  { id: 'none', name: 'None' },
-  { id: 'natural', name: 'Natural' },
-  { id: 'bold', name: 'Bold' },
+  named('lashes', { id: 'none' }, 'None'),
+  named('lashes', { id: 'natural' }, 'Natural'),
+  named('lashes', { id: 'bold' }, 'Bold'),
 ]
 
 export const LIP_COLORS: { id: string; name: string; hex: string }[] = [
-  { id: 'natural', name: 'Natural', hex: '#9a4a40' },
-  { id: 'nude', name: 'Nude', hex: '#b9776a' },
-  { id: 'rose', name: 'Rose', hex: '#c4566e' },
-  { id: 'berry', name: 'Berry', hex: '#7d2448' },
-  { id: 'red', name: 'Red', hex: '#c0202b' },
+  named('lipColor', { id: 'natural', hex: '#9a4a40' }, 'Natural'),
+  named('lipColor', { id: 'nude', hex: '#b9776a' }, 'Nude'),
+  named('lipColor', { id: 'rose', hex: '#c4566e' }, 'Rose'),
+  named('lipColor', { id: 'berry', hex: '#7d2448' }, 'Berry'),
+  named('lipColor', { id: 'red', hex: '#c0202b' }, 'Red'),
 ]
 
 export const DETAILS: { id: 'freckles' | 'beauty_mark' | 'dimples' | 'face_paint' | 'tattoo_arm' | 'tattoo_sleeve'; name: string }[] = [
-  { id: 'freckles', name: 'Freckles' },
-  { id: 'beauty_mark', name: 'Beauty mark' },
-  { id: 'dimples', name: 'Dimples' },
-  { id: 'face_paint', name: 'Eye black' },
-  { id: 'tattoo_arm', name: 'Arm band tattoo' },
-  { id: 'tattoo_sleeve', name: 'Sleeve tattoo' },
+  named('details', { id: 'freckles' }, 'Freckles'),
+  named('details', { id: 'beauty_mark' }, 'Beauty mark'),
+  named('details', { id: 'dimples' }, 'Dimples'),
+  named('details', { id: 'face_paint' }, 'Eye black'),
+  named('details', { id: 'tattoo_arm' }, 'Arm band tattoo'),
+  named('details', { id: 'tattoo_sleeve' }, 'Sleeve tattoo'),
 ]
 
 export const KIT_COLORS: { id: string; name: string; hex: string }[] = [
-  { id: 'red', name: 'Red', hex: '#dc2626' },
-  { id: 'orange', name: 'Orange', hex: '#f2552c' },
-  { id: 'gold', name: 'Gold', hex: '#f5b301' },
-  { id: 'green', name: 'Green', hex: '#109c4e' },
-  { id: 'teal', name: 'Teal', hex: '#0d9488' },
-  { id: 'sky', name: 'Sky', hex: '#0ea5e9' },
-  { id: 'blue', name: 'Blue', hex: '#2563eb' },
-  { id: 'navy', name: 'Navy', hex: '#1e3a8a' },
-  { id: 'purple', name: 'Purple', hex: '#7c3aed' },
-  { id: 'pink', name: 'Pink', hex: '#ec4899' },
-  { id: 'maroon', name: 'Maroon', hex: '#7f1d1d' },
-  { id: 'black', name: 'Black', hex: '#1d1f2b' },
-  { id: 'white', name: 'White', hex: '#f6f5f0' },
-  { id: 'grey', name: 'Grey', hex: '#8d929b' },
+  named('kitColor', { id: 'red', hex: '#dc2626' }, 'Red'),
+  named('kitColor', { id: 'orange', hex: '#f2552c' }, 'Orange'),
+  named('kitColor', { id: 'gold', hex: '#f5b301' }, 'Gold'),
+  named('kitColor', { id: 'green', hex: '#109c4e' }, 'Green'),
+  named('kitColor', { id: 'teal', hex: '#0d9488' }, 'Teal'),
+  named('kitColor', { id: 'sky', hex: '#0ea5e9' }, 'Sky'),
+  named('kitColor', { id: 'blue', hex: '#2563eb' }, 'Blue'),
+  named('kitColor', { id: 'navy', hex: '#1e3a8a' }, 'Navy'),
+  named('kitColor', { id: 'purple', hex: '#7c3aed' }, 'Purple'),
+  named('kitColor', { id: 'pink', hex: '#ec4899' }, 'Pink'),
+  named('kitColor', { id: 'maroon', hex: '#7f1d1d' }, 'Maroon'),
+  named('kitColor', { id: 'black', hex: '#1d1f2b' }, 'Black'),
+  named('kitColor', { id: 'white', hex: '#f6f5f0' }, 'White'),
+  named('kitColor', { id: 'grey', hex: '#8d929b' }, 'Grey'),
 ]
 
 const BY_CATEGORY: Record<AvatarCategory, AvatarAsset[]> = {
@@ -280,23 +303,27 @@ export function assetsForCategory(cat: AvatarCategory): AvatarAsset[] {
   return BY_CATEGORY[cat] ?? []
 }
 
+function category(id: AvatarCategory, en: string): { id: AvatarCategory; label: string } {
+  return Object.defineProperty({ id }, 'label', { get: () => categoryLabel(id, en), enumerable: true }) as { id: AvatarCategory; label: string }
+}
+
 export const STUDIO_CATEGORIES: { id: AvatarCategory; label: string }[] = [
-  { id: 'body', label: 'Body' },
-  { id: 'skin', label: 'Skin' },
-  { id: 'face', label: 'Face' },
-  { id: 'eyes', label: 'Eyes' },
-  { id: 'eyebrows', label: 'Brows' },
-  { id: 'nose', label: 'Nose' },
-  { id: 'mouth', label: 'Mouth' },
-  { id: 'hair', label: 'Hair' },
-  { id: 'facialHair', label: 'Facial hair' },
-  { id: 'top', label: 'Top' },
-  { id: 'bottom', label: 'Bottom' },
-  { id: 'shoes', label: 'Shoes' },
-  { id: 'headwear', label: 'Headwear' },
-  { id: 'eyewear', label: 'Eyewear' },
-  { id: 'accessory', label: 'Accessories' },
-  { id: 'sport', label: 'Sport' },
-  { id: 'sportsEquipment', label: 'Equipment' },
-  { id: 'pose', label: 'Pose' },
+  category('body', 'Body'),
+  category('skin', 'Skin'),
+  category('face', 'Face'),
+  category('eyes', 'Eyes'),
+  category('eyebrows', 'Brows'),
+  category('nose', 'Nose'),
+  category('mouth', 'Mouth'),
+  category('hair', 'Hair'),
+  category('facialHair', 'Facial hair'),
+  category('top', 'Top'),
+  category('bottom', 'Bottom'),
+  category('shoes', 'Shoes'),
+  category('headwear', 'Headwear'),
+  category('eyewear', 'Eyewear'),
+  category('accessory', 'Accessories'),
+  category('sport', 'Sport'),
+  category('sportsEquipment', 'Equipment'),
+  category('pose', 'Pose'),
 ]

@@ -6,6 +6,7 @@ import { geocodeBiasFor, type GeocodeBias } from '../lib/geocodeBias'
 import type { Coords } from '../lib/location'
 import type { Court } from '../lib/types'
 import { SportIcon } from './icons'
+import { useLocale } from '../i18n/LocaleProvider'
 
 type Props = {
   mapRef: React.RefObject<MapRef | null>
@@ -25,9 +26,10 @@ export function MapSearchBar({
   locationBias,
   courts = [],
   onSelectCourt,
-  placeholder = 'Search courts or places…',
+  placeholder,
   className = '',
 }: Props) {
+  const { t } = useLocale()
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const [places, setPlaces] = useState<Awaited<ReturnType<typeof forwardGeocode>>>([])
@@ -105,7 +107,7 @@ export function MapSearchBar({
             setOpen(true)
           }}
           onFocus={() => setOpen(true)}
-          placeholder={placeholder}
+          placeholder={placeholder ?? t.courts.map.searchPlaceholder}
           className="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-2"
           autoComplete="off"
           enterKeyHint="search"
@@ -114,7 +116,7 @@ export function MapSearchBar({
           <button
             type="button"
             className="rounded p-0.5 text-ink-2 hover:text-ink"
-            aria-label="Clear search"
+            aria-label={t.courts.map.clearSearch}
             onClick={() => {
               setQuery('')
               setPlaces([])
@@ -130,7 +132,7 @@ export function MapSearchBar({
           role="listbox"
         >
           {loading && !courtHits.length ? (
-            <li className="px-3 py-2 text-xs text-ink-2">Searching…</li>
+            <li className="px-3 py-2 text-xs text-ink-2">{t.courts.map.searching}</li>
           ) : null}
           {courtHits.map((c) => {
             const slug = c.sports[0]?.slug ?? 'basketball'
@@ -145,7 +147,7 @@ export function MapSearchBar({
                   <SportIcon slug={slug} className="mt-0.5 size-4 shrink-0 text-brand" />
                   <span>
                     <span className="font-semibold text-ink">{c.name}</span>
-                    <span className="block text-xs text-ink-2">Court on map</span>
+                    <span className="block text-xs text-ink-2">{t.courts.map.courtOnMap}</span>
                   </span>
                 </button>
               </li>
@@ -164,7 +166,7 @@ export function MapSearchBar({
             </li>
           ))}
           {!loading && !hasResults ? (
-            <li className="px-3 py-2 text-xs text-ink-2">No matches — try another name or address.</li>
+            <li className="px-3 py-2 text-xs text-ink-2">{t.courts.map.noMatches}</li>
           ) : null}
         </ul>
       ) : null}

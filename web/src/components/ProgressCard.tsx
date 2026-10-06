@@ -132,7 +132,7 @@ function ProgressView({ p, avatar, mine }: { p: Progress; avatar: PlayerAvatarCo
                   >
                     {art.emoji}
                   </span>
-                  {got && isNewBadge(b) && <span className="absolute -right-1 -top-1 rounded-full bg-brand px-1 text-[9px] font-bold text-brand-ink">NEW</span>}
+                  {got && isNewBadge(b) && <span className="absolute -right-1 -top-1 rounded-full bg-brand px-1 text-[9px] font-bold text-brand-ink">{t.progress.newTag}</span>}
                 </span>
                 <span className={`line-clamp-2 text-[11px] font-semibold leading-tight ${got ? '' : 'text-ink-2'}`}>{t.progress.names[b.id] ?? b.id}</span>
                 {!got && b.goal > 1 && (

@@ -1,19 +1,21 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { PageHeader } from '../../components/ui'
+import { useLocale } from '../../i18n/LocaleProvider'
 
-const tabs = [
-  { to: '/admin', label: 'Stats', end: true },
-  { to: '/admin/courts', label: 'Courts' },
-  { to: '/admin/games', label: 'Games' },
-  { to: '/admin/users', label: 'Users' },
-  { to: '/admin/reports', label: 'Reports' },
-  { to: '/admin/settings', label: 'Settings' },
+const tabs: { to: string; key: 'stats' | 'courts' | 'games' | 'users' | 'reports' | 'settings'; end?: boolean }[] = [
+  { to: '/admin', key: 'stats', end: true },
+  { to: '/admin/courts', key: 'courts' },
+  { to: '/admin/games', key: 'games' },
+  { to: '/admin/users', key: 'users' },
+  { to: '/admin/reports', key: 'reports' },
+  { to: '/admin/settings', key: 'settings' },
 ]
 
 export function AdminLayout() {
+  const { t: m } = useLocale()
   return (
     <div className="pb-10">
-      <PageHeader title="Admin" />
+      <PageHeader title={m.admin.title} />
       <nav className="flex gap-1 overflow-x-auto border-b border-line px-3">
         {tabs.map((t) => (
           <NavLink
@@ -24,7 +26,7 @@ export function AdminLayout() {
               `shrink-0 border-b-2 px-3 py-2.5 text-sm font-semibold ${isActive ? 'border-brand text-brand' : 'border-transparent text-ink-2 hover:text-ink'}`
             }
           >
-            {t.label}
+            {m.admin.tabs[t.key]}
           </NavLink>
         ))}
       </nav>

@@ -13,10 +13,12 @@ import { useGameAction, useMyPresence, usePresenceAction } from '../lib/queries'
 import type { Court, Game } from '../lib/types'
 import { Check, Circle, Hourglass, MapPin, Navigation } from 'lucide-react'
 import { AppAlert, Button, ErrorText } from './ui'
+import { useLocale } from '../i18n/LocaleProvider'
 
 /** JOIN GAME · I'M HERE · GET DIRECTIONS — shared by the sheet and the details page. */
 export function CourtActions({ court, games, me }: { court: Court; games: Game[]; me: Coords | null }) {
   const navigate = useNavigate()
+  const { t, locale } = useLocale()
   const { data: presence } = useMyPresence()
   const presenceAction = usePresenceAction()
   const gameAction = useGameAction()
@@ -37,11 +39,11 @@ export function CourtActions({ court, games, me }: { court: Court; games: Game[]
         <p className="rounded-xl bg-players/20 p-3 text-sm font-medium">
           <span className="inline-flex items-center gap-2">
             <Hourglass className="size-4 shrink-0" aria-hidden />
-            Preview only — waiting for admin review. Only you see this on the map.
+            {t.courts.actions.pendingPreview}
           </span>
         </p>
         <Button type="button" variant="secondary" onClick={() => navigate(`/courts/${court.id}`)}>
-          View your proposal
+          {t.courts.actions.viewProposal}
         </Button>
         <a
           href={directionsUrl(court.latitude, court.longitude)}
@@ -50,7 +52,7 @@ export function CourtActions({ court, games, me }: { court: Court; games: Game[]
           className="display inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-surface-2 px-4 text-lg font-bold text-ink hover:bg-line"
         >
           <Navigation className="size-5 shrink-0" aria-hidden />
-          Directions
+          {t.courts.actions.directions}
         </a>
       </div>
     )
@@ -93,23 +95,23 @@ export function CourtActions({ court, games, me }: { court: Court; games: Game[]
         <Button variant="live" onClick={() => navigate(`/games/${myGame.id}`)}>
           <span className="inline-flex items-center gap-2">
             <Check className="size-5 shrink-0" aria-hidden />
-            You're in · {gamePlayerCountLabel(myGame.player_count, myGame.max_players)}
+            {t.courts.actions.youreIn.replace('{count}', gamePlayerCountLabel(myGame.player_count, myGame.max_players))}
           </span>
         </Button>
       ) : (
         <Button variant={joinable ? 'live' : 'primary'} onClick={join} loading={gameAction.isPending}>
           {joinable
-            ? `Join game · ${gamePlayerCountLabel(joinable.player_count, joinable.max_players)}`
+            ? t.courts.actions.joinGame.replace('{count}', gamePlayerCountLabel(joinable.player_count, joinable.max_players))
             : live.length
-              ? 'Start another game'
-              : 'Create game'}
+              ? t.courts.actions.startAnother
+              : t.courts.actions.createGame}
         </Button>
       )}
       <div className="grid grid-cols-2 gap-2">
         <Button variant={hereNow ? 'danger' : 'secondary'} onClick={toggleHere} loading={presenceAction.isPending}>
           <span className="inline-flex items-center gap-2">
             {!hereNow && <MapPin className="size-4 shrink-0" aria-hidden />}
-            {hereNow ? "I've left" : "I'm here"}
+            {hereNow ? t.courts.actions.left : t.courts.actions.here}
           </span>
         </Button>
         <a
@@ -119,22 +121,22 @@ export function CourtActions({ court, games, me }: { court: Court; games: Game[]
           className="display inline-flex min-h-12 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-surface-2 px-4 text-lg font-bold text-ink hover:bg-line"
         >
           <Navigation className="size-5 shrink-0" aria-hidden />
-          Directions
+          {t.courts.actions.directions}
         </a>
       </div>
       {hereNow && presence && (
         <p className="flex items-center justify-center gap-2 text-center text-sm text-live">
           <Circle className="size-3 fill-live text-live" aria-hidden />
-          You're checked in since {new Date(presence.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {t.courts.actions.checkedInSince.replace('{time}', new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(new Date(presence.started_at)))}
         </p>
       )}
       {!atCourt && !hereNow && (
         <p className="text-center text-xs text-ink-2">
-          Check-in and live games require you to be within about {COURT_AT_RADIUS_M} m of the court.
+          {t.courts.actions.radiusHint.replace('{m}', String(COURT_AT_RADIUS_M))}
         </p>
       )}
       <Link to={`/courts/${court.id}/report`} className="mt-1 text-center text-xs text-ink-2 hover:text-ink">
-        Report a problem with this court
+        {t.courts.actions.reportProblem}
       </Link>
     </div>
   )

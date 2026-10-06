@@ -5,6 +5,7 @@ import { resolveMediaUrl } from '../lib/mediaUrl'
 import { qk } from '../lib/queries'
 import { Plus, X } from './icons'
 import { Button, ErrorText } from './ui'
+import { useLocale } from '../i18n/LocaleProvider'
 
 type Props = {
   courtId: string
@@ -15,6 +16,7 @@ type Props = {
 /** Lets the court proposer add or remove photos (up to 6 total). */
 export function CourtAddPhotos({ courtId, photos, canManage }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const { t } = useLocale()
   const qc = useQueryClient()
   const [uploading, setUploading] = useState(false)
   const [removing, setRemoving] = useState<string | null>(null)
@@ -74,7 +76,7 @@ export function CourtAddPhotos({ courtId, photos, canManage }: Props) {
                 disabled={removing === p}
                 onClick={() => void remove(p)}
                 className="absolute -right-1.5 -top-1.5 flex size-7 items-center justify-center rounded-full border border-line bg-surface text-ink shadow hover:bg-surface-2 disabled:opacity-50"
-                aria-label="Remove photo"
+                aria-label={t.courts.removePhoto}
               >
                 <X className="size-4" aria-hidden />
               </button>
@@ -99,11 +101,11 @@ export function CourtAddPhotos({ courtId, photos, canManage }: Props) {
           onClick={() => inputRef.current?.click()}
         >
           <Plus className="size-5" aria-hidden />
-          {photos.length === 0 ? 'Add court photos' : 'Add more photos'}
+          {photos.length === 0 ? t.courts.photos.addFirst : t.courts.photos.addMore}
         </Button>
       )}
       <p className="mt-1 text-center text-xs text-ink-2">
-        {photos.length}/6 photos · remove any that don&apos;t match this court
+        {t.courts.photos.count.replace('{n}', String(photos.length))}
       </p>
       {error && (
         <p className="mt-2">

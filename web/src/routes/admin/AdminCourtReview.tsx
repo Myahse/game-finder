@@ -11,10 +11,14 @@ import { GameCard } from '../../components/GameCard'
 import { playerDisplayLabel } from '../../lib/format'
 import { DistanceText, Lightbulb, SportName } from '../../components/icons'
 import { Button, Card, ErrorText, Spinner } from '../../components/ui'
+import { useLocale } from '../../i18n/LocaleProvider'
 
 type AdminCourtDetail = CourtDetail & { creator: PublicUser | null; open_reports: number; games: Game[] }
 
 export function AdminCourtReview() {
+  const { t, locale } = useLocale()
+  const a = t.admin
+  const r = a.review
   const { courtId } = useParams()
   const navigate = useNavigate()
   const qc = useQueryClient()
@@ -49,8 +53,8 @@ export function AdminCourtReview() {
   if (error || !court) {
     return (
       <div className="grid gap-3 p-4">
-        <ErrorText>{error ? errorMessage(error) : 'Court not found.'}</ErrorText>
-        <Link to="/admin/courts" className="font-semibold text-brand">Back to courts</Link>
+        <ErrorText>{error ? errorMessage(error) : r.notFound}</ErrorText>
+        <Link to="/admin/courts" className="font-semibold text-brand">{r.backToCourts}</Link>
       </div>
     )
   }
@@ -66,25 +70,25 @@ export function AdminCourtReview() {
     <div className="mx-auto grid max-w-2xl gap-4 pb-10">
       <div className="flex flex-wrap items-center gap-2">
         <Button type="button" variant="ghost" className="min-h-9 px-2" onClick={() => navigate('/admin/courts')}>
-          ← Courts
+          {r.courtsBack}
         </Button>
-        <span className={`rounded px-2 py-0.5 text-xs font-bold uppercase ${statusClass}`}>{court.status}</span>
+        <span className={`rounded px-2 py-0.5 text-xs font-bold uppercase ${statusClass}`}>{a.courtStatus[court.status] ?? court.status}</span>
         {court.open_reports > 0 && (
-          <Link to="/admin/reports" className="text-xs font-semibold text-danger">⚑ {court.open_reports} open reports</Link>
+          <Link to="/admin/reports" className="text-xs font-semibold text-danger">⚑ {r.openReports(court.open_reports)}</Link>
         )}
       </div>
 
       <h1 className="display text-4xl font-extrabold">{court.name}</h1>
       {court.creator && (
         <p className="text-sm text-ink-2">
-          Proposed by{' '}
+          {a.proposedBy}{' '}
           <span className="font-semibold text-ink">{playerDisplayLabel(court.creator, true)}</span>
           {' · '}
-          {new Date(court.created_at).toLocaleString()}
+          {new Date(court.created_at).toLocaleString(locale)}
         </p>
       )}
       {court.rejection_reason && (
-        <p className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger">Rejection reason: {court.rejection_reason}</p>
+        <p className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger">{r.rejectionReason(court.rejection_reason)}</p>
       )}
 
       <CourtPhotoStrip photos={court.photos} />
@@ -109,11 +113,11 @@ export function AdminCourtReview() {
           <p>{court.address ?? `${court.latitude.toFixed(5)}, ${court.longitude.toFixed(5)}`}</p>
           {court.distance_m != null && (
             <p className="mt-1 text-ink-2">
-              <DistanceText>{formatDistance(court.distance_m)}</DistanceText> from your location
+              <DistanceText>{formatDistance(court.distance_m)}</DistanceText> {r.fromYourLocation}
             </p>
           )}
           <Link to={`/?court=${court.id}`} className="mt-2 inline-block font-semibold text-brand">
-            Open on public map
+            {r.openOnMap}
           </Link>
         </div>
       </Card>
@@ -121,38 +125,38 @@ export function AdminCourtReview() {
       <Card>
         <dl className="grid gap-2 text-sm">
           <div>
-            <dt className="font-semibold text-ink-2">Sports</dt>
+            <dt className="font-semibold text-ink-2">{a.courts.sports}</dt>
             <dd className="mt-1 flex flex-wrap gap-2">
               {court.sports.map((s) => <SportName key={s.id} sport={s} />)}
             </dd>
           </div>
           {court.description && (
             <div>
-              <dt className="font-semibold text-ink-2">Description</dt>
+              <dt className="font-semibold text-ink-2">{a.courts.description}</dt>
               <dd className="mt-1 whitespace-pre-wrap">{court.description}</dd>
             </div>
           )}
           {court.opening_hours && (
             <div>
-              <dt className="font-semibold text-ink-2">Hours</dt>
+              <dt className="font-semibold text-ink-2">{r.hours}</dt>
               <dd>{court.opening_hours}</dd>
             </div>
           )}
           {court.surface && (
             <div>
-              <dt className="font-semibold text-ink-2">Surface</dt>
+              <dt className="font-semibold text-ink-2">{a.courts.surface}</dt>
               <dd>{court.surface}</dd>
             </div>
           )}
           <div>
-            <dt className="font-semibold text-ink-2">Lighting</dt>
+            <dt className="font-semibold text-ink-2">{r.lighting}</dt>
             <dd className="inline-flex items-center gap-1">
               {court.lighting ? (
                 <>
-                  <Lightbulb className="size-4" aria-hidden /> Lit at night
+                  <Lightbulb className="size-4" aria-hidden /> {a.courts.litAtNight}
                 </>
               ) : (
-                'Unknown / no'
+                r.lightingUnknown
               )}
             </dd>
           </div>
@@ -161,7 +165,7 @@ export function AdminCourtReview() {
 
       {court.games.length > 0 && (
         <section>
-          <h2 className="display mb-2 text-2xl font-bold">Scheduled games</h2>
+          <h2 className="display mb-2 text-2xl font-bold">{r.scheduledGames}</h2>
           <div className="grid gap-2">
             {court.games.map((g) => (
               <GameCard key={g.id} game={g} showCourt={false} showHost viewerIsAdmin />
@@ -179,18 +183,18 @@ export function AdminCourtReview() {
               loading={review.isPending}
               onClick={() => review.mutate({ approve: true })}
             >
-              Approve
+              {a.approve}
             </Button>
             <Button
               variant="danger"
               className="min-h-11 flex-1"
               loading={review.isPending}
               onClick={() => {
-                const reason = prompt('Reason for rejecting (optional)') ?? undefined
+                const reason = prompt(r.rejectPrompt) ?? undefined
                 review.mutate({ approve: false, reason })
               }}
             >
-              Reject
+              {a.reject}
             </Button>
           </>
         )}
@@ -200,12 +204,12 @@ export function AdminCourtReview() {
             className="min-h-11 flex-1"
             loading={review.isPending}
             onClick={() => {
-              if (confirm('Move this court back to pending review? It will be hidden from the public map until approved.')) {
+              if (confirm(r.confirmUnapprove)) {
                 review.mutate({ pending: true })
               }
             }}
           >
-            Unapprove — send for review
+            {r.unapproveSend}
           </Button>
         )}
         {court.status === 'rejected' && (
@@ -216,7 +220,7 @@ export function AdminCourtReview() {
               loading={review.isPending}
               onClick={() => review.mutate({ approve: true })}
             >
-              Approve
+              {a.approve}
             </Button>
             <Button
               variant="secondary"
@@ -224,7 +228,7 @@ export function AdminCourtReview() {
               loading={review.isPending}
               onClick={() => review.mutate({ pending: true })}
             >
-              Back to pending
+              {r.backToPending}
             </Button>
           </>
         )}
@@ -234,7 +238,7 @@ export function AdminCourtReview() {
           className="min-h-11"
           onClick={() => navigate(`/admin/courts?edit=${court.id}`)}
         >
-          Edit fields
+          {r.editFields}
         </Button>
       </div>
     </div>

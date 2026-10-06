@@ -4,6 +4,7 @@ import { api, errorMessage } from '../lib/api'
 import { formatOpeningHours, parseOpeningHours } from '../lib/openingHours'
 import { qk } from '../lib/queries'
 import { Button, ErrorText, Field, Input } from './ui'
+import { useLocale } from '../i18n/LocaleProvider'
 
 type Props = {
   courtId: string
@@ -13,6 +14,7 @@ type Props = {
 
 export function CourtHoursEditor({ courtId, openingHours, canEdit }: Props) {
   const qc = useQueryClient()
+  const { t } = useLocale()
   const parsed = parseOpeningHours(openingHours)
   const [opens, setOpens] = useState(parsed?.opens ?? '')
   const [closes, setCloses] = useState(parsed?.closes ?? '')
@@ -52,19 +54,19 @@ export function CourtHoursEditor({ courtId, openingHours, canEdit }: Props) {
 
   return (
     <div className="rounded-2xl border border-line bg-surface p-4">
-      <h3 className="display text-lg font-bold">Opening hours</h3>
-      <p className="mt-1 text-xs text-ink-2">24-hour format. Leave empty if hours vary.</p>
+      <h3 className="display text-lg font-bold">{t.courts.openingHours}</h3>
+      <p className="mt-1 text-xs text-ink-2">{t.courts.hours.hint}</p>
       <div className="mt-3 grid grid-cols-2 gap-3">
-        <Field label="Opens">
+        <Field label={t.courts.opens}>
           <Input type="time" value={opens} onChange={(e) => setOpens(e.target.value)} />
         </Field>
-        <Field label="Closes">
+        <Field label={t.courts.closes}>
           <Input type="time" value={closes} onChange={(e) => setCloses(e.target.value)} />
         </Field>
       </div>
-      {preview && <p className="mt-2 text-sm text-ink-2">Shown as: {preview}</p>}
+      {preview && <p className="mt-2 text-sm text-ink-2">{t.courts.hours.shownAs.replace('{hours}', preview)}</p>}
       <Button type="button" className="mt-3 w-full" loading={busy} onClick={save}>
-        Save hours
+        {t.courts.hours.save}
       </Button>
       {error && (
         <p className="mt-2">

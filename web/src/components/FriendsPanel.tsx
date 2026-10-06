@@ -8,9 +8,12 @@ import { playerDisplayLabel } from '../lib/format'
 import type { PublicUser } from '../lib/types'
 import { Avatar, Button, Card, ErrorText, Field, Input } from './ui'
 import { BumpConnectButton } from './BumpConnect'
+import { useLocale } from '../i18n/LocaleProvider'
 
 export function FriendsPanel({ viewerIsAdmin = false }: { viewerIsAdmin?: boolean }) {
   const qc = useQueryClient()
+  const { t } = useLocale()
+  const f = t.account.friends
   const { data: friends } = useFriends()
   const { data: requests } = useFriendRequests()
   const [username, setUsername] = useState('')
@@ -58,8 +61,8 @@ export function FriendsPanel({ viewerIsAdmin = false }: { viewerIsAdmin?: boolea
   return (
     <Card className="grid gap-4">
       <div>
-        <h2 className="display text-2xl font-bold">Friends</h2>
-        <p className="mt-1 text-sm text-ink-2">Add players to invite them to games quickly.</p>
+        <h2 className="display text-2xl font-bold">{f.title}</h2>
+        <p className="mt-1 text-sm text-ink-2">{f.subtitle}</p>
         <div className="mt-3 grid">
           <BumpConnectButton />
         </div>
@@ -70,7 +73,7 @@ export function FriendsPanel({ viewerIsAdmin = false }: { viewerIsAdmin?: boolea
           loading={copyInvite.isPending}
           onClick={() => copyInvite.mutate()}
         >
-          {copied ? 'Link copied!' : 'Copy invite link'}
+          {copied ? f.linkCopied : f.copyInviteLink}
         </Button>
       </div>
 
@@ -84,13 +87,13 @@ export function FriendsPanel({ viewerIsAdmin = false }: { viewerIsAdmin?: boolea
       >
         <Input
           className="min-w-[10rem] flex-1"
-          placeholder="@username"
+          placeholder={f.usernamePlaceholder}
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           list="ftg-friend-suggestions"
         />
         <Button type="submit" loading={send.isPending} disabled={!username.trim()}>
-          Add friend
+          {f.addFriend}
         </Button>
       </form>
       <datalist id="ftg-friend-suggestions">
@@ -102,17 +105,17 @@ export function FriendsPanel({ viewerIsAdmin = false }: { viewerIsAdmin?: boolea
       {error ? <ErrorText>{error}</ErrorText> : null}
 
       {incoming.length > 0 && (
-        <Field label="Requests for you">
+        <Field label={f.requestsForYou}>
           <ul className="grid gap-2">
             {incoming.map((r) => (
               <li key={r.id} className="flex items-center justify-between gap-2 rounded-xl border border-line bg-surface-2 p-2">
                 <FriendLine user={r.user} viewerIsAdmin={viewerIsAdmin} />
                 <div className="flex shrink-0 gap-1">
                   <Button type="button" className="min-h-9 px-3 text-sm" loading={respond.isPending} onClick={() => respond.mutate({ id: r.id, accept: true })}>
-                    Accept
+                    {f.accept}
                   </Button>
                   <Button type="button" variant="ghost" className="min-h-9 px-2 text-sm" onClick={() => respond.mutate({ id: r.id, accept: false })}>
-                    Decline
+                    {f.decline}
                   </Button>
                 </div>
               </li>
@@ -123,13 +126,13 @@ export function FriendsPanel({ viewerIsAdmin = false }: { viewerIsAdmin?: boolea
 
       {outgoing.length > 0 && (
         <p className="text-sm text-ink-2">
-          Waiting: {outgoing.map((r) => playerDisplayLabel(r.user, viewerIsAdmin)).join(', ')}
+          {f.waiting} {outgoing.map((r) => playerDisplayLabel(r.user, viewerIsAdmin)).join(', ')}
         </p>
       )}
 
-      <Field label={`Your friends (${friends?.length ?? 0})`}>
+      <Field label={f.yourFriends.replace('{n}', String(friends?.length ?? 0))}>
         {!friends?.length ? (
-          <p className="text-sm text-ink-2">No friends yet — search by username above.</p>
+          <p className="text-sm text-ink-2">{f.empty}</p>
         ) : (
           <ul className="grid gap-2">
             {friends.map((f) => (

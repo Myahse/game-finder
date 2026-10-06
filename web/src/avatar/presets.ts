@@ -1,18 +1,29 @@
 import type { PlayerAvatarConfig, SportSlug } from './schema'
 import { AVATAR_VERSION } from './schema'
+import { currentT } from '../i18n/LocaleProvider'
 
 /** Sports that have an avatar kit. */
 export const AVATAR_SPORTS: SportSlug[] = ['basketball', 'football', 'tennis', 'badminton', 'volleyball', 'running', 'gym']
 
-export const PRESET_LABELS: { id: string; name: string; sport: SportSlug }[] = [
-  { id: 'hooper', name: 'The Hooper', sport: 'basketball' },
-  { id: 'footballer', name: 'The Footballer', sport: 'football' },
-  { id: 'volleyball', name: 'The Spiker', sport: 'volleyball' },
-  { id: 'tennis', name: 'The Tennis Player', sport: 'tennis' },
-  { id: 'badminton', name: 'The Shuttler', sport: 'badminton' },
-  { id: 'runner', name: 'The Runner', sport: 'running' },
-  { id: 'gym', name: 'The Gym Athlete', sport: 'gym' },
-  { id: 'casual', name: 'The Casual', sport: 'basketball' },
+type Preset = { id: string; name: string; sport: SportSlug }
+
+/** `name` is a getter so the preset follows the device language (English fallback). */
+function preset(id: string, en: string, sport: SportSlug): Preset {
+  return Object.defineProperty({ id, sport }, 'name', {
+    get: () => (currentT().avatarLabels?.presets as Record<string, string> | undefined)?.[id] ?? en,
+    enumerable: true,
+  }) as Preset
+}
+
+export const PRESET_LABELS: Preset[] = [
+  preset('hooper', 'The Hooper', 'basketball'),
+  preset('footballer', 'The Footballer', 'football'),
+  preset('volleyball', 'The Spiker', 'volleyball'),
+  preset('tennis', 'The Tennis Player', 'tennis'),
+  preset('badminton', 'The Shuttler', 'badminton'),
+  preset('runner', 'The Runner', 'running'),
+  preset('gym', 'The Gym Athlete', 'gym'),
+  preset('casual', 'The Casual', 'basketball'),
 ]
 
 /** Visual quality bar — athletic 6'2" basketball player. */

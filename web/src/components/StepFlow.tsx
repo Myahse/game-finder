@@ -1,5 +1,6 @@
 import { type FormEvent, type ReactNode, useState } from 'react'
 import { Button } from './ui'
+import { useLocale } from '../i18n/LocaleProvider'
 
 const DEFAULT_STEP_COUNT = 3
 
@@ -11,8 +12,8 @@ export function StepFlow({
   onSubmit,
   canNext,
   busy,
-  nextLabel = 'Next',
-  submitLabel = 'Continue',
+  nextLabel,
+  submitLabel,
   stepCount = DEFAULT_STEP_COUNT,
 }: {
   step: number
@@ -26,6 +27,7 @@ export function StepFlow({
   submitLabel?: string
   stepCount?: number
 }) {
+  const { t } = useLocale()
   const panels = children.slice(0, stepCount)
   const last = stepCount - 1
 
@@ -40,7 +42,7 @@ export function StepFlow({
         ))}
       </div>
       <p className="text-center text-xs font-semibold uppercase tracking-wide text-ink-2">
-        Step {step + 1} of {stepCount}
+        {t.account.stepOf.replace('{n}', String(step + 1)).replace('{total}', String(stepCount))}
       </p>
 
       <div className="overflow-hidden rounded-2xl border border-line bg-surface/80 p-4 shadow-sm">
@@ -59,18 +61,18 @@ export function StepFlow({
       <div className="flex gap-2">
         {step > 0 ? (
           <Button type="button" variant="secondary" className="min-h-12 flex-1" onClick={() => onStepChange(step - 1)} disabled={busy}>
-            Back
+            {t.account.back}
           </Button>
         ) : (
           <span className="flex-1" />
         )}
         {step < last ? (
           <Button type="button" className="min-h-12 flex-1" disabled={!canNext || busy} onClick={() => void onStepAdvance()}>
-            {nextLabel}
+            {nextLabel ?? t.account.next}
           </Button>
         ) : (
           <Button type="submit" className="min-h-12 flex-1" loading={busy} disabled={!canNext || busy}>
-            {submitLabel}
+            {submitLabel ?? t.account.continue}
           </Button>
         )}
       </div>

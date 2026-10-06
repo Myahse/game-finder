@@ -4,6 +4,7 @@ import { errorMessage } from '../lib/api'
 import { qk, useMyPresence, usePresenceAction } from '../lib/queries'
 import { BaseSportIcon } from './icons'
 import { Button, ErrorText } from './ui'
+import { useLocale } from '../i18n/LocaleProvider'
 
 /**
  * Shows "Are you still playing?" shortly before a check-in expires.
@@ -11,6 +12,8 @@ import { Button, ErrorText } from './ui'
  */
 export function PresenceWatcher() {
   const { data: presence } = useMyPresence()
+  const { t } = useLocale()
+  const pr = t.account.presence
   const action = usePresenceAction()
   const qc = useQueryClient()
   const [now, setNow] = useState(() => Date.now())
@@ -18,8 +21,8 @@ export function PresenceWatcher() {
 
   useEffect(() => {
     if (!presence) return
-    const t = setInterval(() => setNow(Date.now()), 15_000)
-    return () => clearInterval(t)
+    const timer = setInterval(() => setNow(Date.now()), 15_000)
+    return () => clearInterval(timer)
   }, [presence])
 
   const expires = presence ? new Date(presence.expires_at).getTime() : 0
@@ -38,18 +41,18 @@ export function PresenceWatcher() {
       <div className="w-full max-w-sm rounded-3xl bg-surface p-6 shadow-2xl">
         <BaseSportIcon className="size-12 text-brand" />
         <h2 id="still-title" className="display mt-2 text-4xl font-extrabold">
-          Are you still playing?
+          {pr.title}
         </h2>
         <p className="mt-1 text-ink-2">
-          Your check-in at <b className="text-ink">{presence.court.name}</b> ends in {minsLeft} min.
+          {pr.bodyBefore}<b className="text-ink">{presence.court.name}</b>{pr.bodyAfter.replace('{n}', String(minsLeft))}
         </p>
         <div className="mt-5 grid gap-2">
           <ErrorText>{error}</ErrorText>
           <Button variant="live" loading={action.isPending} onClick={() => run({ kind: 'confirm' })}>
-            Yes, I'm still here
+            {pr.stillHere}
           </Button>
           <Button variant="secondary" disabled={action.isPending} onClick={() => run({ kind: 'leave' })}>
-            I left
+            {pr.left}
           </Button>
         </div>
       </div>

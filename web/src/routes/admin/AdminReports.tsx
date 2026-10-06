@@ -6,6 +6,7 @@ import { playerDisplayLabel, reportLabels, timeAgo } from '../../lib/format'
 import type { PublicUser, ReportType } from '../../lib/types'
 import { Button, Card, Chip } from '../../components/ui'
 import { Loading } from '../CourtPage'
+import { useLocale } from '../../i18n/LocaleProvider'
 
 interface Report {
   id: string
@@ -19,6 +20,8 @@ interface Report {
 }
 
 export function AdminReports() {
+  const { t } = useLocale()
+  const a = t.admin
   const [status, setStatus] = useState<Report['status'] | null>('open')
   const qc = useQueryClient()
   const { data, isLoading } = useQuery({
@@ -37,7 +40,7 @@ export function AdminReports() {
       <div className="flex gap-2">
         {([null, 'open', 'resolved', 'rejected'] as const).map((s) => (
           <Chip key={s ?? 'all'} active={status === s} onClick={() => setStatus(s)}>
-            {s ? s[0].toUpperCase() + s.slice(1) : 'All'}
+            {s ? a.reportStatus[s] : a.all}
           </Chip>
         ))}
       </div>
@@ -53,8 +56,8 @@ export function AdminReports() {
             </p>
             {r.description && <p className="mt-1 text-sm">{r.description}</p>}
             <p className="mt-1 text-xs text-ink-2">
-              {r.reporter ? playerDisplayLabel(r.reporter, true) : 'Deleted user'} · {timeAgo(r.created_at)} · {r.status}
-              {r.admin_note && ` · note: ${r.admin_note}`}
+              {r.reporter ? playerDisplayLabel(r.reporter, true) : a.deletedUser} · {timeAgo(r.created_at)} · {a.reportStatus[r.status] ?? r.status}
+              {r.admin_note && ` · ${a.reports.note(r.admin_note)}`}
             </p>
           </div>
           {r.status === 'open' ? (
@@ -62,22 +65,22 @@ export function AdminReports() {
               <Button
                 variant="live"
                 className="min-h-9 px-3 text-base"
-                onClick={() => act.mutate({ id: r.id, status: 'resolved', note: prompt('Note (optional)') ?? undefined })}
+                onClick={() => act.mutate({ id: r.id, status: 'resolved', note: prompt(a.reports.notePrompt) ?? undefined })}
               >
-                Resolve
+                {a.reports.resolve}
               </Button>
               <Button variant="secondary" className="min-h-9 px-3 text-base" onClick={() => act.mutate({ id: r.id, status: 'rejected' })}>
-                Reject
+                {a.reject}
               </Button>
             </div>
           ) : (
             <Button variant="ghost" className="min-h-9 px-3 text-base" onClick={() => act.mutate({ id: r.id, status: 'open' })}>
-              Reopen
+              {a.reports.reopen}
             </Button>
           )}
         </Card>
       ))}
-      {data?.length === 0 && <p className="p-6 text-center text-ink-2">Nothing to review. 🎉</p>}
+      {data?.length === 0 && <p className="p-6 text-center text-ink-2">{a.reports.empty}</p>}
     </div>
   )
 }

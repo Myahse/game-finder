@@ -1,56 +1,22 @@
 import { useEffect, useRef } from 'react'
 import { toast } from 'sonner'
-import { ApiError } from './api'
+import { ApiError, apiErrorText } from './api'
+import { currentT } from '../i18n/LocaleProvider'
 
 type Copy = { title: string; description?: string }
 
-const API_TOAST: Record<string, Copy> = {
-  browse_location_mismatch: {
-    title: 'Map area unavailable',
-    description:
-      'This view is far from your alert zone. Open the map where you play, or check in at a court when you travel — we update alerts from your location.',
-  },
-  notify_jump_too_far: {
-    title: 'Alert area',
-    description: 'Move your alert zone gradually, or check in at a court first.',
-  },
-  notify_rate_limited: {
-    title: 'Alert area',
-    description: 'You can change your alert zone again in a few minutes.',
-  },
-  rate_limited: {
-    title: 'Slow down',
-    description: 'Too many requests. Wait a minute and try again.',
-  },
-  too_many_pending_courts: {
-    title: 'Court proposals',
-    description: 'You already have pending courts waiting for review.',
-  },
-  too_far_from_court: {
-    title: "You're not at the court",
-    description: 'Move within about 500 m of the court to check in or join a live game.',
-  },
-  location_required: {
-    title: 'Location needed',
-    description: 'Turn on location so we can confirm you are at the court.',
-  },
-  email_not_verified: {
-    title: 'Verify your email',
-    description: 'Check your inbox for the verification link, then sign in again.',
-  },
-}
-
-export function toastFromApiError(e: unknown, fallback = 'Something went wrong.') {
+export function toastFromApiError(e: unknown, fallback?: string) {
+  const t = currentT().errors
   if (e instanceof ApiError) {
-    const c = API_TOAST[e.code]
+    const c = (t.toast as Record<string, Copy | undefined>)[e.code]
     if (c) {
-      toast.error(c.title, { description: c.description ?? e.message, duration: 8000 })
+      toast.error(c.title, { description: c.description ?? apiErrorText(e), duration: 8000 })
       return
     }
-    toast.error(e.message)
+    toast.error(apiErrorText(e))
     return
   }
-  toast.error(fallback)
+  toast.error(fallback ?? (e instanceof TypeError ? t.network : t.generic))
 }
 
 /** Show a Sonner toast once per distinct API error code while mounted. */

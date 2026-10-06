@@ -9,6 +9,7 @@ import { qk, useSports } from '../lib/queries'
 import type { CourtDetail } from '../lib/types'
 import { SportName } from './icons'
 import { Button, ErrorText, Field, Input, Textarea } from './ui'
+import { useLocale } from '../i18n/LocaleProvider'
 
 type Props = {
   court: CourtDetail
@@ -19,6 +20,7 @@ type LightingChoice = 'unknown' | 'yes' | 'no'
 
 export function CourtInfoEditor({ court, canEdit }: Props) {
   const qc = useQueryClient()
+  const { t } = useLocale()
   const { user } = useAuth()
   const mySport = useMySport()
   const { data: sports } = useSports()
@@ -90,11 +92,11 @@ export function CourtInfoEditor({ court, canEdit }: Props) {
 
   return (
     <div className="rounded-2xl border border-line bg-surface p-4">
-      <h3 className="display text-lg font-bold">Court info</h3>
-      <p className="mt-1 text-xs text-ink-2">Update details before approval. Shown to everyone once the court is live.</p>
+      <h3 className="display text-lg font-bold">{t.courts.courtInfo}</h3>
+      <p className="mt-1 text-xs text-ink-2">{t.courts.editor.intro}</p>
 
       <div className="mt-4 grid gap-4">
-        <Field label="Sport">
+        <Field label={t.courts.sport}>
           {sportLocked && mySport ? (
             <p className="flex items-center gap-2 rounded-xl border border-brand bg-brand/10 px-3 py-2 text-sm font-semibold">
               <SportName sport={mySport} />
@@ -115,43 +117,43 @@ export function CourtInfoEditor({ court, canEdit }: Props) {
             </div>
           )}
         </Field>
-        <Field label="Address" hint="Use the map pin on file — only admins can move the pin.">
-          <Input placeholder="Street or place name" value={address} onChange={(e) => setAddress(e.target.value)} />
+        <Field label={t.courts.address} hint={t.courts.editor.addressHint}>
+          <Input placeholder={t.courts.streetPlaceholder} value={address} onChange={(e) => setAddress(e.target.value)} />
           <button
             type="button"
             className="mt-2 text-sm font-semibold text-brand disabled:opacity-50"
             disabled={geocodingAddress}
             onClick={() => fillAddressFromMap()}
           >
-            {geocodingAddress ? 'Looking up…' : 'Fill from map location'}
+            {geocodingAddress ? t.courts.editor.lookingUp : t.courts.editor.fillFromMap}
           </button>
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Opens">
+          <Field label={t.courts.opens}>
             <Input type="time" value={opens} onChange={(e) => setOpens(e.target.value)} />
           </Field>
-          <Field label="Closes">
+          <Field label={t.courts.closes}>
             <Input type="time" value={closes} onChange={(e) => setCloses(e.target.value)} />
           </Field>
         </div>
-        <Field label="Surface">
-          <Input placeholder="e.g. Concrete, grass, indoor" value={surface} onChange={(e) => setSurface(e.target.value)} />
+        <Field label={t.courts.surface}>
+          <Input placeholder={t.courts.editor.surfacePlaceholder} value={surface} onChange={(e) => setSurface(e.target.value)} />
         </Field>
-        <Field label="Lighting">
+        <Field label={t.courts.lighting}>
           <select
             className="w-full rounded-xl border border-line bg-surface-2 px-3 py-2.5 text-sm"
             value={lighting}
             onChange={(e) => setLighting(e.target.value as LightingChoice)}
           >
-            <option value="unknown">Not specified</option>
-            <option value="yes">Lit at night</option>
-            <option value="no">No lights</option>
+            <option value="unknown">{t.courts.notSpecified}</option>
+            <option value="yes">{t.courts.litAtNight}</option>
+            <option value="no">{t.courts.noLights}</option>
           </select>
         </Field>
-        <Field label="Description">
+        <Field label={t.courts.description}>
           <Textarea
             maxLength={1000}
-            placeholder="Access, hoops, best times…"
+            placeholder={t.courts.editor.descriptionPlaceholder}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
@@ -159,7 +161,7 @@ export function CourtInfoEditor({ court, canEdit }: Props) {
       </div>
 
       <Button type="button" className="mt-4 w-full" loading={busy} onClick={save}>
-        Save court info
+        {t.courts.editor.save}
       </Button>
       {error && (
         <p className="mt-2">

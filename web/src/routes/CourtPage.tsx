@@ -15,9 +15,11 @@ import { CourtLeaderboard } from '../components/CourtLeaderboard'
 import { CourtChallenges } from '../components/CourtChallenges'
 import { DistanceText, Hourglass, Lightbulb, SearchX, SportName, X } from '../components/icons'
 import { Card, Empty, PageHeader, Spinner, StatusPill } from '../components/ui'
+import { useLocale } from '../i18n/LocaleProvider'
 
 export function CourtPage() {
   const { id } = useParams()
+  const { t } = useLocale()
   const { user } = useAuth()
   const { coords } = useLocation()
   const { data: court, isLoading } = useCourt(id, coords)
@@ -25,7 +27,7 @@ export function CourtPage() {
     !!user && !!court && (court.created_by === user.id || user.role === 'admin')
 
   if (isLoading) return <Loading />
-  if (!court) return <Empty icon={<SearchX className="size-14" strokeWidth={1.5} />} title="Court not found" />
+  if (!court) return <Empty icon={<SearchX className="size-14" strokeWidth={1.5} />} title={t.courts.notFound} />
 
   return (
     <div className="pb-10">
@@ -51,12 +53,12 @@ export function CourtPage() {
             {court.status === 'pending' ? (
               <span className="inline-flex items-center gap-2">
                 <Hourglass className="size-4 shrink-0" aria-hidden />
-                Waiting for review. Only you can see this court.
+                {t.courts.pendingReview}
               </span>
             ) : (
               <span className="inline-flex items-center gap-2">
                 <X className="size-4 shrink-0" aria-hidden />
-                Rejected{court.rejection_reason ? `: ${court.rejection_reason}` : ''}
+                {court.rejection_reason ? t.courts.rejectedReason.replace('{reason}', court.rejection_reason) : t.courts.rejected}
               </span>
             )}
           </p>
@@ -65,8 +67,7 @@ export function CourtPage() {
           court.distance_m != null &&
           court.distance_m > MAP_NEARBY_RADIUS_KM * 1000 && (
             <p className="rounded-xl bg-surface-2 p-3 text-sm text-ink-2">
-              You opened this court from a link. It only appears on the map when you are within about{' '}
-              {MAP_NEARBY_RADIUS_KM} km.
+              {t.courts.openedFromLink.replace('{km}', String(MAP_NEARBY_RADIUS_KM))}
             </p>
           )}
         <Card>
@@ -79,9 +80,9 @@ export function CourtPage() {
             )}
           </div>
           <p className="display mt-3 text-4xl font-extrabold">
-            {court.player_count} <span className="text-2xl text-ink-2">players now</span>
+            {court.player_count} <span className="text-2xl text-ink-2">{t.courts.playersNow}</span>
           </p>
-          <p className="text-sm text-ink-2">Last activity: {timeAgo(court.last_activity_at)}</p>
+          <p className="text-sm text-ink-2">{t.courts.lastActivity.replace('{time}', timeAgo(court.last_activity_at))}</p>
           {court.status === 'approved' && (
             <div className="mt-4">
               <CourtActions court={court} games={court.games} me={coords} />
@@ -90,7 +91,7 @@ export function CourtPage() {
         </Card>
 
         <section>
-          <h2 className="display mb-2 text-2xl font-bold">Games</h2>
+          <h2 className="display mb-2 text-2xl font-bold">{t.courts.games}</h2>
           {court.games.length ? (
             <div className="grid gap-2">
               {court.games.map((g) => (
@@ -98,7 +99,7 @@ export function CourtPage() {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-ink-2">No games yet. Create one and players nearby will see it.</p>
+            <p className="text-sm text-ink-2">{t.courts.noGames}</p>
           )}
         </section>
 
@@ -108,21 +109,21 @@ export function CourtPage() {
 
         {!canEditCourt && (
           <Card>
-            <h2 className="display mb-3 text-2xl font-bold">Court info</h2>
+            <h2 className="display mb-3 text-2xl font-bold">{t.courts.courtInfo}</h2>
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
               <Info
-                label="Sports"
+                label={t.courts.sports}
                 value={
                   <span className="flex flex-wrap gap-x-3 gap-y-1">
                     {court.sports.map((s) => <SportName key={s.id} sport={s} />)}
                   </span>
                 }
               />
-              <Info label="Address" value={court.address} />
-              <Info label="Opening hours" value={court.opening_hours} />
-              <Info label="Surface" value={court.surface} />
+              <Info label={t.courts.address} value={court.address} />
+              <Info label={t.courts.openingHours} value={court.opening_hours} />
+              <Info label={t.courts.surface} value={court.surface} />
               <Info
-                label="Lighting"
+                label={t.courts.lighting}
                 value={
                   court.lighting == null
                     ? null
@@ -130,10 +131,10 @@ export function CourtPage() {
                       ? (
                           <span className="inline-flex items-center gap-1.5">
                             <Lightbulb className="size-4 shrink-0" aria-hidden />
-                            Lit at night
+                            {t.courts.litAtNight}
                           </span>
                         )
-                      : 'No lights'
+                      : t.courts.noLights
                 }
               />
             </dl>

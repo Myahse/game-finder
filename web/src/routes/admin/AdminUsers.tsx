@@ -6,6 +6,7 @@ import { Bell, BellOff } from 'lucide-react'
 import { SportName } from '../../components/icons'
 import { Avatar, Button, Card, Input } from '../../components/ui'
 import { Loading } from '../CourtPage'
+import { useLocale } from '../../i18n/LocaleProvider'
 
 interface AdminUser {
   id: string
@@ -25,6 +26,8 @@ interface AdminUser {
 }
 
 export function AdminUsers() {
+  const { t, locale } = useLocale()
+  const a = t.admin
   const { user: me } = useAuth()
   const [q, setQ] = useState('')
   const qc = useQueryClient()
@@ -43,9 +46,9 @@ export function AdminUsers() {
 
   return (
     <div className="grid gap-3">
-      <Input placeholder="Search name, username or email" value={q} onChange={(e) => setQ(e.target.value)} />
+      <Input placeholder={a.users.searchPlaceholder} value={q} onChange={(e) => setQ(e.target.value)} />
       <p className="text-xs text-ink-2">
-        Push status is from the <strong>mobile app</strong> (notification permission + Firebase). Web sign-in does not register a device.
+        {a.users.pushHintBefore}<strong>{a.users.pushHintApp}</strong>{a.users.pushHintAfter}
       </p>
       {isLoading && <Loading />}
       {data?.map((u) => (
@@ -55,17 +58,17 @@ export function AdminUsers() {
             <p className="font-semibold">
               {u.first_name} {u.last_name}{' '}
               <span className="font-normal text-ink-2">@{u.username}</span>
-              {u.role === 'admin' && <span className="ml-2 rounded bg-brand/15 px-1.5 text-xs font-bold text-brand">ADMIN</span>}
-              {u.suspended_at && <span className="ml-2 rounded bg-danger/15 px-1.5 text-xs font-bold text-danger">SUSPENDED</span>}
+              {u.role === 'admin' && <span className="ml-2 rounded bg-brand/15 px-1.5 text-xs font-bold text-brand">{a.users.adminBadge}</span>}
+              {u.suspended_at && <span className="ml-2 rounded bg-danger/15 px-1.5 text-xs font-bold text-danger">{a.users.suspendedBadge}</span>}
             </p>
             <p className="truncate text-sm text-ink-2">{u.email}</p>
             <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-2">
               <span>
-                Sport:{' '}
+                {a.users.sport}{' '}
                 {u.preferred_sport_slug && u.preferred_sport_name ? (
                   <SportName sport={{ name: u.preferred_sport_name, slug: u.preferred_sport_slug }} />
                 ) : (
-                  <span className="text-ink-2/80">Not set</span>
+                  <span className="text-ink-2/80">{a.users.notSet}</span>
                 )}
               </span>
               <span aria-hidden>·</span>
@@ -73,18 +76,18 @@ export function AdminUsers() {
                 {u.push_device_count > 0 ? (
                   <>
                     <Bell className="size-3.5 text-live" aria-hidden />
-                    Push on ({u.push_device_count} device{u.push_device_count === 1 ? '' : 's'})
+                    {a.users.pushOn(u.push_device_count)}
                   </>
                 ) : (
                   <>
                     <BellOff className="size-3.5 opacity-50" aria-hidden />
-                    No mobile device
+                    {a.users.noDevice}
                   </>
                 )}
               </span>
               <span aria-hidden>·</span>
               <span>
-                Joined {new Date(u.created_at).toLocaleDateString()} · {u.stats.games_played} played · {u.stats.games_created} created
+                {a.users.joined(new Date(u.created_at).toLocaleDateString(locale))} · {a.users.played(u.stats.games_played)} · {a.users.created(u.stats.games_created)}
               </span>
             </p>
           </div>
@@ -95,14 +98,14 @@ export function AdminUsers() {
                 className="min-h-9 px-3 text-base"
                 onClick={() => act.mutate({ id: u.id, kind: u.suspended_at ? 'unsuspend' : 'suspend' })}
               >
-                {u.suspended_at ? 'Unsuspend' : 'Suspend'}
+                {u.suspended_at ? a.users.unsuspend : a.users.suspend}
               </Button>
               <Button
                 variant="ghost"
                 className="min-h-9 px-3 text-base"
-                onClick={() => confirm(`Delete @${u.username} and all their data?`) && act.mutate({ id: u.id, kind: 'delete' })}
+                onClick={() => confirm(a.users.confirmDelete(u.username)) && act.mutate({ id: u.id, kind: 'delete' })}
               >
-                Delete
+                {a.delete}
               </Button>
             </>
           )}

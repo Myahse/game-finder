@@ -6,6 +6,7 @@ import { pendingGamePathAfterAuth } from '../lib/gameInvite'
 import { OrDivider } from './GoogleSignInButton'
 import { SocialSignInButtons } from './SocialSignInButtons'
 import { Button, ErrorText, Field, Input, PasswordInput } from './ui'
+import { useLocale } from '../i18n/LocaleProvider'
 
 type Props = {
   open: boolean
@@ -14,6 +15,8 @@ type Props = {
 
 export function LoginBottomSheet({ open, onClose }: Props) {
   const { login } = useAuth()
+  const { t } = useLocale()
+  const l = t.account.login
   const navigate = useNavigate()
   const [loginId, setLoginId] = useState('')
   const [password, setPassword] = useState('')
@@ -86,8 +89,8 @@ export function LoginBottomSheet({ open, onClose }: Props) {
         <div className="mb-4 flex justify-center sm:hidden" aria-hidden>
           <span className="h-1.5 w-10 rounded-full bg-line" />
         </div>
-        <h2 id="login-sheet-title" className="display text-3xl font-extrabold">Log in</h2>
-        <p className="mt-1 text-sm text-ink-2">Pick up where you left off on the map.</p>
+        <h2 id="login-sheet-title" className="display text-3xl font-extrabold">{t.welcome.logIn}</h2>
+        <p className="mt-1 text-sm text-ink-2">{l.subtitle}</p>
 
         <div className="mt-5 grid gap-3">
           <SocialSignInButtons
@@ -98,7 +101,7 @@ export function LoginBottomSheet({ open, onClose }: Props) {
           <OrDivider className="text-ink-2" />
         </div>
         <form onSubmit={submit} className="mt-4 grid gap-4">
-          <Field label="Email or username">
+          <Field label={l.emailOrUsername}>
             <Input
               type="text"
               autoComplete="username"
@@ -107,7 +110,7 @@ export function LoginBottomSheet({ open, onClose }: Props) {
               onChange={(e) => setLoginId(e.target.value)}
             />
           </Field>
-          <Field label="Password">
+          <Field label={t.account.register.password}>
             <PasswordInput
               autoComplete="current-password"
               required
@@ -116,11 +119,11 @@ export function LoginBottomSheet({ open, onClose }: Props) {
             />
           </Field>
           <ErrorText>{error}</ErrorText>
-          <Button type="submit" loading={busy}>Log in</Button>
+          <Button type="submit" loading={busy}>{t.welcome.logIn}</Button>
           <p className="text-center text-sm text-ink-2">
-            New here?{' '}
+            {l.newHere}{' '}
             <Link to="/register" className="font-semibold text-brand" onClick={onClose}>
-              Create an account
+              {l.createAnAccount}
             </Link>
           </p>
         </form>

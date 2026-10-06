@@ -1,4 +1,5 @@
 /** Mapbox GL styles. Override with VITE_MAP_STYLE_LIGHT / VITE_MAP_STYLE_DARK if needed. */
+import { currentT } from '../i18n/LocaleProvider'
 
 const rawMapboxToken = (import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ?? '').trim()
 
@@ -14,10 +15,10 @@ export const MAPBOX_ACCESS_TOKEN = normalizeMapboxToken(rawMapboxToken)
 export function mapboxTokenSetupError(): string | null {
   if (!rawMapboxToken) return null
   if (rawMapboxToken.startsWith('sk.')) {
-    return 'Vercel is using a secret Mapbox token (sk.*). Set VITE_MAPBOX_ACCESS_TOKEN to a public token (pk.*) from mapbox.com → Tokens, then redeploy.'
+    return currentT().courts.map.tokenSecret
   }
   if (!rawMapboxToken.startsWith('pk.')) {
-    return 'VITE_MAPBOX_ACCESS_TOKEN should be a public Mapbox token starting with pk.'
+    return currentT().courts.map.tokenNotPublic
   }
   return null
 }

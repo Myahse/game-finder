@@ -321,9 +321,10 @@ function OptionGrid({
   L: Labels
 }) {
   const items = useMemo(() => {
+    // Option names are locale getters; depend on L so a language change re-reads them.
     const list: { id: string | null; name: string }[] = part.options.map((o) => ({ id: o.id, name: o.name }))
     return part.nullable ? [{ id: null, name: L.none }, ...list] : list
-  }, [part, L.none])
+  }, [part, L])
   const head = true
   return (
     <div className={`grid gap-2.5 ${head ? 'grid-cols-4 sm:grid-cols-5' : 'grid-cols-3 sm:grid-cols-4'}`}>

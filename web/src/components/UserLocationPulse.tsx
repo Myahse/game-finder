@@ -1,9 +1,12 @@
+import { useLocale } from '../i18n/LocaleProvider'
+
 /** Blue "you are here" dot with expanding rings — real DOM nodes (Mapbox markers clip pseudo-elements). */
 export function UserLocationPulse() {
+  const { t } = useLocale()
   return (
     <div
       className="pointer-events-none relative size-14"
-      aria-label="You are here"
+      aria-label={t.courts.map.youAreHere}
       role="img"
     >
       <div className="absolute left-1/2 top-1/2 size-5 -translate-x-1/2 -translate-y-1/2">

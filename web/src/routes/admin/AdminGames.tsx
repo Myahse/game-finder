@@ -7,8 +7,11 @@ import type { Game, GameStatus } from '../../lib/types'
 import { SportName } from '../../components/icons'
 import { Button, Card, Chip } from '../../components/ui'
 import { Loading } from '../CourtPage'
+import { useLocale } from '../../i18n/LocaleProvider'
 
 export function AdminGames() {
+  const { t } = useLocale()
+  const a = t.admin
   const [status, setStatus] = useState<GameStatus | null>('active')
   const qc = useQueryClient()
   const { data, isLoading } = useQuery({
@@ -29,7 +32,7 @@ export function AdminGames() {
       <div className="flex flex-wrap gap-2">
         {([null, 'active', 'scheduled', 'completed', 'cancelled'] as const).map((s) => (
           <Chip key={s ?? 'all'} active={status === s} onClick={() => setStatus(s)}>
-            {s ? s[0].toUpperCase() + s.slice(1) : 'All'}
+            {s ? a.gameStatus[s] : a.all}
           </Chip>
         ))}
       </div>
@@ -42,8 +45,8 @@ export function AdminGames() {
               {gameTypeLabels[g.game_type]} · {g.court.name}
             </Link>
             <p className="text-sm text-ink-2">
-              {g.status.toUpperCase()} · {dayAndClock(g.start_time)} · {g.player_count}/{g.max_players} players
-              {g.creator && ` · by ${playerDisplayLabel(g.creator, true)}`}
+              {(a.gameStatus[g.status] ?? g.status).toUpperCase()} · {dayAndClock(g.start_time)} · {g.player_count}/{g.max_players} {a.games.players}
+              {g.creator && ` · ${a.games.by(playerDisplayLabel(g.creator, true))}`}
             </p>
           </div>
           {(g.status === 'active' || g.status === 'scheduled') && (
@@ -51,19 +54,19 @@ export function AdminGames() {
               variant="danger"
               className="min-h-9 px-3 text-base"
               onClick={() => {
-                const reason = prompt('Reason (shown to players)')
+                const reason = prompt(a.games.reasonPrompt)
                 if (reason !== null) act.mutate({ id: g.id, kind: 'cancel', reason })
               }}
             >
-              Cancel
+              {a.cancel}
             </Button>
           )}
-          <Button variant="ghost" className="min-h-9 px-3 text-base" onClick={() => confirm('Delete this game permanently?') && act.mutate({ id: g.id, kind: 'delete' })}>
-            Delete
+          <Button variant="ghost" className="min-h-9 px-3 text-base" onClick={() => confirm(a.games.confirmDelete) && act.mutate({ id: g.id, kind: 'delete' })}>
+            {a.delete}
           </Button>
         </Card>
       ))}
-      {data?.length === 0 && <p className="p-6 text-center text-ink-2">No games.</p>}
+      {data?.length === 0 && <p className="p-6 text-center text-ink-2">{a.games.empty}</p>}
     </div>
   )
 }

@@ -14,3 +14,12 @@ describe('toastFromApiError', () => {
     )
   })
 })
+
+describe('toastFromApiError fallbacks', () => {
+  it('uses the translated code copy, then the server message', () => {
+    toastFromApiError(new ApiError(409, 'game_full', 'whatever'))
+    expect(toast.error).toHaveBeenLastCalledWith('This game is full.')
+    toastFromApiError(new ApiError(400, 'some_new_code', 'Server says no.'))
+    expect(toast.error).toHaveBeenLastCalledWith('Server says no.')
+  })
+})

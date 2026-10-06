@@ -9,6 +9,7 @@ import { isUploadedAvatar } from '../lib/avatarPresets'
 import { resolveMediaUrl } from '../lib/mediaUrl'
 import { useKings } from '../lib/progress'
 import type { Activity, PublicUser } from '../lib/types'
+import { useLocale } from '../i18n/LocaleProvider'
 
 type Variant = 'primary' | 'live' | 'secondary' | 'ghost' | 'danger'
 
@@ -31,7 +32,7 @@ export function Button({
     <button
       {...props}
       disabled={props.disabled || loading}
-      className={`display inline-flex min-h-12 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-5 text-lg font-bold transition active:scale-[0.98] disabled:opacity-50 ${variants[variant]} ${className}`}
+      className={`display inline-flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-xl px-5 py-1.5 text-center leading-tight text-lg font-bold transition active:scale-[0.98] disabled:opacity-50 ${variants[variant]} ${className}`}
     >
       {loading ? <Spinner /> : children}
     </button>
@@ -39,10 +40,11 @@ export function Button({
 }
 
 export function Spinner({ className = '' }: { className?: string }) {
+  const { t } = useLocale()
   return (
     <span
       role="status"
-      aria-label="Loading"
+      aria-label={t.account.ui.loading}
       className={`inline-block size-5 animate-spin rounded-full border-2 border-current border-r-transparent ${className}`}
     />
   )
@@ -71,6 +73,7 @@ export function PasswordInput({
   ...props
 }: Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>) {
   const [visible, setVisible] = useState(false)
+  const { t } = useLocale()
   return (
     <div className="relative">
       <input
@@ -83,7 +86,7 @@ export function PasswordInput({
         type="button"
         className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-ink-2 hover:text-ink"
         onClick={() => setVisible((v) => !v)}
-        aria-label={visible ? 'Hide password' : 'Show password'}
+        aria-label={visible ? t.account.ui.hidePassword : t.account.ui.showPassword}
       >
         {visible ? <EyeOff className="size-5" aria-hidden /> : <Eye className="size-5" aria-hidden />}
       </button>
@@ -147,6 +150,7 @@ type AvatarUser = Pick<
 /** Player picture; this week's Kings of the Court wear a crown. */
 export function Avatar({ user, size = 40 }: { user: AvatarUser; size?: number }) {
   const { data: kings } = useKings()
+  const { t } = useLocale()
   const king = !!user.id && !!kings?.some((k) => k.user_id === user.id)
   if (!king) return <AvatarImage user={user} size={size} />
   const crown = Math.max(12, Math.round(size * 0.42))
@@ -156,7 +160,7 @@ export function Avatar({ user, size = 40 }: { user: AvatarUser; size?: number })
       <span
         className="pointer-events-none absolute leading-none drop-shadow"
         style={{ fontSize: crown, top: -crown * 0.55, right: -crown * 0.3, transform: 'rotate(18deg)' }}
-        aria-label="King of the Court"
+        aria-label={t.account.ui.kingOfCourt}
         role="img"
       >
         👑
@@ -196,10 +200,11 @@ function AvatarImage({ user, size }: { user: AvatarUser; size: number }) {
 }
 
 export function PageHeader({ title, back, right }: { title: string; back?: string; right?: ReactNode }) {
+  const { t } = useLocale()
   return (
     <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-line bg-bg/90 px-4 py-3 backdrop-blur">
       {back && (
-        <Link to={back} className="-ml-2 rounded-lg p-2 text-ink-2 hover:text-ink" aria-label="Back">
+        <Link to={back} className="-ml-2 rounded-lg p-2 text-ink-2 hover:text-ink" aria-label={t.account.back}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
             <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>

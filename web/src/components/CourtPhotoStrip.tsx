@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { resolveMediaUrl } from '../lib/mediaUrl'
+import { useLocale } from '../i18n/LocaleProvider'
 
 type Props = {
   photos: string[]
@@ -10,6 +11,7 @@ type Props = {
 
 /** Horizontal court photos; tap to open fullscreen viewer. */
 export function CourtPhotoStrip({ photos, compact }: Props) {
+  const { t } = useLocale()
   const [open, setOpen] = useState<number | null>(null)
   const urls = photos.map(resolveMediaUrl).filter(Boolean)
 
@@ -49,14 +51,14 @@ export function CourtPhotoStrip({ photos, compact }: Props) {
           className="fixed inset-0 z-50 flex flex-col bg-black/95"
           role="dialog"
           aria-modal="true"
-          aria-label="Court photo"
+          aria-label={t.courts.photos.viewer}
           onClick={close}
         >
           <button
             type="button"
             onClick={close}
             className="absolute right-4 top-4 z-10 rounded-full bg-white/10 p-2 text-white"
-            aria-label="Close"
+            aria-label={t.courts.photos.close}
           >
             <X className="size-6" />
           </button>

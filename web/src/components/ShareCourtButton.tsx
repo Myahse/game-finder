@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query'
 import { Share2 } from 'lucide-react'
 import { courtShareUrl } from '../lib/courtShare'
 import { Button } from './ui'
+import { useLocale } from '../i18n/LocaleProvider'
 
 type Props = {
   courtId: string
@@ -12,11 +13,12 @@ type Props = {
 }
 
 export function ShareCourtButton({ courtId, courtName, variant = 'secondary', className }: Props) {
+  const { t } = useLocale()
   const [copied, setCopied] = useState(false)
   const share = useMutation({
     mutationFn: async () => {
       const url = courtShareUrl(courtId)
-      const title = `${courtName} · Find the Game`
+      const title = t.courts.share.title.replace('{name}', courtName)
       if (typeof navigator.share === 'function') {
         try {
           await navigator.share({ title, text: courtName, url })
@@ -44,7 +46,7 @@ export function ShareCourtButton({ courtId, courtName, variant = 'secondary', cl
       onClick={() => share.mutate()}
     >
       <Share2 className="size-4 shrink-0" aria-hidden />
-      {copied ? 'Link copied!' : 'Share court'}
+      {copied ? t.courts.share.copied : t.courts.share.button}
     </Button>
   )
 }

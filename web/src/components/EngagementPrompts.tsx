@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { registerWebPush } from '../lib/webPush'
 import { toast } from 'sonner'
+import { currentT } from '../i18n/LocaleProvider'
 import { dismissPromptLater, isIos, isStandalonePwa, promptDismissed, PROMPT_KEYS } from '../lib/promptDismiss'
 
 type BeforeInstallPromptEvent = Event & {
@@ -50,22 +51,22 @@ function showNotificationPrompt(onDone: () => void) {
     return
   }
 
-  toast('Turn on notifications', {
+  const p = currentT().account.prompts
+  toast(p.notifyTitle, {
     id: NOTIFY_TOAST_ID,
-    description:
-      'Shows alerts when this tab is in the background. In-app toasts still work while Find the Game is open. Allow location on the map for nearby game alerts.',
+    description: p.notifyBody,
     duration: Infinity,
     action: {
-      label: 'Enable',
+      label: p.enable,
       onClick: () => {
         void Notification.requestPermission().then((perm) => {
           toast.dismiss(NOTIFY_TOAST_ID)
           if (perm === 'granted') {
             void registerWebPush()
-            toast.success('Notifications enabled')
+            toast.success(p.notifyEnabled)
           } else if (perm === 'denied') {
-            toast.message('Notifications blocked', {
-              description: 'Allow notifications in your browser settings to get alerts.',
+            toast.message(p.notifyBlocked, {
+              description: p.notifyBlockedBody,
             })
           }
           onDone()
@@ -73,7 +74,7 @@ function showNotificationPrompt(onDone: () => void) {
       },
     },
     cancel: {
-      label: 'Later',
+      label: p.later,
       onClick: () => {
         dismissPromptLater(PROMPT_KEYS.notifications)
         toast.dismiss(NOTIFY_TOAST_ID)
@@ -89,25 +90,26 @@ function showInstallPrompt(deferred: BeforeInstallPromptEvent | null, onDone: ()
     return
   }
 
+  const p = currentT().account.prompts
   if (deferred) {
-    toast('Install Find the Game', {
+    toast(p.installTitle, {
       id: INSTALL_TOAST_ID,
-      description: 'Open the app from your home screen — faster map and live game updates.',
+      description: p.installBody,
       duration: Infinity,
       action: {
-        label: 'Install',
+        label: p.install,
         onClick: () => {
           void deferred.prompt().then(() =>
             deferred.userChoice.then(({ outcome }) => {
               toast.dismiss(INSTALL_TOAST_ID)
-              if (outcome === 'accepted') toast.success('App installed')
+              if (outcome === 'accepted') toast.success(p.installed)
               onDone()
             }),
           )
         },
       },
       cancel: {
-        label: 'Later',
+        label: p.later,
         onClick: () => {
           dismissPromptLater(PROMPT_KEYS.install)
           toast.dismiss(INSTALL_TOAST_ID)
@@ -119,12 +121,12 @@ function showInstallPrompt(deferred: BeforeInstallPromptEvent | null, onDone: ()
   }
 
   if (isIos()) {
-    toast('Add to Home Screen', {
+    toast(p.iosTitle, {
       id: INSTALL_TOAST_ID,
-      description: 'Tap Share, then “Add to Home Screen” to install the app.',
+      description: p.iosBody,
       duration: Infinity,
       cancel: {
-        label: 'Later',
+        label: p.later,
         onClick: () => {
           dismissPromptLater(PROMPT_KEYS.install)
           toast.dismiss(INSTALL_TOAST_ID)

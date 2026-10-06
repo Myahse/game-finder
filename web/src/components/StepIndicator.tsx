@@ -1,6 +1,9 @@
+import { useLocale } from '../i18n/LocaleProvider'
+
 export function StepIndicator({ current, total }: { current: number; total: number }) {
+  const { t } = useLocale()
   return (
-    <div className="flex items-center justify-center gap-1.5" aria-label={`Step ${current} of ${total}`}>
+    <div className="flex items-center justify-center gap-1.5" aria-label={t.account.stepOf.replace('{n}', String(current)).replace('{total}', String(total))}>
       {Array.from({ length: total }, (_, i) => {
         const n = i + 1
         return (

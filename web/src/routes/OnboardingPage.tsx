@@ -134,7 +134,7 @@ export function OnboardingPage() {
             className="text-sm font-semibold text-ink-2 hover:text-brand"
             onClick={() => void logout().then(() => navigate('/', { replace: true }))}
           >
-            Sign out
+            {t.account.signOut}
           </button>
         </div>
 
@@ -290,7 +290,7 @@ export function OnboardingPage() {
                 onClick={() => setStep(step - 1)}
                 disabled={update.isPending}
               >
-                Back
+                {t.account.back}
               </Button>
             ) : (
               <span className="flex-1" />
@@ -302,7 +302,7 @@ export function OnboardingPage() {
                 disabled={!canNext || update.isPending}
                 onClick={() => void goNext()}
               >
-                Next
+                {t.account.next}
               </Button>
             ) : (
               <Button type="submit" className="min-h-11 flex-1 text-base" loading={update.isPending} disabled={!canNext || update.isPending}>

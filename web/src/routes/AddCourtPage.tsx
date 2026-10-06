@@ -17,9 +17,11 @@ import { formatOpeningHours } from '../lib/openingHours'
 import { reverseGeocode } from '../lib/reverseGeocode'
 import { StepIndicator } from '../components/StepIndicator'
 import { Button, ErrorText, Field, Input, Textarea } from '../components/ui'
+import { useLocale } from '../i18n/LocaleProvider'
 
 export function AddCourtPage() {
   const navigate = useNavigate()
+  const { t } = useLocale()
   const { coords, center } = useLocation()
   const { user } = useAuth()
   const isAdmin = user?.role === 'admin'
@@ -92,7 +94,7 @@ export function AddCourtPage() {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
-    if (!where) return setError('Tap the map to place the court.')
+    if (!where) return setError(t.courts.add.placeCourt)
     setBusy(true)
     setError('')
     try {
@@ -126,24 +128,24 @@ export function AddCourtPage() {
     return (
       <div className="mx-auto flex min-h-full max-w-md flex-col items-center justify-center p-8 text-center">
         <Hourglass className="size-16 text-brand" aria-hidden />
-        <h1 className="display mt-3 text-5xl font-extrabold">{reused ? 'Court already here' : 'Submitted for review'}</h1>
+        <h1 className="display mt-3 text-5xl font-extrabold">{reused ? t.courts.add.alreadyHereTitle : t.courts.add.submittedTitle}</h1>
         <p className="mt-2 text-ink-2">
           {reused
-            ? 'Nobody was playing at this spot — we linked you to the existing court.'
-            : 'We got your proposal. It stays hidden from the public map until an admin approves it. Check Alerts for updates.'}
+            ? t.courts.add.alreadyHereBody
+            : t.courts.add.submittedBody}
         </p>
         {doneCourt.status === 'approved' ? (
           <>
             <Button className="mt-4 w-full" variant="live" onClick={() => navigate(`/games/new?court=${doneCourt.id}`)}>
-              Create a game
+              {t.courts.add.createGame}
             </Button>
             <Button className="mt-2 w-full" onClick={() => navigate(`/?court=${doneCourt.id}`)}>
-              View on map
+              {t.courts.add.viewOnMap}
             </Button>
           </>
         ) : (
           <Button className="mt-4 w-full" onClick={() => navigate(`/courts/${doneCourt.id}`)}>
-            View your court
+            {t.courts.add.viewYourCourt}
           </Button>
         )}
       </div>
@@ -159,13 +161,13 @@ export function AddCourtPage() {
       >
         <header className="relative z-20 shrink-0 border-b border-line bg-surface/95 px-3 pb-3 backdrop-blur pt-[max(0.5rem,env(safe-area-inset-top))]">
           <div className="flex items-center gap-2">
-            <Link to="/" className="-ml-1 rounded-lg p-2 text-ink-2 hover:text-ink" aria-label="Back to map">
+            <Link to="/" className="-ml-1 rounded-lg p-2 text-ink-2 hover:text-ink" aria-label={t.courts.backToMap}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
                 <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </Link>
             <div className="min-w-0 flex-1">
-              <h1 className="display truncate text-2xl font-extrabold">Place court</h1>
+              <h1 className="display truncate text-2xl font-extrabold">{t.courts.add.placeTitle}</h1>
             </div>
             <StepIndicator current={1} total={2} />
           </div>
@@ -175,7 +177,7 @@ export function AddCourtPage() {
             proximity={mapCenter}
             locationBias={coords}
             courts={nearbyCourts ?? []}
-            placeholder="Search address or existing court…"
+            placeholder={t.courts.add.searchPlaceholder}
           />
         </header>
 
@@ -195,7 +197,7 @@ export function AddCourtPage() {
         <div className="shrink-0 space-y-1.5 border-t border-line bg-surface px-4 py-2">
           {coords && !where && (
             <button type="button" className="w-full py-1 text-center text-sm font-semibold text-brand" onClick={pinMyPosition}>
-              I&apos;m at the court — pin my position
+              {t.courts.add.pinMyPosition}
             </button>
           )}
           {error ? <ErrorText>{error}</ErrorText> : null}
@@ -208,7 +210,7 @@ export function AddCourtPage() {
               setStep(1)
             }}
           >
-            Next: court details
+            {t.courts.add.nextDetails}
           </Button>
         </div>
       </div>,
@@ -222,7 +224,7 @@ export function AddCourtPage() {
         <button
           type="button"
           className="-ml-2 rounded-lg p-2 text-ink-2 hover:text-ink"
-          aria-label="Back to map"
+          aria-label={t.courts.backToMap}
           onClick={() => setStep(0)}
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
@@ -230,31 +232,31 @@ export function AddCourtPage() {
           </svg>
         </button>
         <div className="min-w-0 flex-1">
-          <h1 className="display truncate text-3xl font-extrabold">Court details</h1>
+          <h1 className="display truncate text-3xl font-extrabold">{t.courts.add.detailsTitle}</h1>
         </div>
         <StepIndicator current={2} total={2} />
       </header>
 
       <div className="mx-auto grid max-w-md gap-5 p-5">
-        <Field label="Name">
+        <Field label={t.courts.add.name}>
           <Input
             required
             minLength={2}
             maxLength={80}
-            placeholder="e.g. Terrain Mockeyville"
+            placeholder={t.courts.add.namePlaceholder}
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
         </Field>
         <p className="text-sm text-ink-2">
-          Pin placed on the map.
+          {t.courts.add.pinPlaced}
           <button type="button" className="ml-2 font-semibold text-brand" onClick={() => setStep(0)}>
-            Adjust on map
+            {t.courts.add.adjustOnMap}
           </button>
         </p>
         <Field
-          label="Sport"
-          hint={!isAdmin ? 'Pick which of your sports this court is for.' : undefined}
+          label={t.courts.sport}
+          hint={!isAdmin ? t.courts.add.sportHint : undefined}
         >
           {!isAdmin && mySports.length > 0 ? (
             <div className="flex flex-wrap gap-2">
@@ -287,7 +289,7 @@ export function AddCourtPage() {
             </div>
           )}
         </Field>
-        <Field label="Photos (optional)">
+        <Field label={t.courts.add.photosOptional}>
           <div className="flex flex-wrap gap-2">
             {photos.map((p) => (
               <div key={p} className="relative">
@@ -296,7 +298,7 @@ export function AddCourtPage() {
                   type="button"
                   onClick={() => setPhotos((list) => list.filter((x) => x !== p))}
                   className="absolute -right-1.5 -top-1.5 flex size-7 items-center justify-center rounded-full border border-line bg-surface text-ink shadow hover:bg-surface-2"
-                  aria-label="Remove photo"
+                  aria-label={t.courts.removePhoto}
                 >
                   <X className="size-4" aria-hidden />
                 </button>
@@ -311,37 +313,37 @@ export function AddCourtPage() {
           </div>
         </Field>
         <Field
-          label="Address (optional)"
-          hint={geocodingAddress ? 'Looking up address from the map…' : 'Filled automatically from the pin. You can edit it.'}
+          label={t.courts.add.addressOptional}
+          hint={geocodingAddress ? t.courts.add.lookingUpAddress : t.courts.add.addressAuto}
         >
-          <Input placeholder="Street or place name" value={address} onChange={(e) => setAddress(e.target.value)} />
+          <Input placeholder={t.courts.streetPlaceholder} value={address} onChange={(e) => setAddress(e.target.value)} />
         </Field>
-        <Field label="Opening hours (optional)" hint="24-hour format">
+        <Field label={t.courts.add.hoursOptional} hint={t.courts.add.hours24}>
           <div className="grid grid-cols-2 gap-3">
-            <Input type="time" aria-label="Opens" value={opensAt} onChange={(e) => setOpensAt(e.target.value)} />
-            <Input type="time" aria-label="Closes" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} />
+            <Input type="time" aria-label={t.courts.opens} value={opensAt} onChange={(e) => setOpensAt(e.target.value)} />
+            <Input type="time" aria-label={t.courts.closes} value={closesAt} onChange={(e) => setClosesAt(e.target.value)} />
           </div>
         </Field>
-        <Field label="Surface (optional)">
-          <Input placeholder="e.g. Concrete, grass" value={surface} onChange={(e) => setSurface(e.target.value)} />
+        <Field label={t.courts.add.surfaceOptional}>
+          <Input placeholder={t.courts.add.surfacePlaceholder} value={surface} onChange={(e) => setSurface(e.target.value)} />
         </Field>
-        <Field label="Lighting (optional)">
+        <Field label={t.courts.add.lightingOptional}>
           <select
             className="w-full rounded-xl border border-line bg-surface-2 px-3 py-2.5 text-sm"
             value={lighting}
             onChange={(e) => setLighting(e.target.value as 'unknown' | 'yes' | 'no')}
           >
-            <option value="unknown">Not specified</option>
-            <option value="yes">Lit at night</option>
-            <option value="no">No lights</option>
+            <option value="unknown">{t.courts.notSpecified}</option>
+            <option value="yes">{t.courts.litAtNight}</option>
+            <option value="no">{t.courts.noLights}</option>
           </select>
         </Field>
-        <Field label="Description (optional)">
-          <Textarea maxLength={1000} placeholder="Hoops, surface, lights, best times…" value={description} onChange={(e) => setDescription(e.target.value)} />
+        <Field label={t.courts.add.descriptionOptional}>
+          <Textarea maxLength={1000} placeholder={t.courts.add.descriptionPlaceholder} value={description} onChange={(e) => setDescription(e.target.value)} />
         </Field>
         <ErrorText>{error}</ErrorText>
         <Button type="submit" loading={busy} disabled={!sportIds.length || uploading}>
-          Submit court
+          {t.courts.add.submit}
         </Button>
       </div>
     </form>
