@@ -96,7 +96,7 @@ export function ChallengeComposer({ opponent, court: fixedCourt, onClose }: { op
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={t.challenge.newTitle} onClick={onClose}>
+    <div className="ftg-safe-overlay fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={t.challenge.newTitle} onClick={onClose}>
       <div className="max-h-[94dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="display text-2xl font-extrabold">{opponent ? t.challenge.newTitle : t.challenge.openTitle}</h2>

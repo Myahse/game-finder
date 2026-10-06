@@ -48,7 +48,7 @@ export function CourtPhotoStrip({ photos, compact }: Props) {
 
       {open != null && (
         <div
-          className="fixed inset-0 z-50 flex flex-col bg-black/95"
+          className="ftg-safe-overlay ftg-safe-overlay-b fixed inset-0 z-50 flex flex-col bg-black/95"
           role="dialog"
           aria-modal="true"
           aria-label={t.courts.photos.viewer}
@@ -57,7 +57,7 @@ export function CourtPhotoStrip({ photos, compact }: Props) {
           <button
             type="button"
             onClick={close}
-            className="absolute right-4 top-4 z-10 rounded-full bg-white/10 p-2 text-white"
+            className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] z-10 rounded-full bg-white/10 p-2 text-white"
             aria-label={t.courts.photos.close}
           >
             <X className="size-6" />

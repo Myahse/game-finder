@@ -490,3 +490,19 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .ftg-rain-badge { animation: none; }
 }
+
+/* iPhone home-screen app (viewport-fit=cover): keep the UI out of the notch,
+   status bar and side insets. Pages get it from #root; fixed overlays opt in. */
+#root {
+  padding-top: env(safe-area-inset-top);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+.ftg-safe-overlay {
+  padding-top: max(1rem, env(safe-area-inset-top)) !important;
+  padding-left: max(0px, env(safe-area-inset-left));
+  padding-right: max(0px, env(safe-area-inset-right));
+}
+.ftg-safe-overlay-b {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom)) !important;
+}

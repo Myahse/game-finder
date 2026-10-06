@@ -255,7 +255,7 @@ export function AppAlert({
   if (!open) return null
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="ftg-safe-overlay ftg-safe-overlay-b fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       role="alertdialog"
       aria-modal="true"
       aria-labelledby="app-alert-title"

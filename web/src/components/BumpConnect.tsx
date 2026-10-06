@@ -118,7 +118,7 @@ function BumpConnectSheet({ onClose }: { onClose: () => void }) {
   }, [cancel])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg/95 p-6 backdrop-blur" role="dialog" aria-modal="true" aria-label={t.bump.title}>
+    <div className="ftg-safe-overlay ftg-safe-overlay-b fixed inset-0 z-50 flex items-center justify-center bg-bg/95 p-6 backdrop-blur" role="dialog" aria-modal="true" aria-label={t.bump.title}>
       <button type="button" onClick={cancel} className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] rounded-full p-2 text-ink-2 hover:bg-surface-2 hover:text-ink" aria-label={t.common.close}>
         <X className="size-6" aria-hidden />
       </button>

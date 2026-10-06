@@ -35,7 +35,7 @@ function Shell({ code, title, body, primary }: { code: string; title: string; bo
   const { t } = useLocale()
   const navigate = useNavigate()
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center bg-bg px-6 py-10 text-center">
+    <main className="flex min-h-full flex-col items-center justify-center bg-bg px-6 py-10 text-center">
       <OutOfBounds code={code} />
       <h1 className="display mt-6 text-4xl font-extrabold">{title}</h1>
       <p className="mt-2 max-w-sm text-ink-2">{body}</p>

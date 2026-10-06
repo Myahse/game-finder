@@ -24,7 +24,7 @@ export function PlatformIntroModal({ open, onClose, variant = 'member' }: Props)
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 p-4 backdrop-blur-md sm:items-center"
+      className="ftg-safe-overlay ftg-safe-overlay-b fixed inset-0 z-[60] flex items-end justify-center bg-black/50 p-4 backdrop-blur-md sm:items-center"
       role="dialog"
       aria-modal="true"
       aria-labelledby="platform-intro-title"

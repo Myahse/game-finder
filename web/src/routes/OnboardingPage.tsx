@@ -123,7 +123,7 @@ export function OnboardingPage() {
 
   return (
     <div className="min-h-full">
-      <div className="mx-auto flex max-w-md flex-col px-6 pb-10 pt-[max(1.5rem,env(safe-area-inset-top))]">
+      <div className="mx-auto flex max-w-md flex-col px-6 pb-10 pt-6">
         <div className="mb-8 flex items-center justify-between">
           <span className="display inline-flex items-center gap-1.5 text-xl font-extrabold">
             <BaseSportIcon className="sport-tint size-5 text-brand" />
