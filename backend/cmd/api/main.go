@@ -84,7 +84,7 @@ func run() error {
 
 	srv := &http.Server{
 		Addr:              cfg.Addr,
-		Handler:           api.New(cfg, d, hub, media).Routes(),
+		Handler:           api.New(cfg, d, hub, media).WithPush(dispatcher.Sender).Routes(),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	errCh := make(chan error, 1)

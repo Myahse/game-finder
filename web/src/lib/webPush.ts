@@ -29,30 +29,33 @@ async function messaging() {
   return getMessaging(app)
 }
 
+export type PushRegistration = { ok: true } | { ok: false; reason: string }
+
 /**
  * Registers this browser for push (FCM) and sends the token to the API.
  * Call after notification permission is granted; safe to call on every app start.
- * Returns false when push isn't available here (not configured, unsupported,
- * or iOS Safari outside the installed home-screen app).
+ * On failure, `reason` says why (not configured, unsupported, Firebase error…).
  */
-export async function registerWebPush(): Promise<boolean> {
+export async function registerWebPush(): Promise<PushRegistration> {
   try {
-    if (!('Notification' in window) || Notification.permission !== 'granted') return false
+    if (!('Notification' in window)) return { ok: false, reason: 'notifications unsupported in this browser' }
+    if (Notification.permission !== 'granted') return { ok: false, reason: `permission ${Notification.permission}` }
+    if (!webPushConfigured) return { ok: false, reason: 'web push not configured (Firebase env)' }
     const m = await messaging()
-    if (!m) return false
+    if (!m) return { ok: false, reason: 'push messaging unsupported in this browser' }
     const registration = await navigator.serviceWorker.ready
     const token = await getToken(m, { vapidKey, serviceWorkerRegistration: registration })
-    if (!token) return false
+    if (!token) return { ok: false, reason: 'Firebase returned no token' }
     await api('/api/me/push-tokens', { method: 'POST', json: { token, platform: 'web' } })
     try {
       localStorage.setItem(TOKEN_KEY, token)
     } catch {
       // storage unavailable — token stays registered server-side
     }
-    return true
+    return { ok: true }
   } catch (e) {
     console.warn('web push registration failed', e)
-    return false
+    return { ok: false, reason: (e as Error)?.message?.slice(0, 200) || String(e) }
   }
 }
 

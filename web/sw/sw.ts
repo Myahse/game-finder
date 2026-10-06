@@ -38,7 +38,7 @@ self.addEventListener('push', (event) => {
     (async () => {
       // The open app already shows a toast via its live connection.
       const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
-      if (windows.some((w) => w.visibilityState === 'visible')) return
+      if (data.test !== '1' && windows.some((w) => w.visibilityState === 'visible')) return
       await self.registration.showNotification(title, {
         body,
         icon: '/favicon.svg',

@@ -1074,19 +1074,54 @@ func (s *Server) readAllNotifications(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// pushTest queues a notification to the caller's own devices, so players can
-// check that push works on their phone. Reports how many devices are registered.
+// pushTest sends a notification straight to the caller's registered devices
+// (nothing is added to their notification list) and reports what happened, so
+// players and admins can see why a phone isn't getting alerts.
 func (s *Server) pushTest(w http.ResponseWriter, r *http.Request) {
-	b, err := s.db.JSON(r.Context(), uid(r), `
-		with n as (
-			insert into notifications (user_id, type, title, body, data, push)
-			values (app_uid(), 'system', 'Notifications are on 🎉', 'You will get game invites, challenges and reminders here.', '{}'::jsonb, true)
-			returning id
-		)
-		select jsonb_build_object('devices', (select count(*) from push_tokens where user_id = app_uid()), 'id', (select id from n))`)
+	rows, err := s.db.Pool.Query(r.Context(), `select token, coalesce(platform, '') from push_tokens where user_id = $1`, uid(r))
 	if err != nil {
 		writeDBError(w, r, err)
 		return
 	}
-	writeRaw(w, http.StatusOK, b)
+	type device struct{ token, platform string }
+	var devices []device
+	for rows.Next() {
+		var d device
+		if err := rows.Scan(&d.token, &d.platform); err != nil {
+			rows.Close()
+			writeDBError(w, r, err)
+			return
+		}
+		devices = append(devices, d)
+	}
+	rows.Close()
+
+	out := map[string]any{"server_configured": s.push != nil, "devices": len(devices), "delivered": 0, "errors": []string{}}
+	if s.push == nil || len(devices) == 0 {
+		writeJSON(w, http.StatusOK, out)
+		return
+	}
+	delivered := 0
+	errs := []string{}
+	for _, d := range devices {
+		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+		invalid, err := s.push.Send(ctx, d.token, "Notifications are on 🎉",
+			"You'll get game invites, challenges and reminders here.", map[string]string{"type": "system", "test": "1"})
+		cancel()
+		if invalid {
+			_, _ = s.db.Pool.Exec(r.Context(), "delete from push_tokens where token = $1", d.token)
+		}
+		if err != nil {
+			msg := err.Error()
+			if len(msg) > 300 {
+				msg = msg[:300]
+			}
+			errs = append(errs, d.platform+": "+msg)
+			continue
+		}
+		delivered++
+	}
+	out["delivered"] = delivered
+	out["errors"] = errs
+	writeJSON(w, http.StatusOK, out)
 }

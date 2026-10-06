@@ -22,6 +22,7 @@ import (
 	"findthegame/backend/internal/config"
 	"findthegame/backend/internal/db"
 	"findthegame/backend/internal/mail"
+	"findthegame/backend/internal/push"
 	"findthegame/backend/internal/realtime"
 	"findthegame/backend/internal/storage"
 )
@@ -42,6 +43,7 @@ type Server struct {
 	firebase        *auth.FirebaseVerifier
 	mailer          *mail.Resend
 	weather         *weatherCache
+	push            push.Sender // nil when FCM isn't configured
 }
 
 func New(cfg config.Config, d *db.DB, hub *realtime.Hub, media *storage.Media) *Server {
@@ -62,6 +64,12 @@ func New(cfg config.Config, d *db.DB, hub *realtime.Hub, media *storage.Media) *
 		mailer:          mail.NewResend(cfg.ResendAPIKey, cfg.EmailFrom),
 		weather:         newWeatherCache(cfg.WeatherURL),
 	}
+}
+
+// WithPush enables direct sends (the push test); nil keeps push off.
+func (s *Server) WithPush(sender push.Sender) *Server {
+	s.push = sender
+	return s
 }
 
 func newGoogleVerifier(cfg config.Config) *auth.GoogleVerifier {

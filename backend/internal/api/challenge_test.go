@@ -146,7 +146,7 @@ func TestPushTest(t *testing.T) {
 	e := setup(t)
 	u := e.register("ana")
 	r, _ := e.must(200, u.Token, "POST", "/api/me/push-test", nil)
-	if r["devices"] != 0.0 {
+	if r["devices"] != 0.0 || r["server_configured"] != false {
 		t.Fatalf("push test = %v", r)
 	}
 	e.must(204, u.Token, "POST", "/api/me/push-tokens", map[string]any{"token": "web-token-1", "platform": "web"})
@@ -154,8 +154,9 @@ func TestPushTest(t *testing.T) {
 	if r["devices"] != 1.0 {
 		t.Fatalf("push test with device = %v", r)
 	}
-	var queued int
-	if err := e.db.Pool.QueryRow(t.Context(), `select count(*) from notifications where user_id = $1 and push and type = 'system'`, u.ID).Scan(&queued); err != nil || queued != 2 {
-		t.Fatalf("queued = %d %v", queued, err)
+	// The test never shows up in the notification list.
+	var n int
+	if err := e.db.Pool.QueryRow(t.Context(), `select count(*) from notifications where user_id = $1 and type = 'system'`, u.ID).Scan(&n); err != nil || n != 0 {
+		t.Fatalf("test notifications in list = %d %v", n, err)
 	}
 }

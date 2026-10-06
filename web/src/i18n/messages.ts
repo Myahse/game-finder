@@ -168,7 +168,10 @@ const en = {
     enable: 'Turn on',
     test: 'Send a test',
     testSent: 'Test sent — it should pop up in a few seconds.',
-    noDevice: 'This device isn’t registered yet. Tap “Turn on” again.',
+    noDevice: 'This device couldn’t register for notifications.',
+    serverOff: 'Phone notifications aren’t switched on on the server yet. The team is on it.',
+    failed: 'Couldn’t deliver the test.',
+    details: 'Details',
   },
   challenge: {
     button: 'Challenge',
@@ -674,7 +677,10 @@ const fr: MessageTree = {
     enable: 'Activer',
     test: 'Envoyer un test',
     testSent: 'Test envoyé — il devrait s’afficher dans quelques secondes.',
-    noDevice: 'Cet appareil n’est pas encore enregistré. Touchez « Activer » à nouveau.',
+    noDevice: 'Cet appareil n’a pas pu s’enregistrer pour les notifications.',
+    serverOff: 'Les notifications ne sont pas encore activées sur le serveur. L’équipe s’en occupe.',
+    failed: 'Le test n’a pas pu être envoyé.',
+    details: 'Détails',
   },
   challenge: {
     button: 'Défier',
