@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'challenges_screen.dart';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -328,7 +329,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (!mounted) return;
     final gameId = n.data['game_id'] as String?;
     final courtId = n.data['court_id'] as String?;
-    if (gameId != null) {
+    if (n.type == 'challenge') {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const ChallengesScreen()));
+    } else if (gameId != null) {
       openGameScreen(context, gameId);
     } else if (courtId != null) {
       Navigator.push(context, MaterialPageRoute(builder: (_) => CourtDetailsScreen(courtId: courtId)));

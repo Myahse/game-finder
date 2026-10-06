@@ -1,4 +1,6 @@
 import 'dart:async';
+import '../core/progress_models.dart';
+import 'challenges_screen.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -901,6 +903,10 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen>
                         onTap: () => openGameScreen(context, g.id),
                       ),
                     ),
+                  if (c.status == 'approved') ...[
+                    const SizedBox(height: 16),
+                    CourtChallenges(court: CourtRef.fromJson({'id': c.id, 'name': c.name})),
+                  ],
                   if (!canEditCourt) ...[
                     const SizedBox(height: 16),
                     Card(

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../core/l10n.dart';
+import '../ui/progress_card.dart';
+import 'challenges_screen.dart';
 import '../core/pick_image.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -122,6 +125,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: const Text('EDIT PLAYER'),
             ),
           ],
+          const SizedBox(height: 12),
+          const ProgressCard(),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChallengesScreen())),
+            icon: const Icon(Icons.sports_kabaddi),
+            label: Text(tr('MY CHALLENGES', 'MES DÉFIS')),
+          ),
           if (me.isAdmin)
             const Padding(
               padding: EdgeInsets.only(top: 12),
@@ -310,6 +321,14 @@ class _UserScreenState extends State<UserScreen> {
         appBar: AppBar(title: const Text('PLAYER')),
         body: _user == null
             ? Center(child: _error != null ? Text(_error!) : const CircularProgressIndicator())
-            : ListView(padding: const EdgeInsets.all(16), children: [_ProfileCard(user: _user!, sports: _sports)]),
+            : ListView(padding: const EdgeInsets.all(16), children: [
+                _ProfileCard(user: _user!, sports: _sports),
+                if (context.watch<AuthState>().user?.id != _user!.id) ...[
+                  const SizedBox(height: 12),
+                  PlayerChallengeBlock(player: _user!),
+                ],
+                const SizedBox(height: 12),
+                ProgressCard(userId: _user!.id),
+              ]),
       );
 }

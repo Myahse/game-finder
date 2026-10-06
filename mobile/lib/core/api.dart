@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
 import 'env.dart';
+import 'l10n.dart';
 
 class ApiException implements Exception {
   final int status;
@@ -99,7 +100,7 @@ class Api extends ChangeNotifier {
       try {
         final res = await _http
             .post(Uri.parse('$apiUrl/api/auth/refresh'),
-                headers: {'Content-Type': 'application/json'},
+                headers: {'Content-Type': 'application/json', 'Accept-Language': deviceLanguage},
                 body: jsonEncode({'refresh_token': session!.refreshToken}))
             .timeout(const Duration(seconds: 15));
         if (res.statusCode != 200) {
@@ -119,6 +120,8 @@ class Api extends ChangeNotifier {
   Future<dynamic> request(String method, String path, {Object? body, bool retry = true}) async {
     final token = await accessToken();
     final req = http.Request(method, Uri.parse('$apiUrl$path'));
+    // The server writes notifications and sport names in the device language.
+    req.headers['Accept-Language'] = deviceLanguage;
     if (token != null) req.headers['Authorization'] = 'Bearer $token';
     if (body != null) {
       req.headers['Content-Type'] = 'application/json';
@@ -150,6 +153,7 @@ class Api extends ChangeNotifier {
     Future<String> send({bool retry = true}) async {
       final req = http.MultipartRequest('POST', Uri.parse('$apiUrl/api/uploads'))
         ..fields['kind'] = kind
+        ..headers['Accept-Language'] = deviceLanguage
         ..files.add(_multipartImage(bytes, filename));
       final token = await accessToken();
       if (token != null) req.headers['Authorization'] = 'Bearer $token';
