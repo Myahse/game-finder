@@ -134,7 +134,7 @@ export interface AppNotification {
     presence_id?: string
     user_id?: string
     friend_request_id?: string
-    kind?: 'badge' | 'streak' | 'king' | 'challenge'
+    kind?: 'badge' | 'streak' | 'king' | 'challenge' | 'court_change'
     challenge_id?: string
     badge_id?: string
   }

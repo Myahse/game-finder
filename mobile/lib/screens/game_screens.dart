@@ -10,6 +10,7 @@ import '../core/media_url.dart';
 import '../core/auth.dart';
 import '../core/format.dart';
 import '../core/game_share.dart';
+import '../core/l10n.dart';
 import '../core/location.dart';
 import '../core/models.dart';
 import '../core/map_pause.dart';
@@ -19,6 +20,7 @@ import '../core/realtime.dart';
 import '../ui/theme.dart';
 import '../ui/app_icons.dart';
 import '../ui/widgets.dart';
+import 'court_move.dart';
 import 'profile_screen.dart';
 
 /// Push game detail after routes settle (avoids semantics asserts when closing sheets).
@@ -281,6 +283,19 @@ class _GameScreenState extends State<GameScreen> {
                   icon: const Icon(Icons.navigation_outlined),
                   label: const Text('GET DIRECTIONS'),
                 ),
+                if (g.isOpen && (isCreator || me?.isAdmin == true)) ...[
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      final moved = await showMoveCourtSheet(context,
+                          kind: 'game', id: g.id, sportId: g.sportId, sportSlug: g.sport.slug,
+                          courtId: g.courtId, courtName: g.courtName, lat: g.courtLat, lng: g.courtLng);
+                      if (moved == true) _load();
+                    },
+                    icon: const Icon(Icons.edit_location_alt_outlined),
+                    label: Text(tr('CHANGE COURT', 'CHANGER DE TERRAIN')),
+                  ),
+                ],
                 if (g.isOpen && isCreator)
                   TextButton(
                     onPressed: _busy

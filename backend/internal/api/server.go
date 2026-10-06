@@ -195,6 +195,9 @@ func (s *Server) Routes() http.Handler {
 			r.Post("/challenges/{id}/confirm", s.challengeAction(`select confirm_challenge($1, true)`))
 			r.Post("/challenges/{id}/dispute", s.challengeAction(`select confirm_challenge($1, false)`))
 			r.Get("/courts/{id}/challenges", s.openChallengesAtCourt)
+			r.With(s.rateLimitedUser("game")).Post("/challenges/{id}/court", s.moveChallenge)
+			r.Get("/me/court-changes", s.myCourtChanges)
+			r.Post("/me/court-changes/{id}/seen", s.ackCourtChange)
 			r.Post("/friend-invites/{token}/accept", s.acceptFriendInviteLink)
 			r.Get("/me/games", s.myGames)
 			r.Get("/me/presence", s.myPresence)
@@ -216,6 +219,7 @@ func (s *Server) Routes() http.Handler {
 			r.With(s.rateLimitedUser("game")).Post("/games", s.createGame)
 			r.Get("/games/{id}", s.getGame)
 			r.Patch("/games/{id}", s.updateGame)
+			r.With(s.rateLimitedUser("game")).Post("/games/{id}/court", s.moveGame)
 			r.Post("/games/{id}/join", s.joinGame)
 			r.Post("/games/{id}/leave", s.leaveGame)
 			r.Post("/games/{id}/cancel", s.cancelGame)
@@ -486,6 +490,7 @@ var appErrors = map[string]struct {
 	"too_many_pending_courts":    {http.StatusUnprocessableEntity, "You already have pending court proposals. Wait for review."},
 	"invalid_location":           {http.StatusUnprocessableEntity, "Invalid coordinates."},
 	"challenge_not_found":        {http.StatusNotFound, "Challenge not found."},
+	"same_court":                 {http.StatusUnprocessableEntity, "That's already the court."},
 	"challenge_closed":           {http.StatusConflict, "This challenge is no longer open."},
 	"challenge_pending":          {http.StatusConflict, "You already have a pending challenge with this player."},
 	"too_many_challenges":        {http.StatusTooManyRequests, "Too many open challenges. Wait for answers first."},

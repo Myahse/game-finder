@@ -8,6 +8,7 @@ import { useAuth } from '../lib/auth'
 import { useChallengeActions, type Challenge } from '../lib/challenges'
 import { playerUsernameLabel } from '../lib/format'
 import type { PublicUser } from '../lib/types'
+import { MoveCourtButton } from './MoveCourtSheet'
 import { Avatar, Button, Card, ErrorText, Input } from './ui'
 
 const STATUS_CLS: Record<string, string> = {
@@ -139,6 +140,9 @@ export function ChallengeCard({ c }: { c: Challenge }) {
                 </Button>
               )}
             </>
+          )}
+          {(c.status === 'pending' || c.status === 'accepted') && iAmChallenger && (
+            <MoveCourtButton kind="challenge" id={c.id} sportId={c.sport.id} sportSlug={c.sport.slug} court={c.court} className="col-span-2 text-base" />
           )}
           {(c.status === 'pending' || c.status === 'accepted') && iAmChallenger && (
             <Button type="button" variant="ghost" className="col-span-2" onClick={() => run('cancel')}>

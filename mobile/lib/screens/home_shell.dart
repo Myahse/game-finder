@@ -7,9 +7,12 @@ import '../core/api.dart';
 import '../core/notifications.dart';
 import '../core/presence.dart';
 import '../core/map_pause.dart';
+import '../core/progress_models.dart';
 import '../core/realtime.dart';
 import '../ui/theme.dart';
 import '../ui/widgets.dart';
+import 'challenges_screen.dart';
+import 'court_move.dart';
 import 'game_screens.dart';
 import 'lists_screens.dart';
 import 'map_screen.dart';
@@ -21,8 +24,10 @@ class HomeShell extends StatefulWidget {
   State<HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends State<HomeShell> {
+class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   int _tab = 0;
+  bool _alertOpen = false;
+  Timer? _changesTimer;
   int _unread = 0;
   bool _promptOpen = false;
   final List<StreamSubscription> _subs = [];
@@ -38,6 +43,10 @@ class _HomeShellState extends State<HomeShell> {
     _subs.add(rt.ofType('notification').listen((ev) {
       _loadUnread();
       if (!mounted) return;
+      if ((ev['data'] as Map?)?['kind'] == 'court_change') {
+        _checkCourtChanges();
+        return; // shown as an alert
+      }
       if (ev['notification_type'] == 'presence_check') return; // handled by the prompt
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         behavior: SnackBarBehavior.floating,
@@ -55,6 +64,43 @@ class _HomeShellState extends State<HomeShell> {
       }
     }));
     _loadUnread();
+    WidgetsBinding.instance.addObserver(this);
+    _changesTimer = Timer.periodic(const Duration(seconds: 60), (_) => _checkCourtChanges());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkCourtChanges());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _checkCourtChanges();
+  }
+
+  /// A game/challenge I'm in moved court → alert until acknowledged.
+  Future<void> _checkCourtChanges() async {
+    if (_alertOpen || !mounted) return;
+    final api = context.read<Api>();
+    try {
+      final j = await api.get('/api/me/court-changes');
+      final list = [for (final c in (j as List)) CourtChange.fromJson(Map<String, dynamic>.from(c))];
+      if (list.isEmpty || !mounted || _alertOpen) return;
+      final change = list.first;
+      _alertOpen = true;
+      final res = await showCourtChangeAlert(context, change);
+      _alertOpen = false;
+      try {
+        await api.post('/api/me/court-changes/${change.id}/seen');
+      } catch (_) {}
+      if (!mounted) return;
+      if (res == 'view') {
+        if (change.gameId != null) {
+          openGameScreen(context, change.gameId!);
+        } else {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const ChallengesScreen()));
+        }
+      }
+      if (list.length > 1) _checkCourtChanges();
+    } catch (_) {
+      _alertOpen = false;
+    }
   }
 
   SnackBarAction? _linkAction(Map<String, dynamic> data) {
@@ -75,6 +121,8 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _changesTimer?.cancel();
     context.read<PresenceState>().removeListener(_onPresence);
     for (final s in _subs) {
       s.cancel();

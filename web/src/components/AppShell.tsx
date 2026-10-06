@@ -10,6 +10,7 @@ import { syncNotifyArea, type NotifyAreaState } from '../lib/notifyArea'
 import { notificationLink } from '../lib/notificationLinks'
 import { registerWebPush, showSystemNotification } from '../lib/webPush'
 import { usePolledNotificationToasts } from '../lib/usePolledNotificationToasts'
+import { CourtChangeAlert } from './CourtChangeAlert'
 import { EngagementPrompts } from './EngagementPrompts'
 import { hasPlayerAvatar } from '../avatar/resolve'
 import { PresenceWatcher } from './PresenceWatcher'
@@ -128,6 +129,7 @@ export function AppShell() {
       </main>
 
       <PresenceWatcher />
+      <CourtChangeAlert enabled={!!user} />
       <EngagementPrompts
         enabled={!!user}
         onCreateAvatar={user && !hasPlayerAvatar(user) && pathname !== '/profile/avatar' ? () => navigate('/profile/avatar') : null}

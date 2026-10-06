@@ -7,9 +7,32 @@ int _int(dynamic v) => (v as num?)?.toInt() ?? 0;
 
 class CourtRef {
   final String id, name;
+  final double? latitude, longitude;
   CourtRef.fromJson(Map<String, dynamic> j)
       : id = j['id'],
-        name = j['name'] ?? '';
+        name = j['name'] ?? '',
+        latitude = (j['latitude'] as num?)?.toDouble(),
+        longitude = (j['longitude'] as num?)?.toDouble();
+}
+
+/// A game/challenge I'm in moved to another court (unacknowledged).
+class CourtChange {
+  final String id;
+  final String? gameId, challengeId, reason, changedBy, fromCourt, sportName, toAddress;
+  final CourtRef toCourt;
+  final DateTime? startTime;
+  CourtChange.fromJson(Map<String, dynamic> j)
+      : id = j['id'],
+        gameId = j['game_id'],
+        challengeId = j['challenge_id'],
+        reason = j['reason'],
+        changedBy = j['changed_by']?['username'] as String?,
+        fromCourt = j['from_court']?['name'] as String?,
+        sportName = j['sport']?['name'] as String?,
+        toAddress = j['to_court']?['address'] as String?,
+        toCourt = CourtRef.fromJson(Map<String, dynamic>.from(j['to_court'])),
+        startTime = j['start_time'] == null ? null : DateTime.tryParse(j['start_time'])?.toLocal();
+  bool get rain => reason == 'rain';
 }
 
 class ChallengePlayer {

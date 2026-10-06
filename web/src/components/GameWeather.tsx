@@ -6,6 +6,7 @@ import { api, errorMessage } from '../lib/api'
 import { qk, useGameAction } from '../lib/queries'
 import type { Game } from '../lib/types'
 import { drierSlot, hoursFor, isRainy, useCourtWeather, weatherIcons, weatherKind, worstRain } from '../lib/weather'
+import { MoveCourtButton } from './MoveCourtSheet'
 import { Button, Card, ErrorText } from './ui'
 
 /** Forecast for the game window + a "rain check" when rain is likely. */
@@ -108,6 +109,15 @@ export function GameWeather({ game, isHost }: { game: Game; isHost: boolean }) {
               >
                 {t.weather.callOff}
               </Button>
+              <MoveCourtButton
+                kind="game"
+                id={game.id}
+                sportId={game.sport.id}
+                sportSlug={game.sport.slug}
+                court={{ id: game.court_id, name: game.court.name, latitude: game.court.latitude, longitude: game.court.longitude }}
+                defaultReason="rain"
+                className="col-span-2 text-base"
+              />
             </div>
           ) : (
             <p className="mt-1 text-xs text-ink-2">{t.weather.hostOnly}</p>

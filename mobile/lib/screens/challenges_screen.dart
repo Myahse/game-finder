@@ -10,6 +10,7 @@ import '../core/models.dart';
 import '../core/my_sport.dart';
 import '../core/progress_models.dart';
 import '../ui/widgets.dart';
+import 'court_move.dart';
 import 'court_screens.dart';
 import 'game_screens.dart';
 
@@ -161,6 +162,7 @@ class _ChallengeCardState extends State<ChallengeCard> {
         actions.add(Expanded(child: OutlinedButton(onPressed: _busy ? null : () => _act('decline'), child: Text(tr('DECLINE', 'REFUSER')))));
       }
     }
+    final canMove = (c.status == 'pending' || c.status == 'accepted') && iAmChallenger && c.court.latitude != null && c.court.longitude != null;
     if ((c.status == 'pending' || c.status == 'accepted') && iAmChallenger) {
       actions.add(Expanded(child: TextButton(onPressed: _busy ? null : () => _act('cancel'), child: Text(tr('CANCEL', 'ANNULER')))));
     }
@@ -246,6 +248,20 @@ class _ChallengeCardState extends State<ChallengeCard> {
                 },
                 icon: const Icon(Icons.person_add_alt_1),
                 label: Text(tr('ADD A PLAYER', 'AJOUTER UN JOUEUR')),
+              ),
+            ),
+          if (canMove)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  final ok = await showMoveCourtSheet(context,
+                      kind: 'challenge', id: c.id, sportId: c.sport.id, sportSlug: c.sport.slug,
+                      courtId: c.court.id, courtName: c.court.name, lat: c.court.latitude!, lng: c.court.longitude!);
+                  if (ok == true) widget.onChanged();
+                },
+                icon: const Icon(Icons.edit_location_alt_outlined),
+                label: Text(tr('CHANGE COURT', 'CHANGER DE TERRAIN')),
               ),
             ),
           if (actions.isNotEmpty) ...[const SizedBox(height: 12), Row(children: actions)],

@@ -22,6 +22,7 @@ import { useGame, useGameAction } from '../lib/queries'
 import { clearPendingGameNavigation } from '../lib/gameInvite'
 import { ShareGameButton } from '../components/ShareGameButton'
 import { GameWeather } from '../components/GameWeather'
+import { MoveCourtButton } from '../components/MoveCourtSheet'
 import { GameScoreboard } from '../components/GameScoreboard'
 import { AppAlert, Avatar, Button, Card, Empty, ErrorText, PageHeader } from '../components/ui'
 import { Loading } from './CourtPage'
@@ -168,6 +169,15 @@ export function GamePage() {
               <Navigation className="size-5 shrink-0" aria-hidden />
               {tp.directions}
             </a>
+            {open && (isCreator || viewerIsAdmin) && (
+              <MoveCourtButton
+                kind="game"
+                id={game.id}
+                sportId={game.sport.id}
+                sportSlug={game.sport.slug}
+                court={{ id: game.court_id, name: game.court.name, latitude: game.court.latitude, longitude: game.court.longitude }}
+              />
+            )}
             {open && isCreator && (
               <Button variant="ghost" onClick={() => run('cancel')}>
                 {tp.cancel}
