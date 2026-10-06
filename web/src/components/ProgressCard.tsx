@@ -13,12 +13,13 @@ const FALLBACK_ART = { emoji: '🏅', color: '#8a94a6' }
 export function MyProgressCard({ avatar }: { avatar: PlayerAvatarConfig | null }) {
   const { t } = useLocale()
   const { data } = useMyProgress()
-  const fresh = data?.new_badges?.join(',')
+  const fresh = Array.isArray(data?.new_badges) ? data.new_badges.join(',') : ''
   useEffect(() => {
     if (!fresh) return
     for (const id of fresh.split(',')) toast.success(`${t.progress.newBadge} ${BADGE_ART[id]?.emoji ?? ''} ${t.progress.names[id] ?? id}`)
   }, [fresh, t.progress])
   if (!data) return <LoadingCard />
+  if (!Array.isArray(data.badges)) return null
   return <ProgressView p={data} avatar={avatar} mine />
 }
 
@@ -26,6 +27,7 @@ export function UserProgressCard({ userId, avatar }: { userId: string; avatar: P
   const { data, isError } = useUserProgress(userId)
   if (isError) return null
   if (!data) return <LoadingCard />
+  if (!Array.isArray(data.badges)) return null
   return <ProgressView p={data} avatar={avatar} mine={false} />
 }
 

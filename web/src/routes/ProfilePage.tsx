@@ -18,6 +18,7 @@ import { StickerButton } from '../components/StickerSheet'
 import { RecapButton } from '../components/RecapSheet'
 import { MyProgressCard, UserProgressCard } from '../components/ProgressCard'
 import { PlayerChallengeBlock } from '../components/PlayerChallengeBlock'
+import { PasswordCard } from '../components/PasswordCard'
 import { AvatarPortrait } from '../avatar/render/AvatarPortrait'
 import { AVATAR_SPORTS, defaultConfig } from '../avatar/presets'
 import { useMySport } from '../lib/mySport'
@@ -181,6 +182,7 @@ export function ProfilePage() {
               {playerAvatar && <StickerButton avatar={playerAvatar} />}
             </div>
             <FriendsPanel viewerIsAdmin={viewerIsAdmin} />
+            <PasswordCard me={current} />
           </>
         )}
         {user.role === 'admin' && (

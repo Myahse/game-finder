@@ -43,6 +43,8 @@ export interface Me extends PublicUser {
   onboarded: boolean
   /** Up to 2 sports in addition to preferred_sport_id. */
   extra_sport_ids?: string[]
+  /** False for Google/Apple accounts that never set a password. */
+  has_password?: boolean
 }
 
 export interface Court {

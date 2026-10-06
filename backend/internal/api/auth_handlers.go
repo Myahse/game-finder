@@ -137,7 +137,14 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "invalid_credentials", "Wrong username, email, or password.")
 		return
 	}
-	if hash != "" && !emailVerified {
+	if hash == "" {
+		// Signed up with Google/Apple and never set a password.
+		auth.BurnPasswordCheck(in.Password)
+		writeError(w, http.StatusUnauthorized, "social_account",
+			"This account uses Google sign-in. Tap “Continue with Google”, then add a password in your profile to also sign in with your username.")
+		return
+	}
+	if !emailVerified {
 		writeError(w, http.StatusForbidden, "email_not_verified", "Verify your email before signing in.")
 		return
 	}
@@ -300,10 +307,49 @@ const meSQL = `
 			from user_extra_sports ues where ues.user_id = u.id
 		), '[]'::json),
 		'role', u.role, 'onboarded', u.onboarded_at is not null, 'created_at', u.created_at,
+		'has_password', coalesce(u.password_hash, '') <> '',
 		'stats', (select row_to_json(ps) from profile_stats(u.id) ps)
 	)
 	from users u where u.id = $1`
 
 func (s *Server) meJSON(ctx context.Context, userID string) ([]byte, error) {
 	return s.db.JSON(ctx, userID, meSQL, userID)
+}
+
+// setPassword lets a Google/Apple account add a password (so it can also sign
+// in with username or email), or changes it — then current_password is required.
+func (s *Server) setPassword(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		CurrentPassword string `json:"current_password"`
+		NewPassword     string `json:"new_password"`
+	}
+	if !readJSON(w, r, &in) {
+		return
+	}
+	if len(in.NewPassword) < 8 || len(in.NewPassword) > 72 {
+		writeError(w, http.StatusUnprocessableEntity, "weak_password", "Password must be 8–72 characters.")
+		return
+	}
+	var current string
+	if err := s.db.Pool.QueryRow(r.Context(), `select coalesce(password_hash, '') from users where id = $1`, uid(r)).Scan(&current); err != nil {
+		writeDBError(w, r, err)
+		return
+	}
+	if current != "" && !auth.CheckPassword(current, in.CurrentPassword) {
+		writeError(w, http.StatusForbidden, "wrong_password", "Your current password is wrong.")
+		return
+	}
+	hash, err := auth.HashPassword(in.NewPassword)
+	if err != nil {
+		writeDBError(w, r, err)
+		return
+	}
+	// A social account's email is already verified by the provider.
+	if err := s.db.Exec(r.Context(), uid(r), `
+		update users set password_hash = $2, email_verified_at = coalesce(email_verified_at, now())
+		where id = $1`, uid(r), hash); err != nil {
+		writeDBError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
