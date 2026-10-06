@@ -1,8 +1,9 @@
+import { Link, useParams } from 'react-router-dom'
 import { Swords } from 'lucide-react'
 import { ChallengeCard } from '../components/ChallengeCard'
 import { Empty, PageHeader, Spinner } from '../components/ui'
 import { useLocale } from '../i18n/LocaleProvider'
-import { useChallenges, type Challenge } from '../lib/challenges'
+import { useChallenge, useChallenges, type Challenge } from '../lib/challenges'
 
 function Section({ title, items }: { title: string; items: Challenge[] }) {
   if (items.length === 0) return null
@@ -49,6 +50,30 @@ export function ChallengesPage() {
             <Section title={t.challenge.history} items={data.history} />
           </>
         )}
+      </div>
+    </div>
+  )
+}
+
+/** One challenge card — where shared challenge links land. */
+export function ChallengeDetailPage() {
+  const { t } = useLocale()
+  const { id } = useParams()
+  const { data, isLoading, isError } = useChallenge(id)
+  return (
+    <div className="pb-10">
+      <PageHeader title={t.challenge.title} back="/challenges" />
+      <div className="mx-auto grid max-w-md gap-4 p-4">
+        {isLoading && <Spinner className="mx-auto text-brand" />}
+        {isError && (
+          <Empty icon={<Swords className="size-14" strokeWidth={1.5} />} title={t.challenge.title}>
+            {t.challenge.notFound}
+          </Empty>
+        )}
+        {data && <ChallengeCard c={data} />}
+        <Link to="/challenges" className="text-center text-sm font-semibold text-ink-2 hover:text-ink">
+          {t.challenge.seeAll}
+        </Link>
       </div>
     </div>
   )

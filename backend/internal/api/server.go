@@ -192,6 +192,7 @@ func (s *Server) Routes() http.Handler {
 			r.Post("/challenges/{id}/cancel", s.challengeAction(`select cancel_challenge($1)`))
 			r.Post("/challenges/{id}/result", s.reportChallenge)
 			r.With(s.rateLimitedUser("game")).Post("/challenges/{id}/players", s.addChallengePlayer)
+			r.Patch("/challenges/{id}/message", s.updateChallengeMessage)
 			r.Post("/challenges/{id}/confirm", s.challengeAction(`select confirm_challenge($1, true)`))
 			r.Post("/challenges/{id}/dispute", s.challengeAction(`select confirm_challenge($1, false)`))
 			r.Get("/courts/{id}/challenges", s.openChallengesAtCourt)

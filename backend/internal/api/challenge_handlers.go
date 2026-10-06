@@ -133,3 +133,19 @@ func (s *Server) addChallengePlayer(w http.ResponseWriter, r *http.Request) {
 	}
 	writeRaw(w, http.StatusOK, b)
 }
+
+// updateChallengeMessage lets the challenger rewrite the message ("" clears it).
+func (s *Server) updateChallengeMessage(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		Message string `json:"message"`
+	}
+	if !readJSON(w, r, &in) {
+		return
+	}
+	b, err := s.db.JSON(r.Context(), uid(r), `select update_challenge_message($1, $2)`, chi.URLParam(r, "id"), in.Message)
+	if err != nil {
+		writeDBError(w, r, err)
+		return
+	}
+	writeRaw(w, http.StatusOK, b)
+}

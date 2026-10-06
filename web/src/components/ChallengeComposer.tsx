@@ -199,6 +199,13 @@ export function ChallengeComposer({ opponent, court: fixedCourt, onClose }: { op
 
         <p className="mb-1 text-sm font-semibold text-ink-2">{t.challenge.message}</p>
         <Input value={message} maxLength={140} placeholder={t.challenge.messagePh} onChange={(e) => setMessage(e.target.value)} />
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {t.challenge.messageIdeas.map((idea) => (
+            <button key={idea} type="button" onClick={() => setMessage(idea)} aria-pressed={message === idea} className={`rounded-full px-2.5 py-1 text-xs font-semibold ${message === idea ? 'bg-brand text-brand-ink' : 'bg-surface-2 text-ink-2 hover:text-ink'}`}>
+              {idea}
+            </button>
+          ))}
+        </div>
 
         <ErrorText>{error}</ErrorText>
         <Button type="button" className="mt-4 w-full" onClick={submit} loading={create.isPending} disabled={!sportId || !format || !courtId}>
