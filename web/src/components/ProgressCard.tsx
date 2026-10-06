@@ -150,7 +150,7 @@ function ProgressView({ p, avatar, mine }: { p: Progress; avatar: PlayerAvatarCo
 }
 
 function BadgeSheet({ badge, avatar, canShare, onClose }: { badge: Badge; avatar: PlayerAvatarConfig | null; canShare: boolean; onClose: () => void }) {
-  const { t } = useLocale()
+  const { t, locale } = useLocale()
   const art = BADGE_ART[badge.id] ?? FALLBACK_ART
   const name = t.progress.names[badge.id] ?? badge.id
   const [sticker, setSticker] = useState<{ blob: Blob; src: string } | null>(null)
@@ -202,7 +202,7 @@ function BadgeSheet({ badge, avatar, canShare, onClose }: { badge: Badge; avatar
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={name} onClick={onClose}>
-      <div className="w-full max-w-sm rounded-t-3xl bg-surface p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-center shadow-2xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-[92dvh] w-full max-w-sm overflow-y-auto rounded-t-3xl bg-surface p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-center shadow-2xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-end">
           <button type="button" onClick={onClose} className="rounded-full p-1.5 text-ink-2 hover:bg-surface-2 hover:text-ink" aria-label={t.common.close}>
             <X className="size-5" aria-hidden />
@@ -220,10 +220,37 @@ function BadgeSheet({ badge, avatar, canShare, onClose }: { badge: Badge; avatar
         )}
         <h2 className="display mt-3 text-3xl font-extrabold">{name}</h2>
         <p className="text-ink-2">{t.progress.descs[badge.id]}</p>
-        {!badge.earned_at && (
-          <p className="mt-1 text-sm font-semibold">
-            {t.progress.locked} · {t.progress.progress.replace('{have}', String(badge.have)).replace('{goal}', String(badge.goal))}
+        {badge.earned_at ? (
+          <p className="mt-1 text-sm font-semibold text-live">
+            {t.progress.unlockedOn.replace('{date}', new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(badge.earned_at)))}
           </p>
+        ) : (
+          badge.goal > 1 && (
+            <div className="mx-auto mt-3 w-full max-w-60">
+              <div className="h-2.5 overflow-hidden rounded-full bg-surface-2">
+                <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, (badge.have / badge.goal) * 100)}%`, background: art.color }} />
+              </div>
+              <p className="mt-1 text-xs font-semibold text-ink-2">
+                {t.progress.progress.replace('{have}', String(badge.have)).replace('{goal}', String(badge.goal))} · {t.progress.toGo.replace('{n}', String(Math.max(0, badge.goal - badge.have)))}
+              </p>
+            </div>
+          )
+        )}
+        {(t.progress.how[badge.id]?.length ?? 0) > 0 && (
+          <div className="mt-4 rounded-2xl bg-surface-2 p-3 text-left">
+            <p className="mb-2 text-sm font-bold">{badge.earned_at ? t.progress.howDone : t.progress.howTitle}</p>
+            <ol className="grid gap-1.5">
+              {t.progress.how[badge.id].map((step, i) => (
+                <li key={i} className="flex gap-2 text-sm">
+                  <span className="flex size-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ background: art.color }}>
+                    {i + 1}
+                  </span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
+            {!badge.earned_at && <p className="mt-2 text-xs font-semibold text-brand">{t.progress.badgeXp}</p>}
+          </div>
         )}
         {canShare && (
           <div className="mt-4 grid grid-cols-2 gap-2">

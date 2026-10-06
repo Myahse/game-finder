@@ -1,3 +1,5 @@
+import { screensEn, screensFr } from './screens'
+
 export type Locale = 'en' | 'fr'
 
 const en = {
@@ -279,6 +281,31 @@ const en = {
     shareBadge: 'Share as sticker',
     xpHow: 'Game +10 · Win +15 · MVP +25 · Host +5 · Check-in +2 · Badge +20',
     balanced: 'Balanced by rating',
+    howTitle: 'How to get it',
+    howDone: 'How you got it',
+    unlockedOn: 'Unlocked on {date}',
+    toGo: '{n} to go',
+    badgeXp: '+20 XP when unlocked',
+    how: {
+      first_game: ['Open Play or the map and pick a game near you.', 'Tap Join game — or create your own game at a court.', 'Once the game has started, it counts.'],
+      games_10: ['Join or create games — every game you play counts.', 'Cancelled games don’t count.'],
+      games_50: ['Keep playing — every game you join counts.', 'Weekly regulars get there fastest.'],
+      games_100: ['A century of games. Keep showing up!', 'Every game you join counts, in any of your sports.'],
+      first_win: ['Play a game where teams are set in Teams & stats.', 'Your team needs the higher final score.', 'Someone in the game saves the score — or win a challenge.'],
+      wins_10: ['Win 10 scored games or challenges.', 'Teams and the final score must be saved in Teams & stats.'],
+      first_mvp: ['Play a game with Teams & stats filled in.', 'The players pick you as MVP with the ⭐ in the editor.'],
+      mvp_5: ['Be picked MVP in 5 different games.'],
+      host_5: ['Create 5 games with the + button on the map or Play.', 'They must not be cancelled.'],
+      courts_5: ['Play or check in (“I’m here”) at 5 different courts.', 'Open the map to find courts near you.'],
+      early_bird: ['Play a game that starts before 8 am.'],
+      night_owl: ['Play a game that starts after 9 pm.'],
+      rain_player: ['Play a game while it’s raining at the court.', 'Save the score in Teams & stats — the weather at game time is recorded then.'],
+      streak_4: ['Play a game or check in at a court at least once a week.', 'Do it 4 weeks in a row (weeks run Monday to Sunday).'],
+      king: ['Finish a week #1 in a court’s ranking.', 'Win = 3 pts, MVP = 2 pts, game played = 1 pt.', 'The crown is given every Monday.'],
+      social_10: ['Add 10 friends — by @username, invite link or “Connect on court”.'],
+      duelist: ['Challenge a player from their profile, or take an open challenge at a court.', 'Win, report the result and get it confirmed.'],
+      gunslinger: ['Win 10 challenges.', 'Every confirmed win counts, in any sport.'],
+    } as Record<string, string[]>,
     names: {
       first_game: 'First game',
       games_10: '10 games',
@@ -504,6 +531,7 @@ const en = {
     advanced: 'Advanced',
     all_levels: 'All levels',
   },
+  ...screensEn,
 }
 
 export type MessageTree = typeof en
@@ -788,6 +816,31 @@ const fr: MessageTree = {
     shareBadge: 'Partager en sticker',
     xpHow: 'Match +10 · Victoire +15 · MVP +25 · Organiser +5 · Check-in +2 · Badge +20',
     balanced: 'Équilibré par niveau',
+    howTitle: 'Comment l’obtenir',
+    howDone: 'Comment vous l’avez obtenu',
+    unlockedOn: 'Débloqué le {date}',
+    toGo: 'Encore {n}',
+    badgeXp: '+20 XP au déblocage',
+    how: {
+      first_game: ['Ouvrez Jouer ou la carte et choisissez un match près de vous.', 'Touchez Rejoindre — ou créez votre propre match sur un terrain.', 'Le match compte dès qu’il a commencé.'],
+      games_10: ['Rejoignez ou créez des matchs — chaque match joué compte.', 'Les matchs annulés ne comptent pas.'],
+      games_50: ['Continuez à jouer — chaque match rejoint compte.', 'Les habitués de chaque semaine y arrivent le plus vite.'],
+      games_100: ['Cent matchs ! Continuez à venir.', 'Chaque match rejoint compte, dans tous vos sports.'],
+      first_win: ['Jouez un match avec des équipes dans Équipes & stats.', 'Votre équipe doit avoir le meilleur score final.', 'Un joueur du match enregistre le score — ou gagnez un défi.'],
+      wins_10: ['Gagnez 10 matchs avec score ou défis.', 'Les équipes et le score final doivent être enregistrés dans Équipes & stats.'],
+      first_mvp: ['Jouez un match avec Équipes & stats remplis.', 'Les joueurs vous élisent MVP avec l’⭐ dans l’éditeur.'],
+      mvp_5: ['Soyez élu MVP dans 5 matchs différents.'],
+      host_5: ['Créez 5 matchs avec le bouton + sur la carte ou dans Jouer.', 'Ils ne doivent pas être annulés.'],
+      courts_5: ['Jouez ou faites un check-in (« Je suis là ») sur 5 terrains différents.', 'Ouvrez la carte pour trouver des terrains près de vous.'],
+      early_bird: ['Jouez un match qui commence avant 8 h.'],
+      night_owl: ['Jouez un match qui commence après 21 h.'],
+      rain_player: ['Jouez un match pendant qu’il pleut sur le terrain.', 'Enregistrez le score dans Équipes & stats — la météo du match est alors enregistrée.'],
+      streak_4: ['Jouez un match ou faites un check-in au moins une fois par semaine.', 'Pendant 4 semaines d’affilée (du lundi au dimanche).'],
+      king: ['Terminez une semaine n°1 du classement d’un terrain.', 'Victoire = 3 pts, MVP = 2 pts, match joué = 1 pt.', 'La couronne est remise chaque lundi.'],
+      social_10: ['Ajoutez 10 amis — par @pseudo, lien d’invitation ou « Se connecter au terrain ».'],
+      duelist: ['Défiez un joueur depuis son profil, ou relevez un défi ouvert sur un terrain.', 'Gagnez, saisissez le résultat et faites-le confirmer.'],
+      gunslinger: ['Gagnez 10 défis.', 'Chaque victoire confirmée compte, dans tous les sports.'],
+    } as Record<string, string[]>,
     names: {
       first_game: 'Premier match',
       games_10: '10 matchs',
@@ -1013,6 +1066,7 @@ const fr: MessageTree = {
     advanced: 'Avancé',
     all_levels: 'Tous niveaux',
   },
+  ...screensFr,
 }
 
 export const messages: Record<Locale, MessageTree> = { en, fr }

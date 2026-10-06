@@ -33,3 +33,12 @@ export function useLocale() {
   if (!ctx) throw new Error('useLocale must be used within LocaleProvider')
   return ctx
 }
+
+/** Strings for code outside React components (formatters, error mapping). Follows the device language. */
+export function currentT(): MessageTree {
+  return messages[deviceLocale()]
+}
+
+export function currentLocale(): Locale {
+  return deviceLocale()
+}
