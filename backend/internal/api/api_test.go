@@ -276,7 +276,7 @@ func TestCoreFlow(t *testing.T) {
 	waitFor("2 players", func(ev map[string]any) bool {
 		return ev["type"] == "game" && ev["game_id"] == gameID && ev["player_count"] == 2.0
 	})
-	_, body, _ := e.do(bea.Token, "POST", "/api/games/"+gameID+"/join", nil)
+	_, body, _ := e.do(bea.Token, "POST", "/api/games/"+gameID+"/join", atCourt())
 	if body["error"] != "already_joined" {
 		t.Fatalf("duplicate join: %v", body)
 	}
@@ -440,7 +440,8 @@ func TestCourtProposalAndAdmin(t *testing.T) {
 	if code, body, _ := e.do(other.Token, "GET", "/api/courts/"+court["id"].(string), nil); code != 404 {
 		t.Fatalf("other user pending court leak: %d %v", code, body)
 	}
-	_, notifs := e.must(200, u.Token, "GET", "/api/me/notifications", nil)
+	nobj, _ := e.must(200, u.Token, "GET", "/api/notifications", nil)
+	notifs, _ := nobj["items"].([]any)
 	var foundPendingNote bool
 	for _, n := range notifs {
 		m := n.(map[string]any)
@@ -482,7 +483,8 @@ func TestCourtProposalAndAdmin(t *testing.T) {
 	e.must(200, "", "GET", "/api/courts/nearby?lat=5.22&lng=-3.74&radius_km=1", nil)
 
 	// Report → admin resolves.
-	rep, _ := e.must(201, u.Token, "POST", "/api/courts/"+court["id"].(string)+"/reports", map[string]any{"type": "duplicate"})
+	// Only approved courts can be reported; this one is pending again, so report a live one.
+	rep, _ := e.must(201, u.Token, "POST", "/api/courts/"+e.court("Terrain IUGB")["id"].(string)+"/reports", map[string]any{"type": "duplicate"})
 	e.must(204, admin.Token, "POST", "/api/admin/reports/"+rep["id"].(string)+"/resolve", map[string]any{"status": "resolved"})
 
 	// Stats + settings.
@@ -557,6 +559,7 @@ func TestEmptyGameIsNotActiveAndCreatorsCanBeDeleted(t *testing.T) {
 	_, sports := e.must(200, "", "GET", "/api/sports", nil)
 	game, _ := e.must(201, host.Token, "POST", "/api/games", map[string]any{
 		"court_id": iugb["id"], "sport_id": sports[0].(map[string]any)["id"],
+		"latitude": iugbLat, "longitude": iugbLng,
 	})
 	if c := e.court("Terrain IUGB"); c["activity"] != "active" {
 		t.Fatalf("activity with host = %v", c["activity"])
@@ -572,6 +575,7 @@ func TestEmptyGameIsNotActiveAndCreatorsCanBeDeleted(t *testing.T) {
 	other := e.register("host2")
 	e.must(201, other.Token, "POST", "/api/games", map[string]any{
 		"court_id": iugb["id"], "sport_id": sports[0].(map[string]any)["id"],
+		"latitude": iugbLat, "longitude": iugbLng,
 	})
 	if _, err := e.db.Pool.Exec(ctx, "delete from users where id = $1", other.ID); err != nil {
 		t.Fatalf("direct delete: %v", err)

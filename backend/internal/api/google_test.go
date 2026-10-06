@@ -101,9 +101,9 @@ func TestGoogleSignIn(t *testing.T) {
 	}
 	e.must(200, "", "POST", "/api/auth/login", map[string]string{"login": "moussa", "password": "password123"})
 
-	// That email is now tied to google-456; another Google account can't take it.
+	// awa.kone@gmail.com is tied to google-123; another Google account can't take it.
 	_, body, _ := e.do("", "POST", "/api/auth/google",
-		map[string]string{"id_token": e.google.token(t, "google-789", "moussa@example.com", nil)})
+		map[string]string{"id_token": e.google.token(t, "google-789", "awa.kone@gmail.com", nil)})
 	if body["error"] != "google_account_mismatch" {
 		t.Fatalf("mismatch: %v", body)
 	}
