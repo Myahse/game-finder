@@ -52,6 +52,11 @@ func (d *DB) Tx(ctx context.Context, userID string, fn func(pgx.Tx) error) error
 			return err
 		}
 	}
+	if loc := LocaleFrom(ctx); loc != "" {
+		if _, err := tx.Exec(ctx, "select set_config('app.locale', $1, true)", loc); err != nil {
+			return err
+		}
+	}
 	if err := fn(tx); err != nil {
 		return err
 	}
@@ -161,3 +166,17 @@ func (d *DB) Migrate(ctx context.Context, fsys fs.FS) error {
 
 // IsNoRows reports whether err means "nothing found".
 func IsNoRows(err error) bool { return errors.Is(err, pgx.ErrNoRows) }
+
+type localeKey struct{}
+
+// WithLocale attaches the request's language ("en" or "fr") so SQL can read it
+// as app.locale (e.g. localized sport names).
+func WithLocale(ctx context.Context, locale string) context.Context {
+	return context.WithValue(ctx, localeKey{}, locale)
+}
+
+// LocaleFrom returns the language set by WithLocale, or "".
+func LocaleFrom(ctx context.Context) string {
+	v, _ := ctx.Value(localeKey{}).(string)
+	return v
+}

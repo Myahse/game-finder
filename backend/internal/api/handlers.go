@@ -783,6 +783,7 @@ func (s *Server) myPresence(w http.ResponseWriter, r *http.Request) {
 // ---------------------------------------------------------------------------
 
 func (s *Server) getMe(w http.ResponseWriter, r *http.Request) {
+	s.rememberLocale(r.Context(), uid(r))
 	b, err := s.meJSON(r.Context(), uid(r))
 	if err != nil {
 		writeDBError(w, r, err)

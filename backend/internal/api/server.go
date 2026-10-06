@@ -114,18 +114,22 @@ func (s *Server) Routes() http.Handler {
 	r.Use(cors.Handler(cors.Options{
 		AllowOriginFunc:  func(_ *http.Request, origin string) bool { return s.corsAllowed(s.cfg.CORSOrigins, origin) },
 		AllowedMethods:   []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Authorization", "Content-Type"},
+		AllowedHeaders:   []string{"Authorization", "Content-Type", "Accept-Language"},
 		AllowCredentials: true,
 		MaxAge:           600,
 	}))
 	r.Use(s.authenticate)
+	r.Use(withRequestLocale)
 
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		if err := s.db.Pool.Ping(r.Context()); err != nil {
 			http.Error(w, "db down", http.StatusServiceUnavailable)
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "ws_clients": s.hub.Count()})
+		var devices int
+		_ = s.db.Pool.QueryRow(r.Context(), `select count(*) from push_tokens`).Scan(&devices)
+		// push: whether the server can send phone notifications (FCM configured).
+		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "ws_clients": s.hub.Count(), "push": s.push != nil, "push_devices": devices})
 	})
 	r.Handle("/uploads/*", http.StripPrefix("/uploads/", noDirListing(http.FileServer(http.Dir(s.cfg.UploadDir)))))
 

@@ -39,7 +39,7 @@ export function AdminSettings() {
         <Card key={s.key} className="flex items-center gap-4">
           <div className="flex-1">
             <p className="font-mono text-sm font-semibold">{s.key}</p>
-            <p className="text-sm text-ink-2">{s.description}</p>
+            <p className="text-sm text-ink-2">{t.admin.settings.descriptions[s.key] ?? s.description}</p>
           </div>
           <Input
             type="number"

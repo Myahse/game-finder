@@ -448,17 +448,35 @@ body {
 }
 
 
-/* 404: the ball bouncing out of bounds */
-@keyframes ftg-oob-bounce {
-  0%, 100% { transform: translateY(0) rotate(0deg); animation-timing-function: cubic-bezier(0.3, 0, 0.7, 0.4); }
-  50% { transform: translateY(78px) rotate(160deg); animation-timing-function: cubic-bezier(0.3, 0.6, 0.7, 1); }
+/* 404: the ball bounces off each digit (x = 32/96/160px at 20/45/70%), then out of bounds */
+@keyframes ftg-oob-x {
+  0% { transform: translateX(-60px); }
+  20% { transform: translateX(32px); }
+  45% { transform: translateX(96px); }
+  70% { transform: translateX(160px); }
+  100% { transform: translateX(330px); }
 }
-@keyframes ftg-oob-shadow {
-  0%, 100% { transform: scale(0.6); opacity: 0.4; }
-  50% { transform: scale(1); opacity: 1; }
+@keyframes ftg-oob-y {
+  0% { transform: translateY(-70px) rotate(0deg); opacity: 0; animation-timing-function: cubic-bezier(0.5, 0, 1, 1); }
+  6% { opacity: 1; }
+  20% { transform: translateY(0) rotate(120deg); animation-timing-function: cubic-bezier(0, 0, 0.5, 1); }
+  32.5% { transform: translateY(-62px) rotate(200deg); animation-timing-function: cubic-bezier(0.5, 0, 1, 1); }
+  45% { transform: translateY(0) rotate(280deg); animation-timing-function: cubic-bezier(0, 0, 0.5, 1); }
+  57.5% { transform: translateY(-62px) rotate(360deg); animation-timing-function: cubic-bezier(0.5, 0, 1, 1); }
+  70% { transform: translateY(0) rotate(440deg); animation-timing-function: cubic-bezier(0, 0, 0.5, 1); }
+  82% { transform: translateY(-46px) rotate(520deg); animation-timing-function: cubic-bezier(0.5, 0, 1, 1); }
+  94% { opacity: 1; }
+  100% { transform: translateY(120px) rotate(620deg); opacity: 0; }
 }
-.ftg-oob-ball { animation: ftg-oob-bounce 1.4s infinite; }
-.ftg-oob-shadow { animation: ftg-oob-shadow 1.4s infinite; }
+@keyframes ftg-oob-digit {
+  0%, 9%, 100% { transform: translateY(0) scaleY(1); }
+  2.5% { transform: translateY(5px) scaleY(0.86); }
+  5% { transform: translateY(-3px) scaleY(1.04); }
+}
+.ftg-oob-x { animation: ftg-oob-x 2.4s linear infinite; }
+.ftg-oob-y { animation: ftg-oob-y 2.4s infinite; }
+.ftg-oob-digit { transform-origin: 50% 100%; animation: ftg-oob-digit 2.4s ease-out infinite; }
 @media (prefers-reduced-motion: reduce) {
-  .ftg-oob-ball, .ftg-oob-shadow { animation: none; }
+  .ftg-oob-x, .ftg-oob-y, .ftg-oob-digit { animation: none; }
+  .ftg-oob-x { transform: translateX(262px) translateY(120px); }
 }

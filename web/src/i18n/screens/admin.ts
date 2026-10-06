@@ -120,6 +120,15 @@ export const en = {
     empty: 'Nothing to review. 🎉',
   },
   settings: {
+    descriptions: {
+      presence_minutes: 'How long an I’M HERE check-in lasts before it expires',
+      presence_warning_minutes: 'Minutes before expiry to ask “Are you still playing?”',
+      presence_max_distance_m: 'Max distance from the court to check in (0 disables the check)',
+      active_court_min_players: 'Players needed for GAME ACTIVE when no game was created',
+      game_reminder_minutes: 'Minutes before start to send the game reminder',
+      activity_alert_radius_km: 'Radius for “a game is active near you” alerts',
+      activity_alert_cooldown_min: 'Min minutes between activity alerts for one court/user',
+    } as Record<string, string>,
     save: 'Save settings',
   },
 }
@@ -248,6 +257,15 @@ export const fr: typeof en = {
     empty: 'Rien à examiner. 🎉',
   },
   settings: {
+    descriptions: {
+      presence_minutes: 'Durée d’un check-in « JE SUIS LÀ » avant expiration',
+      presence_warning_minutes: 'Minutes avant expiration pour demander « Vous jouez toujours ? »',
+      presence_max_distance_m: 'Distance max du terrain pour faire un check-in (0 désactive le contrôle)',
+      active_court_min_players: 'Joueurs nécessaires pour MATCH EN COURS quand aucun match n’a été créé',
+      game_reminder_minutes: 'Minutes avant le début pour envoyer le rappel de match',
+      activity_alert_radius_km: 'Rayon des alertes « un match est en cours près de vous »',
+      activity_alert_cooldown_min: 'Minutes min entre deux alertes d’activité pour un terrain / joueur',
+    } as Record<string, string>,
     save: 'Enregistrer les paramètres',
   },
 }

@@ -3,22 +3,30 @@ import { ArrowLeft, MapPin, RotateCw } from 'lucide-react'
 import { BaseSportIcon } from '../components/icons'
 import { useLocale } from '../i18n/LocaleProvider'
 
-/** The ball bounced off the court: big 404 over court lines, ball out of bounds. */
+/** The ball flies in, bounces off each digit of the code, then out of bounds. */
 function OutOfBounds({ code }: { code: string }) {
+  const digits = code.split('')
   return (
-    <div className="relative mx-auto h-48 w-full max-w-xs" aria-hidden>
+    <div className="relative mx-auto h-[200px] w-[320px] max-w-full" aria-hidden>
       {/* Court: boundary + centre line + circle */}
-      <svg viewBox="0 0 320 180" className="absolute inset-0 size-full text-line">
-        <rect x="12" y="20" width="236" height="140" rx="6" fill="none" stroke="currentColor" strokeWidth="4" />
-        <line x1="130" y1="20" x2="130" y2="160" stroke="currentColor" strokeWidth="4" />
-        <circle cx="130" cy="90" r="26" fill="none" stroke="currentColor" strokeWidth="4" />
+      <svg viewBox="0 0 320 200" className="absolute inset-0 size-full text-line">
+        <rect x="8" y="40" width="250" height="150" rx="6" fill="none" stroke="currentColor" strokeWidth="4" />
+        <line x1="133" y1="40" x2="133" y2="190" stroke="currentColor" strokeWidth="4" />
+        <circle cx="133" cy="115" r="26" fill="none" stroke="currentColor" strokeWidth="4" />
       </svg>
-      <p className="display absolute left-[38%] top-1/2 -translate-x-1/2 -translate-y-1/2 text-8xl font-extrabold tracking-tight text-ink">{code}</p>
-      {/* The ball, out past the line */}
-      <span className="ftg-oob-ball absolute right-2 top-6 flex size-14 items-center justify-center rounded-full bg-brand text-brand-ink shadow-lg">
-        <BaseSportIcon className="size-8" />
+      <p className="display absolute left-6 top-14 flex text-8xl font-extrabold leading-none text-ink">
+        {digits.map((d, i) => (
+          <span key={i} className="ftg-oob-digit inline-block w-16 text-center" style={{ animationDelay: `${[0.48, 1.08, 1.68][i] ?? 0}s` }}>
+            {d}
+          </span>
+        ))}
+      </p>
+      {/* x travel (outer) × bounces (inner) */}
+      <span className="ftg-oob-x absolute left-0 top-4">
+        <span className="ftg-oob-y flex size-12 items-center justify-center rounded-full bg-brand text-brand-ink shadow-lg">
+          <BaseSportIcon className="size-7" />
+        </span>
       </span>
-      <span className="ftg-oob-shadow absolute bottom-3 right-4 h-2 w-10 rounded-full bg-ink/15" />
     </div>
   )
 }

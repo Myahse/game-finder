@@ -264,6 +264,7 @@ func (s *Server) usernameAvailable(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) issueSession(w http.ResponseWriter, r *http.Request, userID, role string, status int) {
+	s.rememberLocale(r.Context(), userID)
 	access, accessExp, err := s.tokens.AccessToken(userID, role)
 	if err != nil {
 		writeDBError(w, r, err)
