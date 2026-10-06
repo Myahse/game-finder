@@ -316,6 +316,7 @@ const en = {
       social_10: ['Add 10 friends — by @username, invite link or “Connect on court”.'],
       duelist: ['Challenge a player from their profile, or take an open challenge at a court.', 'Win, report the result and get it confirmed.'],
       gunslinger: ['Win 10 challenges.', 'Every confirmed win counts, in any sport.'],
+      goatee: ['Finish a week #1 in a court’s ranking — 3 times (any courts, any weeks).', 'Win = 3 pts, MVP = 2 pts, game played = 1 pt.', 'Each Monday’s crown counts. Collect three and you’re the GOAT 🐐'],
     } as Record<string, string[]>,
     names: {
       first_game: 'First game',
@@ -336,6 +337,7 @@ const en = {
       social_10: 'Connector',
       duelist: 'Duelist',
       gunslinger: 'Gunslinger',
+      goatee: 'Goatee',
     } as Record<string, string>,
     descs: {
       first_game: 'Play your first game',
@@ -356,6 +358,7 @@ const en = {
       social_10: 'Have 10 friends',
       duelist: 'Win a challenge',
       gunslinger: 'Win 10 challenges',
+      goatee: 'Be King of the Court 3 times — the GOAT',
     } as Record<string, string>,
   },
   weather: {
@@ -862,6 +865,7 @@ const fr: MessageTree = {
       social_10: ['Ajoutez 10 amis — par @pseudo, lien d’invitation ou « Se connecter au terrain ».'],
       duelist: ['Défiez un joueur depuis son profil, ou relevez un défi ouvert sur un terrain.', 'Gagnez, saisissez le résultat et faites-le confirmer.'],
       gunslinger: ['Gagnez 10 défis.', 'Chaque victoire confirmée compte, dans tous les sports.'],
+      goatee: ['Terminez une semaine n°1 du classement d’un terrain — 3 fois (n’importe quels terrains et semaines).', 'Victoire = 3 pts, MVP = 2 pts, match joué = 1 pt.', 'Chaque couronne du lundi compte. Trois couronnes et vous êtes le GOAT 🐐'],
     } as Record<string, string[]>,
     names: {
       first_game: 'Premier match',
@@ -882,6 +886,7 @@ const fr: MessageTree = {
       social_10: 'Rassembleur',
       duelist: 'Duelliste',
       gunslinger: 'Fine gâchette',
+      goatee: 'Goatee',
     } as Record<string, string>,
     descs: {
       first_game: 'Jouez votre premier match',
@@ -902,6 +907,7 @@ const fr: MessageTree = {
       social_10: 'Ayez 10 amis',
       duelist: 'Gagnez un défi',
       gunslinger: 'Gagnez 10 défis',
+      goatee: 'Soyez 3 fois Roi du terrain — le GOAT',
     } as Record<string, string>,
   },
   weather: {

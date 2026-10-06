@@ -69,6 +69,15 @@ func TestPlayerProgression(t *testing.T) {
 			t.Fatalf("missing badge %s in %v", id, p["badges"])
 		}
 	}
+	goatee := false
+	for _, b := range p["badges"].([]any) {
+		if bm := b.(map[string]any); bm["id"] == "goatee" && bm["goal"] == 3.0 && bm["earned_at"] == nil {
+			goatee = true
+		}
+	}
+	if !goatee {
+		t.Fatalf("goatee badge missing or wrong: %v", p["badges"])
+	}
 	if earned["games_10"] || p["xp"].(float64) < 50 || p["level"].(float64) < 1 {
 		t.Fatalf("progress = %v", p)
 	}

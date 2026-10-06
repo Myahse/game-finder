@@ -73,6 +73,7 @@ export const BADGE_ART: Record<string, { emoji: string; color: string }> = {
   social_10: { emoji: '🤝', color: '#db2777' },
   duelist: { emoji: '⚔️', color: '#dc2626' },
   gunslinger: { emoji: '🎯', color: '#7c2d12' },
+  goatee: { emoji: '🐐', color: '#a16207' },
 }
 
 /** Recently earned (last 3 days) — highlighted as "new". */

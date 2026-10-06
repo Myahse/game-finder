@@ -52,7 +52,7 @@ void main() {
     expect(p.levelProgress, closeTo(0.68, 0.001));
     expect(levelTitle(p.level), anyOf('Hooper'));
     expect(p.crowns.single.name, 'Terrain IUGB');
-    expect(p.badges.length, 18);
+    expect(p.badges.length, badgeCatalog.length);
     for (final b in p.badges) {
       expect(badgeInfo(b.id).how, isNotEmpty);
     }

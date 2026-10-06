@@ -71,6 +71,7 @@ const badgeCatalog = <BadgeInfo>[
   BadgeInfo('social_10', '🤝', Color(0xFFDB2777), 'Connector', 'Rassembleur', 'Have 10 friends', 'Ayez 10 amis', ['Add 10 friends — by @username or invite link.'], ['Ajoutez 10 amis — par @pseudo ou lien d’invitation.']),
   BadgeInfo('duelist', '⚔️', Color(0xFFDC2626), 'Duelist', 'Duelliste', 'Win a challenge', 'Gagnez un défi', ['Challenge a player from their profile, or take an open challenge at a court.', 'Win, report the result and get it confirmed.'], ['Défiez un joueur depuis son profil, ou relevez un défi ouvert sur un terrain.', 'Gagnez, saisissez le résultat et faites-le confirmer.']),
   BadgeInfo('gunslinger', '🎯', Color(0xFF7C2D12), 'Gunslinger', 'Fine gâchette', 'Win 10 challenges', 'Gagnez 10 défis', ['Win 10 challenges.', 'Every confirmed win counts, in any sport.'], ['Gagnez 10 défis.', 'Chaque victoire confirmée compte, dans tous les sports.']),
+  BadgeInfo('goatee', '🐐', Color(0xFFA16207), 'Goatee', 'Goatee', 'Be King of the Court 3 times — the GOAT', 'Soyez 3 fois Roi du terrain — le GOAT', ['Finish a week #1 in a court’s ranking — 3 times (any courts, any weeks).', 'Win = 3 pts, MVP = 2 pts, game played = 1 pt.', 'Each Monday’s crown counts. Collect three and you’re the GOAT 🐐'], ['Terminez une semaine n°1 du classement d’un terrain — 3 fois (n’importe quels terrains et semaines).', 'Victoire = 3 pts, MVP = 2 pts, match joué = 1 pt.', 'Chaque couronne du lundi compte. Trois couronnes et vous êtes le GOAT 🐐']),
 ];
 
 BadgeInfo badgeInfo(String id) =>
