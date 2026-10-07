@@ -33,6 +33,7 @@ import '../core/guide.dart';
 import '../ui/app_icons.dart';
 import '../ui/home_globe_map.dart';
 import '../ui/map_games_rail.dart';
+import '../ui/map_search_bar.dart';
 import '../ui/screen_guide.dart';
 
 import '../ui/theme.dart';
@@ -484,6 +485,18 @@ class _MapScreenState extends State<MapScreen> {
               ),
 
             ]),
+
+            const SizedBox(height: 8),
+
+            MapSearchBar(
+              proximity: loc.position ?? loc.center,
+              courts: _courts,
+              onSelectCourt: (c) {
+                _globe?.flyTo(LatLng(c.latitude, c.longitude), 16);
+                _openCourt(c);
+              },
+              onSelectPlace: (p) => _globe?.flyTo(p.at, 15),
+            ),
 
             const SizedBox(height: 8),
 

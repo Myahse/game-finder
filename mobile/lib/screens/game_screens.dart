@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../core/pick_image.dart';
 import 'package:provider/provider.dart';
 
@@ -9,6 +8,7 @@ import '../core/api.dart';
 import '../core/media_url.dart';
 import '../core/auth.dart';
 import '../core/format.dart';
+import '../core/game_join.dart';
 import '../core/game_share.dart';
 import '../core/guide.dart';
 import '../core/l10n.dart';
@@ -21,6 +21,7 @@ import '../core/realtime.dart';
 import '../ui/theme.dart';
 import '../ui/app_icons.dart';
 import '../ui/screen_guide.dart';
+import '../ui/share_image.dart';
 import '../ui/widgets.dart';
 import 'court_move.dart';
 import 'game_scoreboard.dart';
@@ -72,11 +73,13 @@ class _GameScreenState extends State<GameScreen> {
   Timer? _loadDebounce;
   final _invite = TextEditingController();
   bool _guideQueued = false;
+  List<PublicUser> _friends = const [];
 
   @override
   void initState() {
     super.initState();
     _load();
+    _loadFriends();
     // Player count updates live: someone joins → 7/10 becomes 8/10.
     _rt = context.read<Realtime>().events.listen((ev) {
       if (ev['game_id'] != widget.gameId && ev['type'] != 'reconnected') return;
@@ -134,25 +137,46 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
+  Future<void> _loadFriends() async {
+    try {
+      final j = await context.read<Api>().get('/api/me/friends');
+      final list = [for (final f in j as List) PublicUser.fromJson(Map<String, dynamic>.from(f))];
+      if (mounted) setState(() => _friends = list);
+    } catch (_) {
+      // Friends are a shortcut; typing a @username still works.
+    }
+  }
+
   Future<void> _action(String action, {String? reason}) async {
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
-      final j = await context.read<Api>().post('/api/games/${widget.gameId}/$action', action == 'cancel' ? {'reason': reason} : null);
+      final g = _game;
+      Object? body;
+      if (action == 'cancel') {
+        body = {'reason': reason};
+      } else if (action == 'join' && g != null) {
+        body = await prepareGameJoin(context, live: g.isLive, courtLat: g.courtLat, courtLng: g.courtLng);
+        if (body == null || !mounted) return;
+      }
+      final j = await context.read<Api>().post('/api/games/${widget.gameId}/$action', body);
       if (mounted) setState(() => _game = Game.fromJson(j));
     } catch (e) {
-      setState(() => _error = errorText(e));
+      if (mounted) setState(() => _error = errorText(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
-  Future<void> _shareGame(Game g) async {
-    final url = await createGameShareUrl(context.read<Api>(), g.id);
-    await Clipboard.setData(ClipboardData(text: url));
-    if (mounted) showSnack(context, tr('Game link copied — share it with friends', 'Lien du match copié — partagez-le avec vos amis'));
+  Future<void> _shareGame(Game g, Rect? origin) async {
+    try {
+      final copied = await shareGame(context.read<Api>(), g, origin: origin);
+      if (copied && mounted) showSnack(context, tr('Game link copied — share it with friends', 'Lien du match copié — partagez-le avec vos amis'));
+    } catch (e) {
+      if (mounted) showSnack(context, errorText(e));
+    }
   }
 
   Future<void> _sendInvite() async {
@@ -161,6 +185,7 @@ class _GameScreenState extends State<GameScreen> {
     try {
       await context.read<Api>().post('/api/games/${widget.gameId}/invite', {'username': name});
       _invite.clear();
+      if (mounted) setState(() {});
       if (mounted) showSnack(context, tr('Invited @$name — they\'ll get a notification.', '@$name est invité — il va recevoir une notification.'));
     } catch (e) {
       if (!mounted) return;
@@ -192,10 +217,12 @@ class _GameScreenState extends State<GameScreen> {
       appBar: AppBar(
         title: Text('${gameTypeLabels[g.gameType]} ${g.sport.name}'.toUpperCase()),
         actions: [
-          IconButton(
-            tooltip: tr('Share game', 'Partager le match'),
-            icon: const Icon(Icons.share_outlined),
-            onPressed: () => _shareGame(g),
+          Builder(
+            builder: (btn) => IconButton(
+              tooltip: tr('Share game', 'Partager le match'),
+              icon: const Icon(Icons.share_outlined),
+              onPressed: () => _shareGame(g, shareOriginOfContext(btn)),
+            ),
           ),
         ],
       ),
@@ -340,8 +367,31 @@ class _GameScreenState extends State<GameScreen> {
           ],
           if (g.isOpen && g.joined) ...[
             const SizedBox(height: 12),
+            if (inviteFriends(_friends, g).isNotEmpty) ...[
+              Text(tr('Friends', 'Amis'), style: const TextStyle(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 6),
+              Wrap(spacing: 6, runSpacing: 4, children: [
+                for (final f in inviteFriends(_friends, g))
+                  ChoiceChip(
+                    avatar: UserAvatar(f, size: 22),
+                    label: Text('@${f.username}'),
+                    selected: _invite.text.trim().replaceFirst(RegExp(r'^@'), '') == f.username,
+                    onSelected: (_) => setState(() => _invite.text = f.username),
+                  ),
+              ]),
+              const SizedBox(height: 8),
+            ],
             Row(children: [
-              Expanded(child: TextField(controller: _invite, decoration: InputDecoration(hintText: tr('Invite by @username', 'Inviter par @pseudo'), isDense: true))),
+              Expanded(
+                child: TextField(
+                  controller: _invite,
+                  textInputAction: TextInputAction.send,
+                  autocorrect: false,
+                  onChanged: (_) => setState(() {}),
+                  onSubmitted: (_) => _sendInvite(),
+                  decoration: InputDecoration(hintText: tr('Invite by @username', 'Inviter par @pseudo'), isDense: true),
+                ),
+              ),
               const SizedBox(width: 8),
               FilledButton.tonal(
                 style: FilledButton.styleFrom(
@@ -534,6 +584,21 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
                 openGameOnNavigator(nav, pause, id);
               },
               child: Text(tr('VIEW GAME', 'VOIR LE MATCH')),
+            ),
+            const SizedBox(height: 8),
+            Builder(
+              builder: (btn) => OutlinedButton.icon(
+                onPressed: () async {
+                  try {
+                    final copied = await shareGame(context.read<Api>(), created, origin: shareOriginOfContext(btn));
+                    if (copied && context.mounted) showSnack(context, tr('Link copied!', 'Lien copié !'));
+                  } catch (e) {
+                    if (context.mounted) showSnack(context, errorText(e));
+                  }
+                },
+                icon: const Icon(Icons.share_outlined),
+                label: Text(tr('SHARE GAME', 'PARTAGER LE MATCH')),
+              ),
             ),
           ],
         ),
@@ -732,3 +797,9 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
 }
 
 String gameTimeFor(DateTime t) => tr('${t.day}/${t.month} at ${clock(t)}', '${t.day}/${t.month} à ${clock(t)}');
+
+/// Friends that can still be invited: not already in [g].
+List<PublicUser> inviteFriends(List<PublicUser> friends, Game g) {
+  final inGame = {for (final p in g.players) p.id};
+  return [for (final f in friends) if (!inGame.contains(f.id)) f];
+}

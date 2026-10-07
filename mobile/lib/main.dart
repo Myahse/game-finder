@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'core/api.dart';
 import 'core/api_bootstrap.dart';
 import 'core/env.dart';
+import 'core/kings.dart';
 import 'core/firebase_bootstrap.dart';
 import 'core/l10n.dart';
 import 'core/mapbox_init.dart';
@@ -158,6 +159,11 @@ class _RootGateState extends State<RootGate> {
     _sessionUser = userId;
     final presence = context.read<PresenceState>();
     final rt = context.read<Realtime>();
+    final api = context.read<Api>();
+    // Crowns on avatars: /api/kings needs a signed-in user (like the web).
+    final kings = KingsCache.instance;
+    kings.fetcher = userId == null ? null : () => api.get('/api/kings');
+    kings.reset();
     if (userId != null) {
       rt.restart();
     } else {

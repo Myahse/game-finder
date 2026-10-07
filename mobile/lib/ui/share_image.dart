@@ -28,6 +28,13 @@ Rect? shareOriginOf(GlobalKey key) {
   return box.localToGlobal(Offset.zero) & box.size;
 }
 
+/// Where the share sheet anchors on iPad: the widget that owns [context].
+Rect? shareOriginOfContext(BuildContext context) {
+  final box = context.findRenderObject();
+  if (box is! RenderBox || !box.hasSize) return null;
+  return box.localToGlobal(Offset.zero) & box.size;
+}
+
 /// Opens the system share sheet with PNG files (and optional text). From there
 /// the player can send it (WhatsApp…) or save it to Photos / Files.
 Future<ShareResult> sharePngs(

@@ -6,7 +6,7 @@ import 'package:find_the_game/core/my_sport.dart';
 import 'package:find_the_game/core/player_avatar.dart';
 import 'package:find_the_game/core/realtime.dart';
 import 'package:find_the_game/core/stickers.dart';
-import 'package:find_the_game/screens/avatar_builder_screen.dart';
+import 'package:find_the_game/core/player_avatar_config.dart';
 import 'package:find_the_game/screens/sticker_sheet.dart';
 import 'package:find_the_game/ui/theme.dart';
 import 'package:flutter/material.dart';
@@ -60,20 +60,16 @@ void main() {
     expect(p.bottom, 16 + 140);
   });
 
-  group('avatar builder labels', () {
+  group('avatar studio labels', () {
     test('no raw ids, bilingual', () {
-      final raw = RegExp(r'^[bzha]\d$');
-      for (final m in [avatarBodyLabels, avatarSizeLabels, avatarHairLabels]) {
-        expect(m.values.where(raw.hasMatch), isEmpty);
+      for (final l in [avatarEyesOptions, avatarBrowOptions, avatarMouthOptions, avatarBeardOptions, avatarHairOptions, avatarHeadwearOptions, avatarEyewearOptions]) {
+        expect(l.where((o) => o.name == o.id), isEmpty);
       }
-      expect(avatarBodyLabels.keys, ['b0', 'b1', 'b2']);
-      expect(avatarSizeLabels.keys, ['z0', 'z1', 'z2', 'z3']);
-      expect(avatarHairLabels.keys, ['h0', 'h1', 'h2', 'h3', 'h4', 'h5']);
-      expect(avatarBodyLabels['b1'], 'Athletic');
+      expect(avatarHairOptions.firstWhere((o) => o.id == 'hair_puff').name, 'Afro + band');
       debugLanguageOverride = 'fr';
       addTearDown(() => debugLanguageOverride = null);
-      expect(avatarBodyLabels['b1'], 'Athlétique');
-      expect(avatarHairLabels['h2'], 'Boucles');
+      expect(avatarHairOptions.firstWhere((o) => o.id == 'hair_puff').name, 'Afro + bandeau');
+      expect(avatarPresetInfos.first.name, 'Le Basketteur');
     });
   });
 

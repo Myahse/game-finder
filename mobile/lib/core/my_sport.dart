@@ -41,3 +41,31 @@ void ensureKnownSports(Future<dynamic> Function(String path) get) {
     Future<void>.delayed(const Duration(seconds: 30), () => _knownSportsLoading = false);
   });
 }
+
+/// Sport slugs the Play list asks /api/games/nearby for (web PlayPage):
+/// admins → the picked chip (null = All); others → their sports that are
+/// switched on (all by default; never none).
+List<String?> playSportSlugs({
+  required bool isAdmin,
+  String? adminSport,
+  required List<Sport> mySports,
+  Set<String> off = const {},
+}) {
+  if (isAdmin) return [adminSport];
+  if (mySports.isEmpty) return const [null];
+  final on = [for (final s in mySports) if (!off.contains(s.slug)) s.slug];
+  return on.isEmpty ? [mySports.first.slug] : on;
+}
+
+/// Turns [slug] on/off among [mySports]; the last sport left on stays on.
+Set<String> togglePlaySport(Set<String> off, String slug, List<Sport> mySports) {
+  final next = {...off};
+  if (next.contains(slug)) {
+    next.remove(slug);
+    return next;
+  }
+  final onCount = mySports.where((s) => !next.contains(s.slug)).length;
+  if (onCount <= 1) return off;
+  next.add(slug);
+  return next;
+}

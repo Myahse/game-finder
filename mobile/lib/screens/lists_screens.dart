@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'challenges_screen.dart';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -12,15 +11,18 @@ import '../core/format.dart';
 import '../core/guide.dart';
 import '../core/location.dart';
 import '../core/nearby.dart';
+import '../core/notification_links.dart';
 import '../core/models.dart';
 import '../core/presence.dart';
 import '../core/realtime.dart';
 import '../ui/theme.dart';
 import '../ui/app_icons.dart';
+import '../ui/push_setup_card.dart';
 import '../ui/screen_guide.dart';
 import '../ui/widgets.dart';
 import 'court_screens.dart';
 import 'game_screens.dart';
+import 'notification_routes.dart';
 import '../core/l10n.dart';
 
 /// Base for tab lists that reload on realtime game events.
@@ -110,6 +112,15 @@ class _PlayScreenState extends _LiveListState<PlayScreen> {
   LocationState? _location;
   Timer? _locDebounce;
 
+  /// Active sports catalog (loaded once).
+  List<Sport>? _sports;
+
+  /// Admin chip: null = All.
+  String? _adminSport;
+
+  /// Member chips switched off (all of their sports are on by default).
+  Set<String> _sportsOff = const {};
+
   @override
   void initState() {
     super.initState();
@@ -148,18 +159,73 @@ class _PlayScreenState extends _LiveListState<PlayScreen> {
     final api = context.read<Api>();
     final user = context.read<AuthState>().user;
     final c = context.read<LocationState>().center;
-    var sportQ = '';
-    if (!(user?.isAdmin ?? false) && user?.preferredSportId != null) {
+    if (_sports == null) {
       final sportsJ = await api.get('/api/sports');
       final sports = [for (final x in sportsJ) Sport.fromJson(x)];
       rememberSports(sports);
-      final slug = sportSlugForUser(user, sports);
-      if (slug != null) sportQ = '&sport=$slug';
+      _sports = sports.where((s) => s.active).toList();
     }
-    final j = await api.get(
-      '/api/games/nearby?lat=${c.latitude}&lng=${c.longitude}&radius_km=$listNearbyRadiusKm&upcoming_hours=$playUpcomingHours$sportQ',
+    final slugs = playSportSlugs(
+      isAdmin: user?.isAdmin ?? false,
+      adminSport: _adminSport,
+      mySports: sportsForUser(user, _sports!),
+      off: _sportsOff,
     );
-    _games = sortPlayable([for (final g in j as List) Game.fromJson(g)]);
+    // One request per sport, merged (web usePlayGamesNearby).
+    final results = await Future.wait([
+      for (final slug in slugs)
+        api.get(
+          '/api/games/nearby?lat=${c.latitude}&lng=${c.longitude}&radius_km=$listNearbyRadiusKm&upcoming_hours=$playUpcomingHours'
+          '${slug != null ? '&sport=$slug' : ''}',
+        ),
+    ]);
+    final merged = <String, Game>{};
+    for (final j in results) {
+      for (final g in j as List) {
+        final game = Game.fromJson(g);
+        merged[game.id] = game;
+      }
+    }
+    _games = sortPlayable(merged.values.toList());
+  }
+
+  void _setSports(void Function() update) {
+    setState(update);
+    reload(showLoading: true);
+  }
+
+  Widget _sportChips() {
+    final user = context.watch<AuthState>().user;
+    final isAdmin = user?.isAdmin ?? false;
+    final sports = _sports ?? const <Sport>[];
+    final mine = sportsForUser(user, sports);
+    Widget chip(Widget label, bool selected, VoidCallback onTap) => Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: ChoiceChip(label: label, selected: selected, onSelected: (_) => onTap(), showCheckmark: false),
+        );
+    Widget sportLabel(Sport s) => SportInline(s, textStyle: const TextStyle(fontWeight: FontWeight.w700));
+    final chips = isAdmin
+        ? [
+            chip(Text(tr('All', 'Tous'), style: const TextStyle(fontWeight: FontWeight.w700)), _adminSport == null, () {
+              if (_adminSport != null) _setSports(() => _adminSport = null);
+            }),
+            for (final s in sports)
+              chip(sportLabel(s), _adminSport == s.slug, () {
+                if (_adminSport != s.slug) _setSports(() => _adminSport = s.slug);
+              }),
+          ]
+        : [
+            for (final s in mine)
+              chip(sportLabel(s), !_sportsOff.contains(s.slug), () {
+                final next = togglePlaySport(_sportsOff, s.slug, mine);
+                if (!identical(next, _sportsOff)) _setSports(() => _sportsOff = next);
+              }),
+          ];
+    if (chips.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: chips)),
+    );
   }
 
   @override
@@ -178,6 +244,7 @@ class _PlayScreenState extends _LiveListState<PlayScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: floatingNavListPadding(context),
           children: [
+          _sportChips(),
           if (waitingGps)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -353,15 +420,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       _load();
     }
     if (!mounted) return;
-    final gameId = n.data['game_id'] as String?;
-    final courtId = n.data['court_id'] as String?;
-    if (n.type == 'challenge') {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const ChallengesScreen()));
-    } else if (gameId != null) {
-      openGameScreen(context, gameId);
-    } else if (courtId != null) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => CourtDetailsScreen(courtId: courtId)));
-    }
+    openNotificationTarget(context, notificationTarget(n.type, n.data));
   }
 
   Future<void> _readAll() async {
@@ -383,6 +442,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ? const Center(child: CircularProgressIndicator())
             : _items.isEmpty
                 ? ListView(padding: floatingNavListPadding(context, all: 0), children: [
+                    const Padding(padding: EdgeInsets.fromLTRB(16, 16, 16, 0), child: PushSetupCard()),
                     EmptyState(
                         icon: Icons.notifications_outlined,
                         title: tr('All quiet', 'Tout est calme'),
@@ -391,10 +451,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   ])
                 : ListView.separated(
                     padding: floatingNavListPadding(context),
-                    itemCount: _items.length,
+                    itemCount: _items.length + 1,
                     separatorBuilder: (_, _) => const SizedBox(height: 8),
                     itemBuilder: (_, i) {
-                      final n = _items[i];
+                      if (i == 0) return const PushSetupCard();
+                      final n = _items[i - 1];
                       return Card(
                         color: n.read ? null : Palette.brand.withValues(alpha: 0.06),
                         child: ListTile(

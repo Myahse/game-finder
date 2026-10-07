@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../core/api.dart';
 import '../core/auth.dart';
+import '../core/notification_links.dart';
 import '../core/notifications.dart';
 import '../core/presence.dart';
 import '../core/map_pause.dart';
@@ -19,6 +20,7 @@ import 'court_move.dart';
 import 'game_screens.dart';
 import 'lists_screens.dart';
 import 'map_screen.dart';
+import 'notification_routes.dart';
 import 'profile_screen.dart';
 import '../core/l10n.dart';
 
@@ -67,18 +69,20 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         behavior: SnackBarBehavior.floating,
         content: Text('${ev['title']}\n${ev['body']}'),
-        action: _linkAction(Map<String, dynamic>.from(ev['data'] ?? const {})),
+        action: _linkAction(ev['notification_type'] as String?, Map<String, dynamic>.from(ev['data'] ?? const {})),
       ));
     }));
-    _subs.add(context.read<Notifications>().responses.listen((r) {
+    final notifications = context.read<Notifications>();
+    _subs.add(notifications.responses.listen((r) {
       // Plain taps on a push/local notification open the related screen.
-      final p = r.payload;
-      if (r.actionId == null && p != null && !p.startsWith('presence:') && mounted) {
-        final nav = Navigator.of(context);
-        if (nav.canPop()) return; // already on a detail screen
-        openGameScreen(context, p);
-      }
+      if (r.actionId == null && mounted) openNotificationTarget(context, targetFromPayload(r.payload));
     }));
+    // Remote pushes tapped while the app was in the background / closed.
+    _subs.add(notifications.pushTaps.listen(_openPush));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final initial = notifications.takeInitialPushTap();
+      if (initial != null) _openPush(initial);
+    });
     _loadUnread();
     WidgetsBinding.instance.addObserver(this);
     _changesTimer = Timer.periodic(const Duration(seconds: 60), (_) => _checkCourtChanges());
@@ -136,12 +140,16 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     }
   }
 
-  SnackBarAction? _linkAction(Map<String, dynamic> data) {
-    final gameId = data['game_id'] as String?;
-    if (gameId == null) return null;
+  void _openPush(Map<String, dynamic> data) {
+    if (mounted) openNotificationTarget(context, notificationTarget(data['type'] as String?, data));
+  }
+
+  SnackBarAction? _linkAction(String? type, Map<String, dynamic> data) {
+    final target = notificationTarget(type, data);
+    if (target == null) return null;
     return SnackBarAction(
       label: tr('OPEN', 'OUVRIR'),
-      onPressed: () => openGameScreen(context, gameId),
+      onPressed: () => openNotificationTarget(context, target),
     );
   }
 

@@ -137,6 +137,16 @@ class Api extends ChangeNotifier {
     return data;
   }
 
+  /// GET with an explicit access token, without touching the stored session
+  /// (e.g. checking a fresh sign-up before keeping its session).
+  Future<dynamic> getWithToken(String path, String token) async {
+    final req = http.Request('GET', Uri.parse('$apiUrl$path'));
+    req.headers['Accept-Language'] = deviceLanguage;
+    req.headers['Authorization'] = 'Bearer $token';
+    final res = await http.Response.fromStream(await _http.send(req).timeout(const Duration(seconds: 20)));
+    return _decode(res);
+  }
+
   Future<dynamic> get(String path) => request('GET', path);
   Future<dynamic> post(String path, [Object? body]) => request('POST', path, body: body);
   Future<dynamic> patch(String path, Object body) => request('PATCH', path, body: body);

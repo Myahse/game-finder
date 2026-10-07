@@ -10,7 +10,10 @@ import 'package:timezone/timezone.dart' as tz;
 import 'api.dart';
 import 'firebase_bootstrap.dart';
 import 'models.dart';
+import 'notification_links.dart';
 import '../core/l10n.dart';
+
+enum PushStatus { on, off, blocked, unsupported }
 
 /// Local notifications (the "Are you still playing?" check, scheduled on the
 /// device so it works offline) and FCM remote push (reminders, invites,
@@ -25,12 +28,24 @@ class Notifications {
   final _local = FlutterLocalNotificationsPlugin();
   final Api api;
   final _responses = StreamController<NotificationResponse>.broadcast();
+  final _pushTaps = StreamController<Map<String, dynamic>>.broadcast();
+  Map<String, dynamic>? _initialPushTap;
   bool _messagingHooked = false;
 
   Notifications(this.api);
 
   /// Taps and action buttons (YES, I'M STILL HERE / I LEFT).
   Stream<NotificationResponse> get responses => _responses.stream;
+
+  /// Data of remote pushes tapped while the app was in the background.
+  Stream<Map<String, dynamic>> get pushTaps => _pushTaps.stream;
+
+  /// The push that launched the app (once), for the home screen to open.
+  Map<String, dynamic>? takeInitialPushTap() {
+    final t = _initialPushTap;
+    _initialPushTap = null;
+    return t;
+  }
 
   static final _channel = AndroidNotificationDetails(
     'game_activity',
@@ -74,8 +89,49 @@ class Notifications {
     _messagingHooked = true;
     FirebaseMessaging.onMessage.listen((m) {
       final n = m.notification;
-      if (n != null) show(n.title ?? 'Find the Game', n.body ?? '', payload: m.data['game_id'] ?? m.data['court_id']);
+      // The whole data map (with `type`) so a tap opens the right screen.
+      if (n != null) show(n.title ?? 'Find the Game', n.body ?? '', payload: pushPayload(m.data));
     });
+    FirebaseMessaging.onMessageOpenedApp.listen((m) => _pushTaps.add(Map<String, dynamic>.from(m.data)));
+    try {
+      final initial = await FirebaseMessaging.instance.getInitialMessage();
+      if (initial != null) _initialPushTap = Map<String, dynamic>.from(initial.data);
+    } catch (_) {}
+  }
+
+  /// Whether this device shows push notifications (Notifications tab card).
+  Future<PushStatus> pushStatus() async {
+    if (kIsWeb) return PushStatus.unsupported;
+    try {
+      if (firebaseAppReady) {
+        final st = await FirebaseMessaging.instance.getNotificationSettings();
+        return switch (st.authorizationStatus) {
+          AuthorizationStatus.authorized || AuthorizationStatus.provisional => PushStatus.on,
+          AuthorizationStatus.deniedPermanently => PushStatus.blocked,
+          AuthorizationStatus.denied => Platform.isIOS ? PushStatus.blocked : PushStatus.off,
+          AuthorizationStatus.notDetermined => PushStatus.off,
+        };
+      }
+      if (Platform.isAndroid) {
+        final on = await _local
+            .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+            ?.areNotificationsEnabled();
+        return on == true ? PushStatus.on : PushStatus.off;
+      }
+      final opts = await _local.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()?.checkPermissions();
+      return opts?.isEnabled == true ? PushStatus.on : PushStatus.off;
+    } catch (_) {
+      return PushStatus.unsupported;
+    }
+  }
+
+  /// "Turn on": asks for permission and registers this device. Returns the
+  /// new status; still not on after asking means the OS blocks it.
+  Future<PushStatus> enablePush() async {
+    await requestPermission();
+    await registerDevice();
+    final st = await pushStatus();
+    return st == PushStatus.off ? PushStatus.blocked : st;
   }
 
   Future<void> requestPermission() async {

@@ -57,10 +57,13 @@ class PublicUser {
 class Me extends PublicUser {
   final String email, role;
   final bool onboarded;
+  /// False for Google/Apple accounts that never set a password.
+  final bool hasPassword;
   Me.fromJson(super.j)
       : email = j['email'] ?? '',
         role = j['role'] ?? 'user',
         onboarded = j['onboarded'] ?? false,
+        hasPassword = j['has_password'] != false,
         super.fromJson();
   bool get isAdmin => role == 'admin';
 }

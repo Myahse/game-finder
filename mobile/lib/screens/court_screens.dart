@@ -12,11 +12,14 @@ import 'package:provider/provider.dart';
 import '../core/api.dart';
 import '../core/auth.dart';
 import '../core/format.dart';
+import '../core/game_join.dart';
+import '../core/game_share.dart';
 import '../core/media_url.dart';
 import '../core/location.dart';
 import '../core/map_tiles.dart';
 import '../core/map_zoom.dart';
 import '../core/models.dart';
+import '../core/nearby.dart';
 import '../core/opening_hours.dart';
 import '../core/reverse_geocode.dart';
 import '../core/my_sport.dart';
@@ -26,6 +29,8 @@ import '../ui/app_icons.dart';
 import '../ui/court_map_pin.dart';
 import '../ui/theme.dart';
 import '../ui/court_photo_viewer.dart';
+import '../ui/map_search_bar.dart';
+import '../ui/share_image.dart';
 import '../ui/widgets.dart';
 import 'game_screens.dart';
 import '../core/l10n.dart';
@@ -134,9 +139,17 @@ class _CourtSheetState extends State<CourtSheet> with _CourtLoader {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            c.name.toUpperCase(),
-            style: Theme.of(context).textTheme.headlineMedium,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  c.name.toUpperCase(),
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+              ),
+              if (c.status == 'approved') ShareCourtButton(courtId: c.id, courtName: c.name),
+            ],
           ),
           const SizedBox(height: 4),
           Wrap(
@@ -206,6 +219,22 @@ class _CourtSheetState extends State<CourtSheet> with _CourtLoader {
       ),
     );
   }
+}
+
+/// Share court — system share sheet with the court link (web ShareCourtButton).
+class ShareCourtButton extends StatelessWidget {
+  final String courtId, courtName;
+  const ShareCourtButton({super.key, required this.courtId, required this.courtName});
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+        tooltip: tr('Share court', 'Partager le terrain'),
+        icon: const Icon(Icons.share_outlined),
+        onPressed: () async {
+          final copied = await shareCourt(courtId, courtName, origin: shareOriginOfContext(context));
+          if (copied && context.mounted) showSnack(context, tr('Link copied!', 'Lien copié !'));
+        },
+      );
 }
 
 class _StatusCard extends StatelessWidget {
@@ -289,15 +318,18 @@ class _CourtActionsState extends State<CourtActions> {
     openGameScreen(context, gameId, onReturn: widget.onChanged);
   }
 
-  Future<void> _joinAndOpen(String gameId) async {
+  Future<void> _joinAndOpen(Game game) async {
     if (!mounted) return;
+    final gameId = game.id;
     setState(() {
       _busy = true;
       _error = null;
     });
     var closing = false;
     try {
-      await context.read<Api>().post('/api/games/$gameId/join');
+      final body = await prepareGameJoin(context, live: game.isLive, courtLat: game.courtLat, courtLng: game.courtLng);
+      if (body == null || !mounted) return;
+      await context.read<Api>().post('/api/games/$gameId/join', body);
       if (!mounted) return;
       if (widget.popBeforeGame) {
         closing = true;
@@ -362,7 +394,7 @@ class _CourtActionsState extends State<CourtActions> {
                       ).then((_) => widget.onChanged());
                       return;
                     }
-                    _joinAndOpen(joinable.id);
+                    _joinAndOpen(joinable);
                   },
             child: Text(
               joinable != null
@@ -597,7 +629,12 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen>
       _syncInfoFromCourt(c);
     }
     return Scaffold(
-      appBar: AppBar(title: Text(c?.name.toUpperCase() ?? '')),
+      appBar: AppBar(
+        title: Text(c?.name.toUpperCase() ?? ''),
+        actions: [
+          if (c != null && c.status == 'approved') ShareCourtButton(courtId: c.id, courtName: c.name),
+        ],
+      ),
       body: c == null
           ? Center(
               child: loadError != null
@@ -1005,6 +1042,9 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
   final _name = TextEditingController();
   final _description = TextEditingController();
   final _address = TextEditingController();
+  final _surface = TextEditingController();
+  bool? _lighting;
+  List<Court> _nearbyCourts = const [];
   final _courtMap = MapController();
   LatLng? _where;
   List<Sport> _sports = [];
@@ -1049,7 +1089,28 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
           });
         })
         .catchError((_) {});
+    unawaited(_loadNearbyCourts());
   }
+
+  /// Existing courts around the player, for the place search.
+  Future<void> _loadNearbyCourts() async {
+    final c = _loc!.center;
+    try {
+      final j = await context.read<Api>().get('/api/courts/nearby?lat=${c.latitude}&lng=${c.longitude}&radius_km=$listNearbyRadiusKm');
+      if (!mounted) return;
+      setState(() => _nearbyCourts = [for (final x in j as List) Court.fromJson(x)]);
+    } catch (_) {
+      // Search still finds places.
+    }
+  }
+
+  Widget _placeSearch(LocationState loc) => MapSearchBar(
+        proximity: loc.position ?? _where ?? loc.center,
+        courts: _nearbyCourts,
+        placeholder: tr('Search address or existing court…', 'Rechercher une adresse ou un terrain…'),
+        onSelectCourt: (c) => _centerCourtMapOn(LatLng(c.latitude, c.longitude)),
+        onSelectPlace: (p) => unawaited(_setCourtPin(p.at)),
+      );
 
   void _onLocationUpdate() {
     final p = _loc?.position;
@@ -1063,6 +1124,7 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
     _name.dispose();
     _description.dispose();
     _address.dispose();
+    _surface.dispose();
     _courtMap.dispose();
     super.dispose();
   }
@@ -1143,6 +1205,8 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
         'photos': _photos,
         'opening_hours': ?openingHours,
         if (_address.text.trim().isNotEmpty) 'address': _address.text.trim(),
+        'surface': _surface.text.trim().isEmpty ? null : _surface.text.trim(),
+        'lighting': _lighting,
       });
       final court = Court.fromJson(j as Map<String, dynamic>);
       setState(() {
@@ -1375,6 +1439,10 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
         ),
         body: Column(
           children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+              child: _placeSearch(loc),
+            ),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
@@ -1420,6 +1488,10 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
                 ),
               ],
             ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+            child: _placeSearch(loc),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -1640,6 +1712,36 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _surface,
+                  decoration: InputDecoration(
+                    labelText: tr('Surface (optional)', 'Revêtement (facultatif)'),
+                    hintText: tr('e.g. Concrete, grass', 'ex. Béton, gazon'),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<bool?>(
+                  initialValue: _lighting,
+                  decoration: InputDecoration(
+                    labelText: tr('Lighting (optional)', 'Éclairage (facultatif)'),
+                  ),
+                  items: [
+                    DropdownMenuItem(
+                      value: null,
+                      child: Text(tr('Not specified', 'Non précisé')),
+                    ),
+                    DropdownMenuItem(
+                      value: true,
+                      child: Text(tr('Lit at night', 'Éclairé la nuit')),
+                    ),
+                    DropdownMenuItem(
+                      value: false,
+                      child: Text(tr('No lights', 'Pas d’éclairage')),
+                    ),
+                  ],
+                  onChanged: (v) => setState(() => _lighting = v),
                 ),
                 const SizedBox(height: 16),
                 TextField(

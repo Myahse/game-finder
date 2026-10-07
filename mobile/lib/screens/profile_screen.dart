@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/friends.dart' show normalizeUsername;
 import '../core/l10n.dart';
 import '../ui/progress_card.dart';
 import 'challenges_screen.dart';
@@ -17,9 +18,13 @@ import '../ui/theme.dart';
 import '../ui/app_icons.dart';
 import '../core/avatar_presets.dart';
 import 'avatar_builder_screen.dart';
-import 'bump_connect.dart';
+import 'auth_screens.dart' show showLoginSheet;
+import 'friends_panel.dart';
+import 'password_card.dart';
 import 'recap_sheet.dart';
+import 'share_profile_sheet.dart';
 import 'sticker_sheet.dart';
+import '../ui/extra_sports_picker.dart';
 import '../ui/screen_guide.dart';
 import '../ui/widgets.dart';
 
@@ -83,7 +88,9 @@ class _Stat extends StatelessWidget {
 }
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  /// Scroll to the friends section (friend request notifications).
+  final bool focusFriends;
+  const ProfileScreen({super.key, this.focusFriends = false});
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
@@ -92,6 +99,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<Sport> _sports = [];
   final _progressKey = GlobalKey(debugLabel: 'progress');
   final _challengesKey = GlobalKey(debugLabel: 'my-challenges');
+  final _friendsKey = GlobalKey<FriendsPanelState>(debugLabel: 'friends');
+  final _scroll = ScrollController();
 
   @override
   void initState() {
@@ -113,9 +122,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     ]);
     context.read<AuthState>().refreshMe();
+    if (widget.focusFriends) WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToFriends());
     context.read<Api>().get('/api/sports').then((j) {
       if (mounted) setState(() => _sports = [for (final s in j) Sport.fromJson(s)]);
     }).catchError((_) {});
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  /// The list builds lazily: step down until the friends card is laid out.
+  void _scrollToFriends([int attempt = 0]) {
+    if (!mounted) return;
+    final ctx = _friendsKey.currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 350), curve: Curves.easeOutCubic);
+      return;
+    }
+    if (attempt > 8 || !_scroll.hasClients) return;
+    final pos = _scroll.position;
+    _scroll.jumpTo((pos.pixels + pos.viewportDimension).clamp(0, pos.maxScrollExtent));
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToFriends(attempt + 1));
   }
 
   @override
@@ -131,8 +161,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ]),
       body: RefreshIndicator(
-        onRefresh: auth.refreshMe,
-        child: ListView(padding: floatingNavListPadding(context), children: [
+        onRefresh: () async {
+          await Future.wait([auth.refreshMe(), if (_friendsKey.currentState case final f?) f.reload()]);
+        },
+        child: ListView(controller: _scroll, padding: floatingNavListPadding(context), children: [
           _ProfileCard(user: me, sports: _sports),
           if (hasSavedAvatar(avatarUrl: me.avatarUrl, avatarConfig: me.avatarConfig)) ...[
             const SizedBox(height: 12),
@@ -152,6 +184,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 12),
           KeyedSubtree(key: _progressKey, child: const ProgressCard()),
           const SizedBox(height: 12),
+          ShareProfileButton(me: me, sport: sportForUser(me, _sports)),
+          const SizedBox(height: 12),
           FilledButton.icon(
             key: _challengesKey,
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChallengesScreen())),
@@ -164,8 +198,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 8),
             StickerButton(art: avatarArtOf(me), sport: me.playerAvatar?.sport ?? sportSlugForUser(me, _sports)),
           ],
-          const SizedBox(height: 8),
-          const BumpConnectButton(),
+          const SizedBox(height: 16),
+          FriendsPanel(key: _friendsKey),
+          const SizedBox(height: 12),
+          PasswordCard(key: ValueKey('password-${me.hasPassword}'), me: me),
           if (me.isAdmin)
             Padding(
               padding: const EdgeInsets.only(top: 12),
@@ -201,6 +237,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late final _last = TextEditingController(text: _me.lastName);
   late final _username = TextEditingController(text: _me.username);
   late String? _sportId = _me.preferredSportId;
+  late List<String> _extra = [..._me.extraSportIds];
   late String _skill = _me.skillLevel ?? 'all_levels';
   late String? _avatar = _me.avatarUrl;
   bool _busy = false;
@@ -243,6 +280,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         'last_name': _last.text.trim(),
         'username': _username.text.trim().replaceFirst(RegExp(r'^@+'), ''),
         'skill_level': _skill,
+        'extra_sport_ids': _extra,
       };
       if (!_sportLocked && _sportId != null) patch['preferred_sport_id'] = _sportId;
       if (_avatar != null) patch['avatar_url'] = _avatar;
@@ -295,7 +333,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               SportInline(s)
             else
               const Text('—'),
+            const SizedBox(height: 4),
+            Text(tr('Set at signup and locked to keep the map focused.', 'Choisi à l\'inscription — verrouillé pour garder la carte ciblée.'),
+                style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
             const SizedBox(height: 12),
+            if (widget.sports.where((s) => s.active).length > 1) ...[
+              ExtraSportsPicker(
+                sports: widget.sports,
+                mainSportId: _me.preferredSportId,
+                selected: _extra,
+                onChanged: (v) => setState(() => _extra = v),
+                title: tr('Other sports on your map', 'Autres sports sur la carte'),
+                hint: tr('Up to 2 extra sports — switch filters on the map.', 'Jusqu\'à 2 sports en plus — filtrez sur la carte.'),
+              ),
+              const SizedBox(height: 12),
+            ],
           ] else
             DropdownButtonFormField<String>(
               initialValue: widget.sports.any((s) => s.id == _sportId) ? _sportId : null,
@@ -324,9 +376,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       );
 }
 
+/// Opens a player's public profile by @username (deep links /u/{username});
+/// works signed out (GET /api/profiles/{username}).
+Future<void> openUserByUsername(BuildContext context, String username) =>
+    Navigator.push(context, MaterialPageRoute(builder: (_) => UserScreen.byUsername(username)));
+
 class UserScreen extends StatefulWidget {
-  final String userId;
-  const UserScreen({super.key, required this.userId});
+  final String? userId;
+  final String? username;
+  const UserScreen({super.key, required String this.userId}) : username = null;
+  const UserScreen.byUsername(String this.username, {super.key}) : userId = null;
   @override
   State<UserScreen> createState() => _UserScreenState();
 }
@@ -335,12 +394,21 @@ class _UserScreenState extends State<UserScreen> {
   PublicUser? _user;
   List<Sport> _sports = [];
   String? _error;
+  bool _notFound = false;
+
+  String get _handle => normalizeUsername(widget.username ?? '');
 
   @override
   void initState() {
     super.initState();
     final api = context.read<Api>();
-    Future.wait([api.get('/api/users/${widget.userId}'), api.get('/api/sports')]).then((r) {
+    final id = widget.userId;
+    if (id == null && _handle.isEmpty) {
+      _notFound = true;
+      return;
+    }
+    final profile = id != null ? api.get('/api/users/$id') : api.get('/api/profiles/${Uri.encodeComponent(_handle)}');
+    Future.wait([profile, api.get('/api/sports')]).then((r) {
       if (mounted) {
         setState(() {
           _user = PublicUser.fromJson(r[0]);
@@ -348,23 +416,70 @@ class _UserScreenState extends State<UserScreen> {
         });
       }
     }).catchError((Object e) {
-      if (mounted) setState(() => _error = errorText(e));
+      if (!mounted) return;
+      setState(() {
+        if (e is ApiException && (e.code == 'user_not_found' || e.code == 'invalid_username' || e.status == 404)) {
+          _notFound = true;
+        } else {
+          _error = errorText(e);
+        }
+      });
     });
   }
 
+  Widget _notFoundBody(Me? viewer) {
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    final handle = _handle;
+    return ListView(padding: const EdgeInsets.all(24), children: [
+      Text(tr('Player not found', 'Joueur introuvable'), textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineSmall),
+      const SizedBox(height: 8),
+      Text(
+        handle.isEmpty
+            ? tr('This profile link is invalid.', 'Ce lien de profil est invalide.')
+            : tr('There is no account @$handle on Find the Game yet.', 'Il n’y a pas encore de compte @$handle sur Find the Game.'),
+        textAlign: TextAlign.center,
+        style: TextStyle(color: muted),
+      ),
+      const SizedBox(height: 24),
+      if (viewer == null)
+        FilledButton(onPressed: () => showLoginSheet(context), child: Text(tr('LOG IN', 'SE CONNECTER')))
+      else ...[
+        if (viewer.username.toLowerCase() != handle.toLowerCase())
+          TextButton(
+            onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => UserScreen(userId: viewer.id))),
+            child: Text(tr('View your profile (@${viewer.username})', 'Voir votre profil (@${viewer.username})')),
+          ),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('Back to map', 'Retour à la carte'))),
+      ],
+    ]);
+  }
+
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(tr('PLAYER', 'JOUEUR'))),
-        body: _user == null
-            ? Center(child: _error != null ? Text(_error!) : const CircularProgressIndicator())
-            : ListView(padding: const EdgeInsets.all(16), children: [
-                _ProfileCard(user: _user!, sports: _sports),
-                if (context.watch<AuthState>().user?.id != _user!.id) ...[
-                  const SizedBox(height: 12),
-                  PlayerChallengeBlock(player: _user!),
-                ],
-                const SizedBox(height: 12),
-                ProgressCard(userId: _user!.id),
-              ]),
-      );
+  Widget build(BuildContext context) {
+    final viewer = context.watch<AuthState>().user;
+    final user = _user;
+    final title = user != null ? '@${user.username}' : (_handle.isNotEmpty ? '@$_handle' : tr('PLAYER', 'JOUEUR'));
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.username != null ? title : tr('PLAYER', 'JOUEUR'))),
+      body: _notFound
+          ? _notFoundBody(viewer)
+          : user == null
+              ? Center(child: _error != null ? Text(_error!) : const CircularProgressIndicator())
+              : ListView(padding: const EdgeInsets.all(16), children: [
+                  _ProfileCard(user: user, sports: _sports),
+                  if (viewer?.id != user.id) ...[
+                    const SizedBox(height: 12),
+                    ProfileFriendActions(user: user),
+                  ],
+                  if (viewer != null && viewer.id != user.id) ...[
+                    const SizedBox(height: 12),
+                    PlayerChallengeBlock(player: user),
+                  ],
+                  if (viewer != null) ...[
+                    const SizedBox(height: 12),
+                    ProgressCard(userId: user.id),
+                  ],
+                ]),
+    );
+  }
 }

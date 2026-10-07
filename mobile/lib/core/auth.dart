@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import 'account.dart';
 import 'api.dart';
 import 'env.dart';
 import 'apple_auth.dart';
@@ -19,21 +20,35 @@ class AuthState extends ChangeNotifier {
     await api.setSession(Session.fromJson(s));
   }
 
-  Future<void> register({
+  /// Creates the account. Returns false when the server wants the email
+  /// verified first: no session is kept and the app shows "check your inbox".
+  Future<bool> register({
     required String firstName,
     required String lastName,
     required String username,
     required String email,
     required String password,
   }) async {
-    final s = await api.post('/api/auth/register', {
+    final s = Session.fromJson(await api.post('/api/auth/register', {
       'first_name': firstName.trim(),
       'last_name': lastName.trim(),
       'username': username.trim(),
       'email': email.trim(),
       'password': password,
-    });
-    await api.setSession(Session.fromJson(s));
+    }));
+    try {
+      await api.getWithToken('/api/me', s.accessToken);
+    } catch (e) {
+      if (isEmailNotVerified(e)) {
+        try {
+          await api.post('/api/auth/logout', {'refresh_token': s.refreshToken});
+        } catch (_) {}
+        return false;
+      }
+      // Anything else: keep the session, the app retries /api/me itself.
+    }
+    await api.setSession(s);
+    return true;
   }
 
   /// Signs in with Google. Returns null if the user closed the Google sheet,

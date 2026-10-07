@@ -14,6 +14,8 @@ import '../core/notifications.dart';
 import '../ui/theme.dart';
 import '../ui/app_icons.dart';
 import '../ui/apple_button.dart';
+import '../ui/extra_sports_picker.dart';
+import '../ui/platform_intro.dart';
 import '../ui/google_button.dart';
 import '../ui/widgets.dart';
 import 'legal_screens.dart';
@@ -147,8 +149,21 @@ void showLoginSheet(BuildContext context) {
   );
 }
 
-class WelcomeScreen extends StatelessWidget {
+class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // First launch: what the app is for, in three steps (once).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) maybeShowGuestIntro(context);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -351,6 +366,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _error;
   bool _busy = false;
   bool _agreedTerms = false;
+  /// Set when the server wants the email verified before the first sign-in.
+  String? _checkEmail;
 
   @override
   void dispose() {
@@ -375,13 +392,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final auth = context.read<AuthState>();
     final api = context.read<Api>();
     try {
-      await auth.register(
+      final signedIn = await auth.register(
         firstName: _first.text,
         lastName: _last.text,
         username: _username.text,
         email: _email.text,
         password: _password.text,
       );
+      if (!signedIn) {
+        if (mounted) setState(() => _checkEmail = _email.text.trim());
+        return;
+      }
       if (_photo != null) {
         try {
           final url = await api.upload(await _photo!.readAsBytes(), _photo!.name, 'avatar');
@@ -398,8 +419,45 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   String? _required(String? v) => (v == null || v.trim().isEmpty) ? tr('Required', 'Obligatoire') : null;
 
+  Widget _checkEmailView(String email) {
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    return Scaffold(
+      appBar: AppBar(title: Text(tr('CHECK YOUR EMAIL', 'VÉRIFIEZ VOS E-MAILS'))),
+      body: ListView(padding: const EdgeInsets.all(24), children: [
+        const Icon(Icons.mark_email_unread_outlined, size: 56, color: Palette.brand),
+        const SizedBox(height: 16),
+        Text.rich(
+          TextSpan(children: [
+            TextSpan(text: tr('We sent a verification link to ', 'Nous avons envoyé un lien de vérification à ')),
+            TextSpan(text: email, style: const TextStyle(fontWeight: FontWeight.w700)),
+            TextSpan(text: tr('. Open it, then sign in.', '. Ouvrez-le, puis connectez-vous.')),
+          ]),
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 16),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          tr('Email sign-up stays available — Google sign-in works too.',
+              'L’inscription par e-mail reste disponible — la connexion Google fonctionne aussi.'),
+          textAlign: TextAlign.center,
+          style: TextStyle(color: muted),
+        ),
+        const SizedBox(height: 24),
+        FilledButton(
+          onPressed: () {
+            Navigator.pop(context);
+            showLoginSheet(context);
+          },
+          child: Text(tr('GO TO LOG IN', 'ALLER À LA CONNEXION')),
+        ),
+      ]),
+    );
+  }
+
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => _checkEmail != null
+      ? _checkEmailView(_checkEmail!)
+      : Scaffold(
         appBar: AppBar(title: Text(tr('CREATE ACCOUNT', 'CRÉER UN COMPTE'))),
         body: Form(
           key: _form,
@@ -501,6 +559,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _username = TextEditingController();
   List<Sport>? _sports;
   String? _sportId;
+  List<String> _extra = [];
   String _skill = 'intermediate';
   int _step = 0;
   String? _error;
@@ -536,6 +595,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _first.text = user.firstName;
     _last.text = user.lastName;
     _username.text = user.username;
+    _extra = [...user.extraSportIds];
   }
 
   int _usernameCheckGen = 0;
@@ -621,6 +681,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         'last_name': _last.text.trim(),
         'username': _username.text.trim(),
         'preferred_sport_id': sportId,
+        'extra_sport_ids': [for (final id in _extra) if (id != sportId) id],
         'skill_level': _skill,
         'onboarded': true,
       });
@@ -716,8 +777,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         ),
                         _stepPanel(
                           title: tr('YOUR SPORT', 'VOTRE SPORT'),
-                          subtitle: tr('Pick the one sport you play. The map stays on that sport — it can\'t be changed later.',
-                              'Choisissez le sport que vous pratiquez. La carte reste sur ce sport — il ne pourra pas être changé ensuite.'),
+                          subtitle: tr('This becomes your main sport. You can add others on the next step, but this one stays.',
+                              'Ce sera votre sport principal. Vous pourrez en ajouter d\'autres ensuite, mais celui-ci reste.'),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
@@ -729,7 +790,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                     leading: SportIcon(s.slug, size: 22, color: Palette.brand),
                                     label: s.name.toUpperCase(),
                                     selected: _sportId == s.id,
-                                    onTap: () => setState(() => _sportId = s.id),
+                                    onTap: () => setState(() {
+                                      _sportId = s.id;
+                                      _extra = [for (final x in _extra) if (x != s.id) x];
+                                    }),
                                   ),
                                 ),
                               if (soon.isNotEmpty)
@@ -751,6 +815,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
+                              if (_sportId != null && active.length > 1) ...[
+                                ExtraSportsPicker(
+                                  sports: active,
+                                  mainSportId: _sportId,
+                                  selected: _extra,
+                                  onChanged: (v) => setState(() => _extra = v),
+                                  title: tr('Also play these? (optional)', 'Vous jouez aussi à… ? (optionnel)'),
+                                  hint: tr('Up to 2. They show up as filters on the map.', 'Jusqu\'à 2. Ils apparaissent comme filtres sur la carte.'),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(tr('Skill level', 'Niveau'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                                const SizedBox(height: 8),
+                              ],
                               Wrap(spacing: 8, runSpacing: 8, children: [
                                 for (final e in skillLabels.entries)
                                   ChoiceTile(label: e.value, selected: _skill == e.key, onTap: () => setState(() => _skill = e.key)),

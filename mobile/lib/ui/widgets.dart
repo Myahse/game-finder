@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/avatar_presets.dart';
 import '../core/format.dart';
+import '../core/kings.dart';
 import '../core/l10n.dart';
 import '../core/media_url.dart';
 import '../core/models.dart';
@@ -39,14 +40,54 @@ class StatusPill extends StatelessWidget {
   }
 }
 
+/// This week's Kings of the Court wear a gold crown (web components/ui.tsx Avatar).
+const kKingGold = Color(0xFFF5B301);
+
 class UserAvatar extends StatelessWidget {
   final PublicUser? user;
   final double size;
   final String? overrideUrl;
-  const UserAvatar(this.user, {super.key, this.size = 40, this.overrideUrl});
+  /// Show the King of the Court crown when [user] is one of this week's kings.
+  final bool crown;
+  const UserAvatar(this.user, {super.key, this.size = 40, this.overrideUrl, this.crown = true});
 
   @override
   Widget build(BuildContext context) {
+    final id = user?.id;
+    if (!crown || id == null) return _picture(context);
+    final kings = KingsCache.instance;
+    return ListenableBuilder(
+      listenable: kings,
+      builder: (context, _) => kings.isKing(id) ? _crowned(_picture(context)) : _picture(context),
+    );
+  }
+
+  Widget _crowned(Widget picture) {
+    final c = size * 0.42 < 12 ? 12.0 : (size * 0.42).roundToDouble();
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(clipBehavior: Clip.none, children: [
+        picture,
+        Positioned(
+          top: -c * 0.55,
+          right: -c * 0.3,
+          child: IgnorePointer(
+            child: Transform.rotate(
+              angle: 18 * 3.141592653589793 / 180,
+              child: Stack(children: [
+                // Soft shadow so the gold reads on light and dark avatars.
+                Transform.translate(offset: const Offset(0, 1), child: CrownIcon(size: c, color: const Color(0x66000000))),
+                CrownIcon(size: c, color: kKingGold, semanticLabel: tr('King of the Court', 'Roi du terrain')),
+              ]),
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _picture(BuildContext context) {
     final raw = overrideUrl ?? user?.avatarUrl;
     final userConfig = user?.avatarConfig;
     final preset = profileAvatarConfig(avatarUrl: raw, avatarConfig: userConfig);
