@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router-dom'
 import { Swords } from 'lucide-react'
 import { ChallengeCard } from '../components/ChallengeCard'
+import { ScreenGuide } from '../components/ScreenGuide'
 import { Empty, PageHeader, Spinner } from '../components/ui'
 import { useLocale } from '../i18n/LocaleProvider'
 import { useChallenge, useChallenges, type Challenge } from '../lib/challenges'
@@ -51,6 +52,7 @@ export function ChallengesPage() {
           </>
         )}
       </div>
+      <ScreenGuide screen="challenges" tips={[{ emoji: '⚔️', title: t.guide.challengesTitle, body: t.guide.challengesBody }]} />
     </div>
   )
 }

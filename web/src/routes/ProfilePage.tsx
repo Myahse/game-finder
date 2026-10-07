@@ -22,6 +22,7 @@ import { PasswordCard } from '../components/PasswordCard'
 import { AvatarPortrait } from '../avatar/render/AvatarPortrait'
 import { AVATAR_SPORTS, defaultConfig } from '../avatar/presets'
 import { useMySport } from '../lib/mySport'
+import { ScreenGuide } from '../components/ScreenGuide'
 import { Avatar, Button, Card, ErrorText, Field, Input, PageHeader, Select } from '../components/ui'
 import { Loading } from './CourtPage'
 
@@ -169,11 +170,21 @@ export function ProfilePage() {
             ) : (
               <CreateAvatarCard />
             )}
-            <MyProgressCard avatar={playerAvatar} />
+            <div data-guide="progress">
+              <MyProgressCard avatar={playerAvatar} />
+            </div>
+            <ScreenGuide
+              screen="profile"
+              tips={[
+                { target: 'progress', emoji: '📈', title: t.guide.progressTitle, body: t.guide.progressBody },
+                { target: 'my-challenges', emoji: '⚔️', title: t.guide.duelTitle, body: t.guide.duelBody },
+              ]}
+            />
             <ShareProfileButton me={current} />
             <div className="grid grid-cols-2 gap-2 [&>*]:min-w-0 [&>button]:whitespace-normal [&>button]:leading-tight">
               <Link
                 to="/challenges"
+                data-guide="my-challenges"
                 className="display col-span-2 flex min-h-12 items-center justify-center gap-2 rounded-xl bg-brand text-lg font-bold text-brand-ink"
               >
                 <Swords className="size-5" aria-hidden /> {t.challenge.myChallenges}

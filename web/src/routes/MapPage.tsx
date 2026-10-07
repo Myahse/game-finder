@@ -20,8 +20,7 @@ import { ShareCourtButton } from '../components/ShareCourtButton'
 import { CourtPhotoStrip } from '../components/CourtPhotoStrip'
 import { GameCard } from '../components/GameCard'
 import { DistanceText, LiveText, SportName } from '../components/icons'
-import { PlatformIntroModal } from '../components/PlatformIntroModal'
-import { markPlatformIntroSeen, platformIntroSeen } from '../lib/platformIntro'
+import { ScreenGuide } from '../components/ScreenGuide'
 import { Chip, Spinner, StatusPill } from '../components/ui'
 import { Plus } from 'lucide-react'
 import { useLocale } from '../i18n/LocaleProvider'
@@ -66,19 +65,6 @@ export function MapPage() {
   }
 
   const liveCount = courts?.filter((c) => c.activity === 'active').length ?? 0
-  const [introOpen, setIntroOpen] = useState(false)
-
-  useEffect(() => {
-    if (!user?.id || !user.onboarded) return
-    if (platformIntroSeen(user.id)) return
-    const timer = window.setTimeout(() => setIntroOpen(true), 700)
-    return () => window.clearTimeout(timer)
-  }, [user?.id, user?.onboarded])
-
-  const closeIntro = () => {
-    if (user?.id) markPlatformIntroSeen(user.id)
-    setIntroOpen(false)
-  }
 
   return (
     <div className="relative h-full min-h-[480px] overflow-hidden">
@@ -112,7 +98,7 @@ export function MapPage() {
           courts={courts ?? []}
           onSelectCourt={(c) => update('court', c.id)}
         />
-        <div className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+        <div data-guide="sport-chips" className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
           {isAdmin ? (
             <>
               <Chip active={!sport} onClick={() => update('sport', null)}>
@@ -161,7 +147,14 @@ export function MapPage() {
         <CourtSheet id={selectedId} coords={coords} viewerIsAdmin={isAdmin} onClose={() => update('court', null)} />
       )}
 
-      <PlatformIntroModal open={introOpen} onClose={closeIntro} variant="member" />
+      <ScreenGuide
+        screen="map"
+        tips={[
+          { emoji: '🏀 ⚽ 🏐 🎾 🏸', title: t.guide.sportsTitle, body: t.guide.sportsBody },
+          { target: 'sport-chips', emoji: '🔄', title: t.guide.chipsTitle, body: t.guide.chipsBody },
+          { target: 'nav-play', emoji: '🤝', title: t.guide.playTabTitle, body: t.guide.playTabBody },
+        ]}
+      />
     </div>
   )
 }

@@ -24,6 +24,7 @@ import { ShareGameButton } from '../components/ShareGameButton'
 import { GameWeather } from '../components/GameWeather'
 import { MoveCourtButton } from '../components/MoveCourtSheet'
 import { GameScoreboard } from '../components/GameScoreboard'
+import { ScreenGuide } from '../components/ScreenGuide'
 import { AppAlert, Avatar, Button, Card, Empty, ErrorText, PageHeader } from '../components/ui'
 import { Loading } from './CourtPage'
 import { useLocale } from '../i18n/LocaleProvider'
@@ -205,6 +206,7 @@ export function GamePage() {
           </div>
         </section>
       </div>
+      <ScreenGuide screen="game" tips={[{ emoji: '👥', title: t.guide.gameTitle, body: t.guide.gameBody }]} />
     </div>
   )
 }

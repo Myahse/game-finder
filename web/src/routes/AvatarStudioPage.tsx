@@ -6,6 +6,7 @@ import { AVATAR_SPORTS, defaultConfig } from '../avatar/presets'
 import type { PlayerAvatarConfig } from '../avatar/schema'
 import { api } from '../lib/api'
 import { useMySport } from '../lib/mySport'
+import { ScreenGuide } from '../components/ScreenGuide'
 import { PageHeader } from '../components/ui'
 import { useLocale } from '../i18n/LocaleProvider'
 import { Loading } from './CourtPage'
@@ -48,6 +49,9 @@ export function AvatarStudioPage() {
           }
           onSaved={() => navigate(done, { replace: welcome })}
         />
+      )}
+      {!isPending && (
+        <ScreenGuide screen="avatar" tips={[{ emoji: '🧍', title: t.guide.avatarTitle, body: t.guide.avatarBody }]} />
       )}
     </div>
   )

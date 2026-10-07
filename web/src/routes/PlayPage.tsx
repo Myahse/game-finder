@@ -9,6 +9,7 @@ import { useQueryErrorToast } from '../lib/toastErrors'
 import { sortPlayable, splitScheduledBySoon } from '../lib/sort'
 import { GameCard } from '../components/GameCard'
 import { BaseSportIcon, LiveText, SportName } from '../components/icons'
+import { ScreenGuide } from '../components/ScreenGuide'
 import { Chip, Empty, PageHeader } from '../components/ui'
 import { Loading } from './CourtPage'
 import { useLocale } from '../i18n/LocaleProvider'
@@ -132,6 +133,7 @@ export function PlayPage() {
           </>
         )}
       </div>
+      <ScreenGuide screen="play" tips={[{ emoji: '📍', title: t.guide.playTitle, body: t.guide.playBody }]} />
     </div>
   )
 }

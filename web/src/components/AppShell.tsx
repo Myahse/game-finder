@@ -88,6 +88,7 @@ export function AppShell() {
           <NavLink
             key={tab.to}
             to={tab.to}
+            data-guide={`nav-${tab.labelKey}`}
             end={tab.end}
             className={({ isActive }) =>
               `relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-semibold md:flex-none md:flex-row md:gap-3 md:rounded-xl md:px-3 md:py-2.5 md:text-sm ${
