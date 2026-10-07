@@ -241,6 +241,7 @@ func (s *Server) Routes() http.Handler {
 			r.Route("/admin", func(r chi.Router) {
 				r.Use(s.requireAdmin)
 				r.Get("/stats", s.adminStats)
+				r.Get("/usage", s.adminUsage)
 				r.Get("/courts", s.adminCourts)
 				r.Get("/courts/{id}", s.adminGetCourt)
 				r.Post("/courts", s.adminCreateCourt)

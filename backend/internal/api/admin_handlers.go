@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -13,6 +14,21 @@ import (
 
 func (s *Server) adminStats(w http.ResponseWriter, r *http.Request) {
 	b, err := s.db.JSON(r.Context(), uid(r), "select admin_stats()")
+	if err != nil {
+		writeDBError(w, r, err)
+		return
+	}
+	writeRaw(w, http.StatusOK, b)
+}
+
+// adminUsage reports active players and feature usage over ?days= (default
+// 30, clamped to 1..365 in SQL).
+func (s *Server) adminUsage(w http.ResponseWriter, r *http.Request) {
+	days := 30
+	if n, err := strconv.Atoi(strings.TrimSpace(r.URL.Query().Get("days"))); err == nil && n > 0 {
+		days = n
+	}
+	b, err := s.db.JSON(r.Context(), uid(r), "select admin_usage($1)", days)
 	if err != nil {
 		writeDBError(w, r, err)
 		return

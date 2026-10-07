@@ -21,6 +21,7 @@ import { AddCourtPage } from './routes/AddCourtPage'
 import { ReportCourtPage } from './routes/ReportCourtPage'
 import { AdminLayout } from './routes/admin/AdminLayout'
 import { AdminDashboard } from './routes/admin/AdminDashboard'
+import { AdminUsage } from './routes/admin/AdminUsage'
 import { AdminCourts } from './routes/admin/AdminCourts'
 import { AdminCourtReview } from './routes/admin/AdminCourtReview'
 import { AdminGames } from './routes/admin/AdminGames'
@@ -148,6 +149,7 @@ export const router = createBrowserRouter([
                 element: <AdminLayout />,
                 children: [
                   { index: true, element: <AdminDashboard /> },
+                  { path: 'usage', element: <AdminUsage /> },
                   { path: 'courts', element: <AdminCourts /> },
                   { path: 'courts/:courtId', element: <AdminCourtReview /> },
                   { path: 'games', element: <AdminGames /> },

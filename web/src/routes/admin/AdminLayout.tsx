@@ -2,8 +2,9 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { PageHeader } from '../../components/ui'
 import { useLocale } from '../../i18n/LocaleProvider'
 
-const tabs: { to: string; key: 'stats' | 'courts' | 'games' | 'users' | 'reports' | 'settings'; end?: boolean }[] = [
+const tabs: { to: string; key: 'stats' | 'usage' | 'courts' | 'games' | 'users' | 'reports' | 'settings'; end?: boolean }[] = [
   { to: '/admin', key: 'stats', end: true },
+  { to: '/admin/usage', key: 'usage' },
   { to: '/admin/courts', key: 'courts' },
   { to: '/admin/games', key: 'games' },
   { to: '/admin/users', key: 'users' },

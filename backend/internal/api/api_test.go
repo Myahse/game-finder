@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -222,7 +223,7 @@ func TestCoreFlow(t *testing.T) {
 
 	// Realtime: Bea watches the socket.
 	ticketBody, _ := e.must(200, bea.Token, "POST", "/api/me/ws-ticket", nil)
-	ws, _, err := websocket.Dial(ctx, strings.Replace(e.srv.URL, "http", "ws", 1)+"/api/ws?ticket="+ticketBody["ticket"].(string), nil)
+	ws, _, err := websocket.Dial(ctx, strings.Replace(e.srv.URL, "http", "ws", 1)+"/api/ws?ticket="+url.QueryEscape(ticketBody["ticket"].(string)), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
