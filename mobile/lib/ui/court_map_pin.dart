@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../core/format.dart';
+import '../core/l10n.dart';
 import '../core/media_url.dart';
 import '../core/models.dart';
+import '../core/weather.dart';
 import 'app_icons.dart';
 import 'theme.dart';
 
@@ -15,6 +17,8 @@ class CourtMapPin extends StatelessWidget {
   final CourtPinTone? pinTone;
   final String? placementSportSlug;
   final String? placementPhotoUrl;
+  /// Rain expected in the next hours: small 🌧️ badge on the pin.
+  final CourtRain? rain;
 
   const CourtMapPin({
     super.key,
@@ -22,6 +26,7 @@ class CourtMapPin extends StatelessWidget {
     required this.onTap,
     this.sportSlug,
     this.pinTone,
+    this.rain,
   })  : placementSportSlug = null,
         placementPhotoUrl = null;
 
@@ -29,7 +34,8 @@ class CourtMapPin extends StatelessWidget {
       : court = null,
         onTap = null,
         sportSlug = null,
-        pinTone = null;
+        pinTone = null,
+        rain = null;
 
   static const double size = 46;
   static const double totalHeight = 62;
@@ -127,6 +133,26 @@ class CourtMapPin extends StatelessWidget {
                 ),
               ),
             ),
+          if (rain != null)
+            Positioned(
+              top: -4,
+              left: -2,
+              child: Semantics(
+                label: rainLabel(rain!),
+                child: Container(
+                  width: 22,
+                  height: 22,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFF0EA5E9), width: 2),
+                    boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black26)],
+                  ),
+                  child: const Text('🌧️', style: TextStyle(fontSize: 11, height: 1)),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -185,6 +211,11 @@ class _PinStickPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _PinStickPainter old) => old.color != color;
 }
+
+/// "Raining now" / "Rain likely around 18:00 (70%)".
+String rainLabel(CourtRain r) => r.now
+    ? tr('Raining now', 'Il pleut en ce moment')
+    : tr('Rain likely around ${clock(r.time)} (${r.rainPct}%)', 'Pluie probable vers ${clock(r.time)} (${r.rainPct} %)');
 
 /// Alias for tests and existing imports.
 typedef CourtPin = CourtMapPin;

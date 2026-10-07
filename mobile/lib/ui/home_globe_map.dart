@@ -8,6 +8,7 @@ import '../core/format.dart';
 import '../core/map_tiles.dart';
 import '../core/map_zoom.dart';
 import '../core/models.dart';
+import '../core/weather.dart';
 import 'court_map_pin.dart';
 
 /// Imperative camera control for [HomeGlobeMap].
@@ -40,6 +41,7 @@ class HomeGlobeMap extends StatefulWidget {
     required this.onCourtTap,
     required this.onReady,
     required this.dark,
+    this.rain = const {},
   });
 
   final LatLng initialCenter;
@@ -50,6 +52,8 @@ class HomeGlobeMap extends StatefulWidget {
   final ValueChanged<Court> onCourtTap;
   final ValueChanged<HomeGlobeMapController> onReady;
   final bool dark;
+  /// Courts (by id) expecting rain soon.
+  final Map<String, CourtRain> rain;
 
   @override
   State<HomeGlobeMap> createState() => _HomeGlobeMapState();
@@ -191,6 +195,7 @@ class _HomeGlobeMapState extends State<HomeGlobeMap> {
               court: c,
               sportSlug: widget.sportSlug,
               pinTone: courtPinTone(c, atCourt.toList()),
+              rain: widget.rain[c.id],
               onTap: () => widget.onCourtTap(c),
             ),
           );

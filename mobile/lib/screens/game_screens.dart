@@ -21,6 +21,8 @@ import '../ui/theme.dart';
 import '../ui/app_icons.dart';
 import '../ui/widgets.dart';
 import 'court_move.dart';
+import 'game_scoreboard.dart';
+import 'game_weather.dart';
 import 'profile_screen.dart';
 
 /// Push game detail after routes settle (avoids semantics asserts when closing sheets).
@@ -170,6 +172,7 @@ class _GameScreenState extends State<GameScreen> {
       _ => ('CANCELLED', Icons.close, Theme.of(context).colorScheme.error),
     };
     final isCreator = g.creatorId == me?.id;
+    final isAdmin = me?.isAdmin == true;
 
     return Scaffold(
       appBar: AppBar(
@@ -283,7 +286,7 @@ class _GameScreenState extends State<GameScreen> {
                   icon: const Icon(Icons.navigation_outlined),
                   label: const Text('GET DIRECTIONS'),
                 ),
-                if (g.isOpen && (isCreator || me?.isAdmin == true)) ...[
+                if (g.isOpen && (isCreator || isAdmin)) ...[
                   const SizedBox(height: 10),
                   OutlinedButton.icon(
                     onPressed: () async {
@@ -309,6 +312,16 @@ class _GameScreenState extends State<GameScreen> {
               ]),
             ),
           ),
+          if (g.isOpen) ...[
+            const SizedBox(height: 12),
+            GameWeather(
+              key: ValueKey('weather-${g.id}'),
+              game: g,
+              isHost: isCreator || isAdmin,
+              onCallOff: (reason) => _action('cancel', reason: reason),
+              onChanged: _load,
+            ),
+          ],
           if (g.isOpen && g.joined) ...[
             const SizedBox(height: 12),
             Row(children: [
@@ -324,6 +337,10 @@ class _GameScreenState extends State<GameScreen> {
                 child: const Text('INVITE'),
               ),
             ]),
+          ],
+          if (g.status != 'cancelled') ...[
+            const SizedBox(height: 20),
+            GameScoreboard(key: ValueKey('scoreboard-${g.id}'), game: g, canEdit: isCreator || g.joined || isAdmin),
           ],
           const SizedBox(height: 20),
           Text('PLAYERS', style: Theme.of(context).textTheme.titleLarge),

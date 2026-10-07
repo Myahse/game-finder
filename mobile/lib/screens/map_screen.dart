@@ -28,6 +28,7 @@ import '../core/realtime.dart';
 
 import '../core/nearby.dart';
 import '../core/notify_area_sync.dart';
+import '../core/weather.dart';
 import '../ui/home_globe_map.dart';
 import '../ui/map_games_rail.dart';
 
@@ -62,6 +63,8 @@ class _MapScreenState extends State<MapScreen> {
   List<Game> _games = [];
 
   List<Sport> _sports = [];
+
+  Map<String, CourtRain> _rain = const {};
 
   String? _sport;
 
@@ -272,12 +275,25 @@ class _MapScreenState extends State<MapScreen> {
 
       });
 
+      unawaited(_refreshRain());
+
     } catch (e) {
       if (!mounted) return;
       _applyMapState(() => _gamesLoading = false);
       if (_mapSurfaceActive()) showApiIssue(context, e);
     }
 
+  }
+
+  /// Rain badges for the nearest courts (cached 15 min; failures leave pins as they are).
+  Future<void> _refreshRain() async {
+    final api = context.read<Api>();
+    if (api.session == null || _courts.isEmpty) return;
+    final nearest = [..._courts]..sort((a, b) => (a.distanceM ?? double.infinity).compareTo(b.distanceM ?? double.infinity));
+    final rain = await CourtRainCache.instance.lookup(nearest.map((c) => c.id), api.get);
+    if (!mounted) return;
+    final same = rain.length == _rain.length && rain.entries.every((e) => identical(_rain[e.key], e.value));
+    if (!same) _applyMapState(() => _rain = rain);
   }
 
   void _openGameById(String gameId) => openGameScreen(context, gameId);
@@ -338,6 +354,7 @@ class _MapScreenState extends State<MapScreen> {
             courts: _courts,
             nearbyGames: _games,
             sportSlug: _sport,
+            rain: _rain,
             dark: dark,
             onCourtTap: _openCourt,
             onReady: (c) {

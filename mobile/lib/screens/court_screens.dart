@@ -1,6 +1,7 @@
 import 'dart:async';
 import '../core/progress_models.dart';
 import 'challenges_screen.dart';
+import 'court_leaderboard.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -906,6 +907,8 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen>
                   if (c.status == 'approved') ...[
                     const SizedBox(height: 16),
                     CourtChallenges(court: CourtRef.fromJson({'id': c.id, 'name': c.name})),
+                    const SizedBox(height: 16),
+                    CourtLeaderboard(key: ValueKey('leaderboard-${c.id}'), courtId: c.id),
                   ],
                   if (!canEditCourt) ...[
                     const SizedBox(height: 16),

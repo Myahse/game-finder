@@ -29,6 +29,8 @@ String apiUserMessage(ApiException e) {
       return 'Too many requests. Wait a minute and try again.';
     case 'too_many_pending_courts':
       return 'You already have pending court proposals waiting for review.';
+    case 'game_not_started':
+      return tr('Scores and stats open once the game starts.', 'Le score et les stats s’ouvrent au début du match.');
     default:
       return e.message;
   }
@@ -146,6 +148,7 @@ class Api extends ChangeNotifier {
   Future<dynamic> get(String path) => request('GET', path);
   Future<dynamic> post(String path, [Object? body]) => request('POST', path, body: body);
   Future<dynamic> patch(String path, Object body) => request('PATCH', path, body: body);
+  Future<dynamic> put(String path, Object body) => request('PUT', path, body: body);
   Future<dynamic> delete(String path, [Object? body]) => request('DELETE', path, body: body);
 
   /// Uploads an avatar or court photo; returns its public URL.
