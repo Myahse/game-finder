@@ -79,6 +79,7 @@ class Notifications {
   }
 
   Future<void> requestPermission() async {
+    if (kIsWeb) return; // dart:io Platform throws on web; no local plugin there
     if (Platform.isAndroid) {
       await _local
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()

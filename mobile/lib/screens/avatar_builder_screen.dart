@@ -106,13 +106,13 @@ class _AvatarBuilderScreenState extends State<AvatarBuilderScreen> {
   List<Widget> _stepBody() {
     switch (_step) {
       case 0:
-        return [_label(tr('BODY TYPE', 'MORPHOLOGIE')), _chips(_bodies, _config.body, (v) => setState(() => _config = AvatarConfigV2(skin: _config.skin, body: v, size: _config.size, hair: _config.hair, accessory: _config.accessory, outfit: _config.outfit, color: _config.color, useAsProfile: _config.useAsProfile)))];
+        return [_label(tr('BODY TYPE', 'MORPHOLOGIE')), _chips(avatarBodyLabels.keys.toList(), _config.body, (v) => setState(() => _config = AvatarConfigV2(skin: _config.skin, body: v, size: _config.size, hair: _config.hair, accessory: _config.accessory, outfit: _config.outfit, color: _config.color, useAsProfile: _config.useAsProfile)), labels: avatarBodyLabels)];
       case 1:
-        return [_label(tr('SIZE', 'TAILLE')), _chips(_sizes, _config.size, (v) => setState(() => _config = AvatarConfigV2(skin: _config.skin, body: _config.body, size: v, hair: _config.hair, accessory: _config.accessory, outfit: _config.outfit, color: _config.color, useAsProfile: _config.useAsProfile)))];
+        return [_label(tr('SIZE', 'TAILLE')), _chips(avatarSizeLabels.keys.toList(), _config.size, (v) => setState(() => _config = AvatarConfigV2(skin: _config.skin, body: _config.body, size: v, hair: _config.hair, accessory: _config.accessory, outfit: _config.outfit, color: _config.color, useAsProfile: _config.useAsProfile)), labels: avatarSizeLabels)];
       case 2:
         return [_label(tr('SKIN', 'TEINT')), _skinRow()];
       case 3:
-        return [_label(tr('HAIR', 'COIFFURE')), _chips(_hairs, _config.hair, (v) => setState(() => _config = AvatarConfigV2(skin: _config.skin, body: _config.body, size: _config.size, hair: v, accessory: _config.accessory, outfit: _config.outfit, color: _config.color, useAsProfile: _config.useAsProfile)))];
+        return [_label(tr('HAIR', 'COIFFURE')), _chips(avatarHairLabels.keys.toList(), _config.hair, (v) => setState(() => _config = AvatarConfigV2(skin: _config.skin, body: _config.body, size: _config.size, hair: v, accessory: _config.accessory, outfit: _config.outfit, color: _config.color, useAsProfile: _config.useAsProfile)), labels: avatarHairLabels)];
       case 4:
         return [_label(tr('ACCESSORY', 'ACCESSOIRES')), _chips(_accessoryLabels.keys.toList(), _config.accessory, (v) => setState(() => _config = AvatarConfigV2(skin: _config.skin, body: _config.body, size: _config.size, hair: _config.hair, accessory: v, outfit: _config.outfit, color: _config.color, useAsProfile: _config.useAsProfile)), labels: _accessoryLabels)];
       case 5:
@@ -183,16 +183,29 @@ class _AvatarBuilderScreenState extends State<AvatarBuilderScreen> {
       );
 }
 
-const _bodies = ['b0', 'b1', 'b2'];
-const _sizes = ['z0', 'z1', 'z2', 'z3'];
-const _hairs = ['h0', 'h1', 'h2', 'h3', 'h4', 'h5'];
+// Chip labels (same names as the web's avatarPresets.ts). Body type and size
+// only change how close the DiceBear portrait is framed.
+Map<String, String> get avatarBodyLabels => {
+      'b0': tr('Lean', 'Fin'),
+      'b1': tr('Athletic', 'Athlétique'),
+      'b2': tr('Solid', 'Costaud'),
+    };
+Map<String, String> get avatarSizeLabels => const {'z0': 'S', 'z1': 'M', 'z2': 'L', 'z3': 'XL'};
+Map<String, String> get avatarHairLabels => {
+      'h0': tr('Shaved', 'Rasé'),
+      'h1': tr('Crop', 'Court'),
+      'h2': tr('Curls', 'Boucles'),
+      'h3': tr('Waves', 'Ondulés'),
+      'h4': tr('Afro', 'Afro'),
+      'h5': tr('Afro + band', 'Afro + bandeau'),
+    };
 
 Map<String, String> get _accessoryLabels => {
       'a0': tr('None', 'Aucun'),
       'a1': tr('Cap', 'Casquette'),
-      'a2': tr('Band', 'Bandeau'),
+      'a2': tr('Headband', 'Bandeau'),
       'a3': tr('Shades', 'Lunettes'),
-      'a4': tr('Bands', 'Poignets'),
+      'a4': tr('Wristbands', 'Poignets'),
     };
 Map<String, String> get _outfitLabels => {
       'o0': tr('Jersey', 'Maillot'),

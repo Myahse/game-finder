@@ -30,6 +30,7 @@ import '../core/nearby.dart';
 import '../core/notify_area_sync.dart';
 import '../core/weather.dart';
 import '../core/guide.dart';
+import '../ui/app_icons.dart';
 import '../ui/home_globe_map.dart';
 import '../ui/map_games_rail.dart';
 import '../ui/screen_guide.dart';
@@ -73,6 +74,12 @@ class _MapScreenState extends State<MapScreen> {
   Map<String, CourtRain> _rain = const {};
 
   String? _sport;
+
+  /// Sports list fetched (or failed): until then the sport filter is unknown.
+  bool _sportsLoaded = false;
+
+  /// Latest map fetch; older responses are dropped (e.g. after a sport switch).
+  int _fetchSeq = 0;
 
   bool _gamesLoading = true;
 
@@ -170,7 +177,9 @@ class _MapScreenState extends State<MapScreen> {
 
     super.initState();
 
-    _loadSports();
+    // The first fetch waits for the sports list so it already uses the
+    // player's sport (otherwise a volleyball player saw every sport's games).
+    final sportsReady = _loadSports();
 
     _sub = context.read<Realtime>().events.listen((ev) {
       if (ev['type'] == 'court_stats') {
@@ -195,7 +204,9 @@ class _MapScreenState extends State<MapScreen> {
     _location!.addListener(_onLocation);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      _refreshMapData();
+      sportsReady.whenComplete(() {
+        if (mounted) _refreshMapData();
+      });
       _centerOnUserIfNeeded();
     });
     _maybeShowGuide();
@@ -213,6 +224,7 @@ class _MapScreenState extends State<MapScreen> {
   void didUpdateWidget(covariant MapScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.tabActive && !oldWidget.tabActive) {
+      _syncSportFilterToUser(); // sports may have changed on the profile
       _refreshMapData(silent: true);
       WidgetsBinding.instance.addPostFrameCallback((_) => _centerOnUserIfNeeded());
       _maybeShowGuide();
@@ -265,25 +277,36 @@ class _MapScreenState extends State<MapScreen> {
       final j = await context.read<Api>().get('/api/sports');
 
       if (!mounted) return;
+      final all = [for (final s in j) Sport.fromJson(s)];
+      rememberSports(all);
       setState(() {
-        _sports = [for (final s in j) Sport.fromJson(s)].where((s) => s.active).toList();
+        _sports = all.where((s) => s.active).toList();
         _syncSportFilterToUser();
       });
 
     } catch (_) {}
 
+    _sportsLoaded = true;
+
   }
 
+  /// Members browse one of their own sports (main by default); admins any.
   void _syncSportFilterToUser() {
     final user = context.read<AuthState>().user;
     if (user?.isAdmin ?? false) return;
-    final slug = sportSlugForUser(user, _sports);
-    if (slug != null) _sport = slug;
+    final mine = sportsForUser(user, _sports);
+    if (mine.isEmpty || mine.any((s) => s.slug == _sport)) return;
+    _sport = mine.first.slug;
   }
 
 
 
   Future<void> _refreshMapData({bool silent = false}) async {
+
+    // Realtime/location can fire before the player's sport is known.
+    if (!_sportsLoaded) return;
+
+    final seq = ++_fetchSeq;
 
     final c = context.read<LocationState>().center;
 
@@ -303,7 +326,7 @@ class _MapScreenState extends State<MapScreen> {
 
       ]);
 
-      if (!mounted) return;
+      if (!mounted || seq != _fetchSeq) return;
 
       _applyMapState(() {
 
@@ -320,7 +343,7 @@ class _MapScreenState extends State<MapScreen> {
       unawaited(_refreshRain());
 
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || seq != _fetchSeq) return;
       _applyMapState(() => _gamesLoading = false);
       if (_mapSurfaceActive()) showApiIssue(context, e);
     }
@@ -374,7 +397,7 @@ class _MapScreenState extends State<MapScreen> {
     final live = _courts.where((c) => c.activity == Activity.active).length;
     final user = context.watch<AuthState>().user;
     final isAdmin = user?.isAdmin ?? false;
-    final mySport = sportForUser(user, _sports);
+    final mySports = sportsForUser(user, _sports);
 
     final navOverlap = kFloatingNavClearance + MediaQuery.paddingOf(context).bottom;
 
@@ -469,9 +492,10 @@ class _MapScreenState extends State<MapScreen> {
 
                 if (isAdmin) ...[
                   _filterChip(tr('All', 'Tous'), _sport == null, () => _setSport(null)),
-                  for (final s in _sports) _filterChip(s.name, _sport == s.slug, () => _setSport(s.slug)),
-                ] else if (mySport != null)
-                  _filterChip(mySport.name, true, () {}),
+                  for (final s in _sports) _sportChip(s),
+                ] else
+                  // One chip per sport the player plays (main + extras), like the web.
+                  for (final s in mySports) _sportChip(s),
 
                 _filterChip(tr('Add court', 'Ajouter un terrain'), false, () {
                   Navigator.push<Court>(context, MaterialPageRoute(builder: (_) => const AddCourtScreen())).then((court) {
@@ -584,6 +608,14 @@ class _MapScreenState extends State<MapScreen> {
   }
 
 
+
+  Widget _sportChip(Sport s) => _filterChipWidget(
+        SportInline(s, textStyle: const TextStyle(fontWeight: FontWeight.w700)),
+        _sport == s.slug,
+        () {
+          if (_sport != s.slug) _setSport(s.slug);
+        },
+      );
 
   Widget _filterChip(String label, bool selected, VoidCallback onTap) => _filterChipWidget(
 

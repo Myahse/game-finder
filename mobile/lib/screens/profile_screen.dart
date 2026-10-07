@@ -132,7 +132,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ]),
       body: RefreshIndicator(
         onRefresh: auth.refreshMe,
-        child: ListView(padding: const EdgeInsets.all(16), children: [
+        child: ListView(padding: floatingNavListPadding(context), children: [
           _ProfileCard(user: me, sports: _sports),
           if (hasSavedAvatar(avatarUrl: me.avatarUrl, avatarConfig: me.avatarConfig)) ...[
             const SizedBox(height: 12),

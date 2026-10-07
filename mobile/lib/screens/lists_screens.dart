@@ -152,6 +152,7 @@ class _PlayScreenState extends _LiveListState<PlayScreen> {
     if (!(user?.isAdmin ?? false) && user?.preferredSportId != null) {
       final sportsJ = await api.get('/api/sports');
       final sports = [for (final x in sportsJ) Sport.fromJson(x)];
+      rememberSports(sports);
       final slug = sportSlugForUser(user, sports);
       if (slug != null) sportQ = '&sport=$slug';
     }
@@ -175,7 +176,7 @@ class _PlayScreenState extends _LiveListState<PlayScreen> {
         onRefresh: () => reload(showLoading: true),
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
+          padding: floatingNavListPadding(context),
           children: [
           if (waitingGps)
             Padding(
@@ -199,9 +200,9 @@ class _PlayScreenState extends _LiveListState<PlayScreen> {
           ErrorBanner(error),
           if (!loading && _games.isEmpty && error == null)
             EmptyState(
-              icon: Icons.sports_basketball,
+              icon: baseSportIconData(context),
               title: tr('No games nearby yet', 'Aucun match à proximité pour l’instant'),
-              body: error != null ? tr('Pull down to try again.', 'Tirez vers le bas pour réessayer.') : tr('Be the one who starts it.', 'Soyez celui qui le lance.'),
+              body: error != null ? tr('Pull down to try again.', 'Tirez vers le bas pour réessayer.') : tr('Be the first to start one.', 'Lancez le premier match.'),
               action: PrimaryButton(
                 onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateGameScreen())).then((_) => reload()),
                 child: Text(tr('CREATE A GAME', 'CRÉER UN MATCH')),
@@ -245,7 +246,9 @@ class _PlayScreenState extends _LiveListState<PlayScreen> {
 }
 
 class MyGamesScreen extends LiveListScreen {
-  const MyGamesScreen({super.key, super.tabActive});
+  /// Switches the home shell to the Play tab (empty state's "Find a game").
+  final VoidCallback? onOpenPlayTab;
+  const MyGamesScreen({super.key, super.tabActive, this.onOpenPlayTab});
   @override
   State<MyGamesScreen> createState() => _MyGamesScreenState();
 }
@@ -267,7 +270,7 @@ class _MyGamesScreenState extends _LiveListState<MyGamesScreen> {
       appBar: AppBar(title: Text(tr('MY GAMES', 'MES MATCHS'))),
       body: RefreshIndicator(
         onRefresh: reload,
-        child: ListView(padding: const EdgeInsets.all(16), children: [
+        child: ListView(padding: floatingNavListPadding(context), children: [
           if (presence != null)
             Card(
               color: Palette.live.withValues(alpha: 0.12),
@@ -285,7 +288,16 @@ class _MyGamesScreenState extends _LiveListState<MyGamesScreen> {
           Text(tr('NOW & UPCOMING', 'EN COURS ET À VENIR'), style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
           if (!loading && _current.isEmpty)
-            EmptyState(icon: Icons.event, title: tr('No games yet', 'Pas encore de match'), body: tr('Tap Play to find a game near you.', 'Touchez Jouer pour trouver un match près de vous.')),
+            EmptyState(
+              icon: Icons.event,
+              title: tr('No games yet', 'Pas encore de match'),
+              body: tr('Find a game near you and join it.', 'Trouvez un match près de vous et rejoignez-le.'),
+              action: PrimaryButton(
+                onPressed: widget.onOpenPlayTab ??
+                    () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PlayScreen())),
+                child: Text(tr('FIND A GAME', 'TROUVER UN MATCH')),
+              ),
+            ),
           for (final g in _current) Padding(padding: const EdgeInsets.only(bottom: 8), child: GameCard(game: g, onTap: () => openGame(g.id))),
           if (_past.isNotEmpty) ...[
             const SizedBox(height: 16),
@@ -370,7 +382,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         child: _loading
             ? const Center(child: CircularProgressIndicator())
             : _items.isEmpty
-                ? ListView(children: [
+                ? ListView(padding: floatingNavListPadding(context, all: 0), children: [
                     EmptyState(
                         icon: Icons.notifications_outlined,
                         title: tr('All quiet', 'Tout est calme'),
@@ -378,7 +390,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             'Les rappels de match, les invitations et les matchs qui commencent près de vous apparaissent ici.')),
                   ])
                 : ListView.separated(
-                    padding: const EdgeInsets.all(16),
+                    padding: floatingNavListPadding(context),
                     itemCount: _items.length,
                     separatorBuilder: (_, _) => const SizedBox(height: 8),
                     itemBuilder: (_, i) {

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -6,6 +8,19 @@ import '../core/models.dart';
 /// Court-at-night palette: hardwood orange for action, scoreboard green for live.
 /// Space for the floating tab bar above the system inset (map CTAs sit above this).
 const kFloatingNavClearance = 84.0;
+
+/// Padding for scrollable tab content drawn under the floating nav bar (the
+/// shell uses `extendBody`): [all] around, plus nav clearance + system safe
+/// area at the bottom so the last item (e.g. LOG OUT) scrolls above the bar.
+/// Under `extendBody` the body's MediaQuery padding already holds the bar's
+/// real height; the larger of the two wins.
+EdgeInsets floatingNavListPadding(BuildContext context, {double all = 16}) {
+  final nav = math.max(
+    MediaQuery.paddingOf(context).bottom,
+    kFloatingNavClearance + MediaQuery.viewPaddingOf(context).bottom,
+  );
+  return EdgeInsets.fromLTRB(all, all, all, all + nav);
+}
 
 class Palette {
   static const brand = Color(0xFFFF5A1F);

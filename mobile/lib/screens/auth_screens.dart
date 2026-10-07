@@ -29,7 +29,7 @@ class SplashScreen extends StatelessWidget {
           backgroundColor: Palette.night,
           body: Center(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.sports_basketball, size: 72, color: Palette.brand),
+              const Icon(kNeutralSportIcon, size: 72, color: Palette.brand), // sport-neutral: no user yet
               const SizedBox(height: 12),
               const _Wordmark(size: 40),
               if (status != null) ...[

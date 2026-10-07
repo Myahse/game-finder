@@ -558,7 +558,7 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
             padding: const EdgeInsets.only(bottom: 16),
             child: Text(
               tr('No courts nearby. Add a court from the Map tab (+), then come back to create a game.',
-                  'Aucun terrain à proximité. Ajoute un terrain depuis l’onglet Carte (+), puis reviens créer un match.'),
+                  'Aucun terrain à proximité. Ajoutez un terrain depuis l’onglet Carte (+), puis revenez créer un match.'),
               style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ),
@@ -689,10 +689,12 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
           onChanged: (v) => setState(() => _maxSlider = v.round()),
         ),
         Text(
-          tr('Drag to the end for unlimited players ($maxPlayersSliderCap+).', 'Glisse jusqu’au bout pour un nombre illimité de joueurs ($maxPlayersSliderCap+).'),
+          tr('Drag to the end for unlimited players ($maxPlayersSliderCap+).', 'Glissez jusqu’au bout pour un nombre illimité de joueurs ($maxPlayersSliderCap+).'),
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
+        // Room for the floating "Skill level" label so it doesn't sit on the helper text.
+        const SizedBox(height: 20),
         DropdownButtonFormField<String>(
           initialValue: _skill,
           decoration: InputDecoration(labelText: tr('Skill level', 'Niveau')),

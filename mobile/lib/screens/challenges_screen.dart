@@ -79,6 +79,13 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
                     title: tr('No challenges yet', 'Pas encore de défi'),
                     body: tr('Challenge a friend from their profile or post an open challenge at a court.',
                         'Défiez un ami depuis son profil ou lancez un défi ouvert sur un terrain.'),
+                    action: PrimaryButton(
+                      onPressed: () async {
+                        await showChallengeComposer(context); // open challenge at a nearby court
+                        if (mounted) _load();
+                      },
+                      child: Text(tr('CHALLENGE SOMEONE', 'LANCER UN DÉFI')),
+                    ),
                   ),
                 ..._section(tr('CHALLENGES FOR YOU', 'DÉFIS REÇUS'), l.incoming),
                 ..._section(tr('GAME ON', 'C’EST PARTI'), l.active),
@@ -157,7 +164,7 @@ class _ChallengeCardState extends State<ChallengeCard> {
     showSnack(
         context,
         c.isPublic
-            ? tr('Challenge link copied — paste it anywhere', 'Lien du défi copié — colle-le où tu veux')
+            ? tr('Challenge link copied — paste it anywhere', 'Lien du défi copié — collez-le où vous voulez')
             : tr('Link copied — it’s private, so only its players can open it.', 'Lien copié — le défi est privé, seuls ses joueurs peuvent l’ouvrir.'));
   }
 
@@ -607,11 +614,11 @@ class _ComposerState extends State<_Composer> {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(color: theme.colorScheme.primary, borderRadius: BorderRadius.circular(18)),
             child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-              if (me != null) UserAvatar(me, size: 52),
+              if (me != null) _BannerAvatar(me),
               Text('VS', style: theme.textTheme.headlineMedium?.copyWith(color: Colors.white, fontStyle: FontStyle.italic)),
               widget.opponent != null
-                  ? UserAvatar(widget.opponent, size: 52)
-                  : const CircleAvatar(radius: 26, backgroundColor: Colors.white24, child: Text('?', style: TextStyle(fontSize: 22, color: Colors.white))),
+                  ? _BannerAvatar(widget.opponent!)
+                  : const CircleAvatar(radius: 29, backgroundColor: Colors.white24, child: Text('?', style: TextStyle(fontSize: 22, color: Colors.white))),
             ]),
           ),
           if (widget.opponent == null)
@@ -965,6 +972,20 @@ class _AddPlayerSheetState extends State<_AddPlayerSheet> {
       ),
     );
   }
+}
+
+/// Avatar on the brand-orange VS banner: white ring + white backing so the
+/// orange initials fallback (and transparent art) stays visible.
+class _BannerAvatar extends StatelessWidget {
+  final PublicUser user;
+  const _BannerAvatar(this.user);
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(3),
+        decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+        child: ClipOval(child: ColoredBox(color: Colors.white, child: UserAvatar(user, size: 52))),
+      );
 }
 
 List<String> _messageIdeas() => [

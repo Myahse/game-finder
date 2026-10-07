@@ -28,6 +28,8 @@ class PublicUser {
   final String id, firstName, lastName, username;
   final String? avatarUrl, preferredSportId, skillLevel;
   final Map<String, dynamic>? avatarConfig;
+  /// Up to 2 more sports besides [preferredSportId] (profile → "Other sports").
+  final List<String> extraSportIds;
   /// Avatar made in the web studio (users.player_avatar), when it is the player's look.
   final PlayerAvatar? playerAvatar;
   final DateTime createdAt;
@@ -42,6 +44,7 @@ class PublicUser {
         avatarConfig = j['avatar_config'] is Map ? Map<String, dynamic>.from(j['avatar_config'] as Map) : null,
         playerAvatar = PlayerAvatar.forUserJson(j),
         preferredSportId = j['preferred_sport_id'],
+        extraSportIds = [for (final id in (j['extra_sport_ids'] as List? ?? const [])) if (id is String) id],
         skillLevel = j['skill_level'],
         createdAt = _date(j['created_at']) ?? DateTime.now(),
         gamesPlayed = (j['stats']?['games_played'] as num?)?.toInt() ?? 0,

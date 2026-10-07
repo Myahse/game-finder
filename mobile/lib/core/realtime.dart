@@ -25,7 +25,12 @@ class Realtime extends ChangeNotifier {
 
   Stream<Map<String, dynamic>> ofType(String type) => events.where((e) => e['type'] == type);
 
+  /// Connects only while someone is signed in (the socket needs a ws-ticket).
   Future<void> start() async {
+    if (api.session == null) {
+      stop();
+      return;
+    }
     _stopped = false;
     await _connect();
   }
@@ -35,20 +40,38 @@ class Realtime extends ChangeNotifier {
     await start();
   }
 
+  int _gen = 0; // bumped by stop(): a connect that started earlier gives up
+
   Future<void> _connect() async {
     if (_stopped) return;
+    if (api.session == null) {
+      stop(); // signed out meanwhile — nothing to connect to
+      return;
+    }
+    final gen = _gen;
     final base = apiUrl.replaceFirst(RegExp(r'^http'), 'ws');
     String qs = '';
-    final t = await api.post('/api/me/ws-ticket', {});
-    final ticket = t['ticket'] as String?;
-    if (ticket != null && ticket.isNotEmpty) {
-      qs = '?ticket=${Uri.encodeQueryComponent(ticket)}';
+    try {
+      final t = await api.post('/api/me/ws-ticket', {});
+      final ticket = t is Map ? t['ticket'] as String? : null;
+      if (ticket != null && ticket.isNotEmpty) {
+        qs = '?ticket=${Uri.encodeQueryComponent(ticket)}';
+      }
+    } catch (_) {
+      // Offline, server down or session gone: try again later (backoff).
+      if (gen == _gen) _scheduleReconnect();
+      return;
     }
+    if (_stopped || gen != _gen) return;
     final uri = Uri.parse('$base/api/ws$qs');
     try {
       final ch = WebSocketChannel.connect(uri);
       _channel = ch;
       await ch.ready;
+      if (_stopped || gen != _gen) {
+        ch.sink.close();
+        return;
+      }
       connected = true;
       _backoff = const Duration(seconds: 1);
       notifyListeners();
@@ -64,7 +87,7 @@ class Realtime extends ChangeNotifier {
         cancelOnError: true,
       );
     } catch (_) {
-      _scheduleReconnect();
+      if (gen == _gen) _scheduleReconnect();
     }
   }
 
@@ -80,6 +103,7 @@ class Realtime extends ChangeNotifier {
 
   void stop() {
     _stopped = true;
+    _gen++;
     _retry?.cancel();
     _sub?.cancel();
     _channel?.sink.close();

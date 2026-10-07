@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../core/api.dart';
+import '../core/auth.dart';
 import '../core/models.dart';
+import '../core/my_sport.dart';
 import 'theme.dart';
 
 IconData sportIconData(String slug) {
@@ -18,6 +22,67 @@ IconData sportIconData(String slug) {
     default:
       return Icons.place;
   }
+}
+
+IconData sportIconDataOutlined(String slug) {
+  switch (slug) {
+    case 'basketball':
+      return Icons.sports_basketball_outlined;
+    case 'football':
+      return Icons.sports_soccer_outlined;
+    case 'volleyball':
+      return Icons.sports_volleyball_outlined;
+    case 'tennis':
+      return Icons.sports_tennis_outlined;
+    default:
+      return Icons.sports_outlined;
+  }
+}
+
+/// Sport-neutral mark (whistle) for logged-out screens and while the player's
+/// sport is still unknown.
+const kNeutralSportIcon = Icons.sports;
+
+/// Icon of the signed-in player's main sport — the app's sport mark (Play tab,
+/// empty states, prompts), like the web's BaseSportIcon. Rebuilds when the
+/// user or the sports list changes; works without providers (tests).
+IconData baseSportIconData(BuildContext context, {bool outlined = false}) {
+  final user = Provider.of<AuthState?>(context)?.user;
+  final id = user?.preferredSportId;
+  if (id == null) return outlined ? Icons.sports_outlined : kNeutralSportIcon;
+  final sports = knownSports.value;
+  if (sports.isEmpty) {
+    final api = Provider.of<Api?>(context, listen: false);
+    if (api != null) ensureKnownSports(api.get);
+  }
+  final slug = sportSlugForUser(user, sports);
+  if (slug == null) return outlined ? Icons.sports_outlined : kNeutralSportIcon;
+  return outlined ? sportIconDataOutlined(slug) : sportIconData(slug);
+}
+
+class BaseSportIcon extends StatelessWidget {
+  final double? size;
+  final Color? color;
+  final bool outlined;
+  const BaseSportIcon({super.key, this.size, this.color, this.outlined = false});
+
+  @override
+  Widget build(BuildContext context) => BaseSportBuilder(
+        builder: (context, data) => Icon(data(outlined: outlined), size: size, color: color),
+      );
+}
+
+/// Rebuilds [builder] when the shared sports list arrives; [builder] gets a
+/// resolver for the player's base sport icon.
+class BaseSportBuilder extends StatelessWidget {
+  final Widget Function(BuildContext context, IconData Function({bool outlined}) icon) builder;
+  const BaseSportBuilder({super.key, required this.builder});
+
+  @override
+  Widget build(BuildContext context) => ValueListenableBuilder<List<Sport>>(
+        valueListenable: knownSports,
+        builder: (context, _, _) => builder(context, ({bool outlined = false}) => baseSportIconData(context, outlined: outlined)),
+      );
 }
 
 class SportIcon extends StatelessWidget {

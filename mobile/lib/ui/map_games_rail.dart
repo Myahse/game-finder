@@ -112,7 +112,7 @@ class MapGamesRail extends StatelessWidget {
                               padding: const EdgeInsets.all(14),
                               child: Row(
                                 children: [
-                                  Icon(Icons.sports_basketball, size: 40, color: Palette.brand),
+                                  const BaseSportIcon(size: 40, color: Palette.brand),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(

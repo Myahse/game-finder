@@ -10,6 +10,7 @@ import '../core/presence.dart';
 import '../core/map_pause.dart';
 import '../core/progress_models.dart';
 import '../core/realtime.dart';
+import '../ui/app_icons.dart';
 import '../ui/theme.dart';
 import '../ui/widgets.dart';
 import 'avatar_builder_screen.dart';
@@ -198,7 +199,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           ),
         ),
         if (_tab == 1) PlayScreen(key: const ValueKey('home-play'), tabActive: true),
-        if (_tab == 2) MyGamesScreen(key: const ValueKey('home-games'), tabActive: true),
+        if (_tab == 2)
+          MyGamesScreen(key: const ValueKey('home-games'), tabActive: true, onOpenPlayTab: () => setState(() => _tab = 1)),
         if (_tab == 3) NotificationsScreen(key: const ValueKey('home-alerts'), onChanged: _loadUnread),
         if (_tab == 4) const ProfileScreen(key: ValueKey('home-profile')),
       ],
@@ -273,8 +275,9 @@ class _FloatingNavBar extends StatelessWidget {
                 ),
                 NavigationDestination(
                   key: playKey,
-                  icon: const Icon(Icons.sports_basketball_outlined),
-                  selectedIcon: const Icon(Icons.sports_basketball),
+                  // The player's own sport, like the web's BaseSportIcon.
+                  icon: const BaseSportIcon(outlined: true),
+                  selectedIcon: const BaseSportIcon(),
                   label: tr('Play', 'Jouer'),
                 ),
                 NavigationDestination(
@@ -352,7 +355,7 @@ class _StillPlayingSheetState extends State<_StillPlayingSheet> {
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          const Icon(Icons.sports_basketball, size: 48, color: Palette.brand),
+          const BaseSportIcon(size: 48, color: Palette.brand),
           Text(tr('ARE YOU STILL PLAYING?', 'VOUS JOUEZ ENCORE ?'), style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 4),
           Text(tr('Your check-in at ${p?.courtName ?? 'the court'} ends in $mins min.',

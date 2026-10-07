@@ -1287,6 +1287,9 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
     final loc = context.watch<LocationState>();
     if (_done && _doneCourt != null) {
       final c = _doneCourt!;
+      // Pending courts are hidden from the public map until an admin approves
+      // them (only the proposer sees theirs) — same wording as the web.
+      final approved = _reusedNearby || c.status == null || c.status == 'approved';
       return Scaffold(
         appBar: AppBar(),
         body: Padding(
@@ -1294,14 +1297,18 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
           child: Column(
             children: [
               const Spacer(),
-              const Icon(
-                Icons.check_circle_outline,
+              Icon(
+                approved ? Icons.check_circle_outline : Icons.hourglass_top,
                 size: 64,
                 color: Palette.brand,
               ),
               const SizedBox(height: 16),
               Text(
-                _reusedNearby ? tr('Court already here', 'Terrain déjà présent') : tr('Court on the map', 'Terrain sur la carte'),
+                _reusedNearby
+                    ? tr('Court already here', 'Terrain déjà présent')
+                    : approved
+                        ? tr('Court on the map', 'Terrain sur la carte')
+                        : tr('Submitted for review', 'Envoyé pour validation'),
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w900,
@@ -1312,8 +1319,11 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
                 _reusedNearby
                     ? tr('Nobody was playing at this spot — use this court and start a game for others to join.',
                         'Personne ne jouait à cet endroit — utilisez ce terrain et lancez un match que les autres pourront rejoindre.')
-                    : tr('It’s on the map now (pending review). Anyone nearby can create a game when the court is quiet.',
-                        'Il est sur la carte (en attente de validation). Les joueurs à proximité peuvent y créer un match quand le terrain est libre.'),
+                    : approved
+                        ? tr('It’s on the map now. Anyone nearby can create a game when the court is quiet.',
+                            'Il est sur la carte. Les joueurs à proximité peuvent y créer un match quand le terrain est libre.')
+                        : tr('We got your proposal. It stays hidden from the public map until an admin approves it. Check Alerts for updates.',
+                            'Nous avons reçu votre proposition. Elle reste masquée sur la carte publique jusqu’à sa validation par un administrateur. Consultez les Alertes pour le suivi.'),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -1324,22 +1334,32 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
           ),
         ),
         bottomNavigationBar: StickyScreenActions(
-          children: [
-            PrimaryButton(
-              onPressed: () => Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => CreateGameScreen(courtId: c.id),
-                ),
-              ),
-              child: Text(tr('CREATE A GAME', 'CRÉER UN MATCH')),
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton(
-              onPressed: () => Navigator.pop(context, c),
-              child: Text(tr('VIEW ON MAP', 'VOIR SUR LA CARTE')),
-            ),
-          ],
+          children: approved
+              ? [
+                  PrimaryButton(
+                    onPressed: () => Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CreateGameScreen(courtId: c.id),
+                      ),
+                    ),
+                    child: Text(tr('CREATE A GAME', 'CRÉER UN MATCH')),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton(
+                    onPressed: () => Navigator.pop(context, c),
+                    child: Text(tr('VIEW ON MAP', 'VOIR SUR LA CARTE')),
+                  ),
+                ]
+              : [
+                  PrimaryButton(
+                    onPressed: () => Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => CourtDetailsScreen(courtId: c.id)),
+                    ),
+                    child: Text(tr('VIEW YOUR COURT', 'VOIR VOTRE TERRAIN')),
+                  ),
+                ],
         ),
       );
     }
@@ -1442,6 +1462,8 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
               children: [
                 TextField(
                   controller: _name,
+                  // The submit button reads _name.text: rebuild as the user types.
+                  onChanged: (_) => setState(() {}),
                   decoration: InputDecoration(
                     labelText: tr('Name', 'Nom'),
                     hintText: tr('e.g. Terrain Mockeyville', 'ex. Terrain Mockeyville'),

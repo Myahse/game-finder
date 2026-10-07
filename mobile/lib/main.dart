@@ -132,10 +132,11 @@ class _RootGateState extends State<RootGate> {
       setState(() => _booting = false);
       return;
     }
-    context.read<Realtime>().start();
     setState(() => _bootStatus = tr('Loading…', 'Chargement…'));
     final auth = context.read<AuthState>();
     if (auth.user != null) await auth.refreshMe();
+    // Realtime (needs a signed-in user for its ws-ticket) is started by
+    // _syncServices once the auth listener is attached below.
     await Future<void>.delayed(const Duration(milliseconds: 400));
     if (mounted) {
       setState(() => _booting = false);
@@ -156,7 +157,12 @@ class _RootGateState extends State<RootGate> {
     if (_sessionUser == userId) return;
     _sessionUser = userId;
     final presence = context.read<PresenceState>();
-    context.read<Realtime>().restart();
+    final rt = context.read<Realtime>();
+    if (userId != null) {
+      rt.restart();
+    } else {
+      rt.stop();
+    }
     if (userId != null) {
       context.read<LocationState>().start();
       presence.refresh();

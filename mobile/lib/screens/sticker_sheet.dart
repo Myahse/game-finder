@@ -36,6 +36,10 @@ Future<void> showStickerSheet(BuildContext context, {required AvatarArt art, Str
       builder: (_) => _StickerSheet(art: art, sport: sport),
     );
 
+/// Tests swap the DiceBear image fetch (url → loaded?) for a fake.
+@visibleForTesting
+Future<bool> Function(String url)? debugStickerPrecache;
+
 class _StickerSheet extends StatefulWidget {
   final AvatarArt art;
   final String? sport;
@@ -51,33 +55,51 @@ class _StickerSheetState extends State<_StickerSheet> {
 
   /// Ids whose avatar image has loaded (ready to capture).
   final _loaded = <String>{};
-  bool _failed = false;
+
+  /// Ids whose image could not be fetched: the tile offers a retry.
+  final _failed = <String>{};
   bool _busy = false;
+
+  /// DiceBear fetches in flight at once.
+  static const _maxParallel = 3;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _preload();
+      if (mounted) _preload(_specs);
     });
   }
 
-  Future<void> _preload() async {
-    for (final s in _specs) {
-      final url = widget.art.pngUrl(expression: s.expression);
-      if (url == null) {
-        setState(() => _failed = true);
-        return;
+  /// Loads [specs] a few at a time; each tile shows as soon as its image is in.
+  Future<void> _preload(List<StickerSpec> specs) async {
+    final queue = [...specs];
+    setState(() => _failed.removeAll(queue.map((s) => s.id)));
+    Future<void> worker() async {
+      while (queue.isNotEmpty) {
+        final s = queue.removeAt(0);
+        final ok = await _fetch(s);
+        if (!mounted) return;
+        setState(() => ok ? _loaded.add(s.id) : _failed.add(s.id));
       }
-      var ok = true;
-      await precacheImage(NetworkImage(url), context, onError: (_, _) => ok = false);
-      if (!mounted) return;
-      if (!ok) {
-        setState(() => _failed = true);
-        return;
-      }
-      setState(() => _loaded.add(s.id));
     }
+
+    final workers = math.min(_maxParallel, queue.length);
+    await Future.wait([for (var i = 0; i < workers; i++) worker()]);
+  }
+
+  Future<bool> _fetch(StickerSpec s) async {
+    final url = widget.art.pngUrl(expression: s.expression);
+    if (url == null) return false;
+    final hook = debugStickerPrecache;
+    if (hook != null) return hook(url);
+    var ok = true;
+    try {
+      await precacheImage(NetworkImage(url), context, onError: (_, _) => ok = false);
+    } catch (_) {
+      ok = false;
+    }
+    return ok;
   }
 
   Future<({Uint8List bytes, String name})?> _render(StickerSpec s) async {
@@ -126,50 +148,48 @@ class _StickerSheetState extends State<_StickerSheet> {
             style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 12),
-          if (_failed)
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text(
-                tr('Could not create the stickers.', 'Impossible de créer les stickers.'),
-                textAlign: TextAlign.center,
-                style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-              ),
-            )
-          else
-            GridView.count(
-              crossAxisCount: 3,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              children: [
-                for (final s in _specs)
-                  Semantics(
-                    button: true,
-                    label: s.caption,
-                    child: Material(
-                      color: theme.colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(16),
-                      clipBehavior: Clip.antiAlias,
-                      child: InkWell(
-                        onTap: _loaded.contains(s.id) && !_busy ? () => _send(s) : null,
-                        child: _loaded.contains(s.id)
-                            ? FittedBox(
-                                child: RepaintBoundary(
-                                  key: _keys[s.id],
-                                  child: StickerArt(art: widget.art, spec: s),
-                                ),
-                              )
-                            : const Center(child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2))),
-                      ),
+          GridView.count(
+            crossAxisCount: 3,
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            children: [
+              for (final s in _specs)
+                Semantics(
+                  button: true,
+                  label: s.caption,
+                  child: Material(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(16),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: _loaded.contains(s.id) && !_busy ? () => _send(s) : null,
+                      child: _loaded.contains(s.id)
+                          ? FittedBox(
+                              child: RepaintBoundary(
+                                key: _keys[s.id],
+                                child: StickerArt(art: widget.art, spec: s),
+                              ),
+                            )
+                          : _failed.contains(s.id)
+                              ? Center(
+                                  child: IconButton(
+                                    tooltip: tr('Retry', 'Réessayer'),
+                                    onPressed: () => _preload([s]),
+                                    icon: Icon(Icons.refresh, color: theme.colorScheme.onSurfaceVariant),
+                                  ),
+                                )
+                              : const Center(child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2))),
                     ),
                   ),
-              ],
-            ),
+                ),
+            ],
+          ),
           const SizedBox(height: 16),
           OutlinedButton.icon(
             key: _saveButton,
-            onPressed: _loaded.isEmpty || _busy || _failed ? null : _saveAll,
+            onPressed: _loaded.isEmpty || _busy ? null : _saveAll,
             icon: _busy
                 ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.download_outlined),

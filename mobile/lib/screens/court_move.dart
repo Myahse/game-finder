@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../core/api.dart';
@@ -199,7 +198,7 @@ class _MoveCourtSheetState extends State<_MoveCourtSheet> {
 Future<String?> showCourtChangeAlert(BuildContext context, CourtChange c) {
   final theme = Theme.of(context);
   final who = c.changedBy != null ? '@${c.changedBy}' : 'Admin';
-  final when = c.startTime == null ? null : DateFormat('dd/MM · HH:mm').format(c.startTime!);
+  final when = c.startTime == null ? null : localDateFormat('EEE d MMM · HH:mm').format(c.startTime!); // device language (fr/en)
   return showDialog<String>(
     context: context,
     barrierDismissible: false,

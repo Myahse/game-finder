@@ -25,9 +25,16 @@ class AvatarPresetWidget extends StatelessWidget {
             url,
             fit: BoxFit.cover,
             alignment: headOnly ? const Alignment(0, -0.35) : const Alignment(0, -0.2),
+            // Keep the previous look on screen while the next DiceBear image
+            // loads (builder chips), with a small spinner on top.
+            gaplessPlayback: true,
             errorBuilder: (_, _, _) => Icon(Icons.person, size: size * 0.5, color: Colors.grey),
-            loadingBuilder: (context, child, progress) =>
-                progress == null ? child : Center(child: SizedBox(width: size * 0.3, height: size * 0.3, child: const CircularProgressIndicator(strokeWidth: 2))),
+            loadingBuilder: (context, child, progress) => progress == null
+                ? child
+                : Stack(fit: StackFit.expand, children: [
+                    child,
+                    Center(child: SizedBox(width: size * 0.3, height: size * 0.3, child: const CircularProgressIndicator(strokeWidth: 2))),
+                  ]),
           ),
         ),
       ),
