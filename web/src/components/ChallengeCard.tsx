@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Crown, MapPin, UserPlus, Zap } from 'lucide-react'
+import { Crown, Globe, Lock, MapPin, Pencil, Share2, UserPlus, Zap } from 'lucide-react'
 import { useLocale } from '../i18n/LocaleProvider'
 import { errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
-import { useChallengeActions, type Challenge } from '../lib/challenges'
+import { challengeShareUrl, useChallengeActions, type Challenge } from '../lib/challenges'
 import { playerUsernameLabel } from '../lib/format'
+import { useFriends } from '../lib/queries'
 import type { PublicUser } from '../lib/types'
+import { VisibilityPicker } from './ChallengeComposer'
 import { MoveCourtButton } from './MoveCourtSheet'
 import { Avatar, Button, Card, ErrorText, Input } from './ui'
 
@@ -37,7 +39,7 @@ function Side({ user, won, fallback }: { user: PublicUser | null; won: boolean; 
 export function ChallengeCard({ c }: { c: Challenge }) {
   const { t, locale } = useLocale()
   const { user } = useAuth()
-  const { act, report } = useChallengeActions()
+  const { act, report, setVisibility } = useChallengeActions()
   const [error, setError] = useState('')
   const [reporting, setReporting] = useState(false)
   const me = user?.id
@@ -56,6 +58,8 @@ export function ChallengeCard({ c }: { c: Challenge }) {
   )
   const canAdd = (c.status === 'pending' || c.status === 'accepted') && addableSides.length > 0
   const [adding, setAdding] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const canEditMessage = iAmChallenger && (c.status === 'pending' || c.status === 'accepted')
   const meta = t.challenge.formats[c.format]
   const start = new Date(c.start_time)
   const soon = start.getTime() <= Date.now() + 10 * 60_000
@@ -77,7 +81,15 @@ export function ChallengeCard({ c }: { c: Challenge }) {
             {c.sport.name} · {meta?.name ?? c.format}
           </span>
         </span>
-        <span className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-bold ${STATUS_CLS[c.status]}`}>{c.is_open && c.status === 'pending' ? t.challenge.open : t.challenge.status[c.status]}</span>
+        <span className="flex shrink-0 items-center gap-1">
+          <span className={`rounded-md px-2 py-0.5 text-xs font-bold ${STATUS_CLS[c.status]}`}>{c.is_open && c.status === 'pending' ? t.challenge.open : t.challenge.status[c.status]}</span>
+          {!c.is_open && (
+            <span className="text-ink-2" title={c.is_public ? t.challenge.public : t.challenge.private} aria-label={c.is_public ? t.challenge.public : t.challenge.private}>
+              {c.is_public ? <Globe className="size-4" aria-hidden /> : <Lock className="size-4" aria-hidden />}
+            </span>
+          )}
+          <ShareChallengeButton c={c} when={when} />
+        </span>
       </div>
 
       <div className="flex items-center gap-2">
@@ -97,7 +109,24 @@ export function ChallengeCard({ c }: { c: Challenge }) {
           {soon && c.status === 'pending' && <Zap className="size-4" aria-hidden />} {when}
         </span>
       </div>
-      {c.message && <p className="rounded-xl bg-surface-2 px-3 py-2 text-center text-sm italic">“{c.message}”</p>}
+      {editing ? (
+        <MessageForm c={c} onDone={() => setEditing(false)} />
+      ) : c.message ? (
+        <p className="flex items-center justify-center gap-1.5 rounded-xl bg-surface-2 px-3 py-2 text-center text-sm italic">
+          <span className="min-w-0 break-words">“{c.message}”</span>
+          {canEditMessage && (
+            <button type="button" onClick={() => setEditing(true)} className="shrink-0 rounded-full p-1 text-ink-2 hover:text-ink" aria-label={t.challenge.editMessage} title={t.challenge.editMessage}>
+              <Pencil className="size-3.5" aria-hidden />
+            </button>
+          )}
+        </p>
+      ) : (
+        canEditMessage && (
+          <button type="button" onClick={() => setEditing(true)} className="inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-ink-2 hover:text-ink">
+            <Pencil className="size-3.5" aria-hidden /> {t.challenge.addMessage}
+          </button>
+        )
+      )}
 
       {(c.team_size > 1 || players.length > 2) && <Rosters c={c} />}
       {canAdd &&
@@ -108,6 +137,21 @@ export function ChallengeCard({ c }: { c: Challenge }) {
             <UserPlus className="size-4" aria-hidden /> {t.challenge.addPlayer}
           </button>
         ))}
+
+      {iAmChallenger && !c.is_open && !['declined', 'cancelled', 'expired'].includes(c.status) && (
+        <VisibilityPicker
+          isPublic={!!c.is_public}
+          disabled={setVisibility.isPending}
+          onChange={(v) => {
+            if (v === !!c.is_public) return
+            setError('')
+            setVisibility.mutate(
+              { id: c.id, is_public: v },
+              { onSuccess: () => toast.success(v ? t.challenge.madePublic : t.challenge.madePrivate), onError: (e) => setError(errorMessage(e)) },
+            )
+          }}
+        />
+      )}
 
       {c.status === 'reported' && reporter && winner && (
         <p className="text-center text-sm font-semibold">
@@ -254,6 +298,9 @@ function Rosters({ c }: { c: Challenge }) {
 function AddPlayerForm({ c, sides, mine, onDone }: { c: Challenge; sides: ('challenger' | 'opponent')[]; mine: 'challenger' | 'opponent' | null; onDone: () => void }) {
   const { t } = useLocale()
   const { addPlayer } = useChallengeActions()
+  const { data: friends } = useFriends()
+  const taken = new Set([c.challenger.id, ...(c.players ?? []).map((p) => p.user.id)])
+  const pickable = (friends ?? []).filter((f) => !taken.has(f.id))
   const [username, setUsername] = useState('')
   const [side, setSide] = useState<'challenger' | 'opponent'>(sides.includes('opponent') && mine !== 'opponent' ? 'opponent' : sides[0])
   const [error, setError] = useState('')
@@ -280,6 +327,22 @@ function AddPlayerForm({ c, sides, mine, onDone }: { c: Challenge; sides: ('chal
           ))}
         </div>
       )}
+      {pickable.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 text-sm">
+          <span className="font-semibold text-ink-2">{t.challenge.friends}</span>
+          {pickable.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setUsername(f.username)}
+              aria-pressed={username.replace(/^@/, '') === f.username}
+              className={`inline-flex items-center gap-1 rounded-full py-0.5 pl-0.5 pr-2.5 font-semibold ${username.replace(/^@/, '') === f.username ? 'bg-brand text-brand-ink' : 'bg-surface'}`}
+            >
+              <Avatar user={f} size={20} /> @{f.username}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="flex gap-2">
         <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder={t.challenge.usernamePh} autoCapitalize="none" autoCorrect="off" className="flex-1" aria-label={t.challenge.usernamePh} />
         <Button type="submit" className="text-base" loading={addPlayer.isPending} disabled={username.trim().length < 3}>
@@ -288,5 +351,71 @@ function AddPlayerForm({ c, sides, mine, onDone }: { c: Challenge; sides: ('chal
       </div>
       <ErrorText>{error}</ErrorText>
     </form>
+  )
+}
+
+function MessageForm({ c, onDone }: { c: Challenge; onDone: () => void }) {
+  const { t } = useLocale()
+  const { editMessage } = useChallengeActions()
+  const [message, setMessage] = useState(c.message ?? '')
+  const [error, setError] = useState('')
+  return (
+    <form
+      className="grid gap-2 rounded-2xl bg-surface-2 p-3"
+      onSubmit={(e) => {
+        e.preventDefault()
+        setError('')
+        editMessage.mutate(
+          { id: c.id, message: message.trim() },
+          { onSuccess: () => { toast.success(t.challenge.messageSaved); onDone() }, onError: (err) => setError(errorMessage(err)) },
+        )
+      }}
+    >
+      <Input value={message} maxLength={140} placeholder={t.challenge.messagePh} onChange={(e) => setMessage(e.target.value)} aria-label={t.challenge.message} autoFocus />
+      <div className="grid grid-cols-2 gap-2">
+        <Button type="button" variant="ghost" onClick={onDone}>
+          {t.scoreboard.cancel}
+        </Button>
+        <Button type="submit" className="text-base" loading={editMessage.isPending} disabled={message.trim() === (c.message ?? '')}>
+          {t.challenge.save}
+        </Button>
+      </div>
+      <ErrorText>{error}</ErrorText>
+    </form>
+  )
+}
+
+/** Shares a link to this challenge card (system share sheet, else copies it). */
+function ShareChallengeButton({ c, when }: { c: Challenge; when: string }) {
+  const { t } = useLocale()
+  const [copied, setCopied] = useState(false)
+  const a = playerUsernameLabel(c.challenger)
+  const b = c.opponent ? playerUsernameLabel(c.opponent) : t.challenge.open
+  const format = t.challenge.formats[c.format]?.name ?? c.format
+  const share = async () => {
+    const url = challengeShareUrl(c.id)
+    const title = t.challenge.shareTitle.replace('{a}', a).replace('{b}', b)
+    const text = t.challenge.shareText.replace('{a}', a).replace('{b}', b).replace('{format}', format).replace('{court}', c.court.name).replace('{when}', when)
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title, text, url })
+        return
+      } catch (e) {
+        if (e instanceof DOMException && e.name === 'AbortError') return
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(`${text} ${url}`)
+      setCopied(true)
+      toast.success(c.is_public || c.is_open ? t.challenge.copied : t.challenge.privateShareHint)
+      window.setTimeout(() => setCopied(false), 2500)
+    } catch {
+      toast.error(url)
+    }
+  }
+  return (
+    <button type="button" onClick={() => void share()} className={`rounded-full p-1.5 hover:bg-surface-2 ${copied ? 'text-live' : 'text-ink-2 hover:text-ink'}`} aria-label={t.challenge.share} title={t.challenge.share}>
+      <Share2 className="size-4" aria-hidden />
+    </button>
   )
 }

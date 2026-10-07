@@ -55,7 +55,7 @@ class Challenge {
   final CourtRef court;
   final DateTime startTime, createdAt;
   final String? message, gameId, winnerId, scoreChallenger, scoreOpponent, reportedBy;
-  final bool isOpen;
+  final bool isOpen, isPublic;
 
   Challenge.fromJson(Map<String, dynamic> j)
       : id = j['id'],
@@ -75,6 +75,7 @@ class Challenge {
         scoreOpponent = j['score_opponent'],
         reportedBy = j['reported_by'],
         isOpen = j['is_open'] ?? false,
+        isPublic = j['is_public'] ?? (j['is_open'] ?? false),
         players = [for (final p in (j['players'] ?? const [])) ChallengePlayer.fromJson(Map<String, dynamic>.from(p))],
         mySide = j['my_side'],
         myStatus = j['my_status'];

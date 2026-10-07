@@ -13,7 +13,7 @@ import { CreateGamePage } from './routes/CreateGamePage'
 import { PlayPage } from './routes/PlayPage'
 import { MyGamesPage } from './routes/MyGamesPage'
 import { ProfilePage, UserPage } from './routes/ProfilePage'
-import { ChallengesPage } from './routes/ChallengesPage'
+import { ChallengeDetailPage, ChallengesPage } from './routes/ChallengesPage'
 import { NotFoundPage, RouteErrorPage } from './routes/NotFoundPage'
 import { AvatarStudioPage } from './routes/AvatarStudioPage'
 import { NotificationsPage } from './routes/NotificationsPage'
@@ -133,6 +133,7 @@ export const router = createBrowserRouter([
           { path: 'my-games', element: <MyGamesPage /> },
           { path: 'notifications', element: <NotificationsPage /> },
           { path: 'challenges', element: <ChallengesPage /> },
+          { path: 'challenges/:id', element: <ChallengeDetailPage /> },
           { path: 'profile', element: <ProfilePage /> },
           { path: 'profile/avatar', element: <AvatarStudioPage /> },
           { path: 'users/:id', element: <UserPage /> },

@@ -16,6 +16,7 @@ export type Challenge = {
   message: string | null
   status: ChallengeStatus
   is_open: boolean
+  is_public?: boolean
   game_id: string | null
   winner_id: string | null
   score_challenger: string | null
@@ -79,6 +80,15 @@ export function useOpenChallenges(courtId: string) {
   return useQuery({ queryKey: ['challenges', 'court', courtId], queryFn: () => api<Challenge[]>(`/api/courts/${courtId}/challenges`) })
 }
 
+export function useChallenge(id: string | undefined) {
+  return useQuery({ queryKey: ['challenges', 'one', id], queryFn: () => api<Challenge>(`/api/challenges/${id}`), enabled: !!id })
+}
+
+/** Direct link to one challenge card. */
+export function challengeShareUrl(id: string) {
+  return `${window.location.origin}/challenges/${encodeURIComponent(id)}`
+}
+
 export function useHeadToHead(userId: string | undefined, enabled = true) {
   return useQuery({
     queryKey: ['challenges', 'h2h', userId],
@@ -87,7 +97,7 @@ export function useHeadToHead(userId: string | undefined, enabled = true) {
   })
 }
 
-export type NewChallenge = { opponent_id?: string | null; sport_id: string; format: string; court_id: string; start_time?: string | null; message?: string }
+export type NewChallenge = { opponent_id?: string | null; sport_id: string; format: string; court_id: string; start_time?: string | null; message?: string; is_public?: boolean }
 
 /** All challenge mutations refresh the lists and games. */
 export function useChallengeActions() {
@@ -108,10 +118,20 @@ export function useChallengeActions() {
       api<Challenge>(`/api/challenges/${id}/players`, { method: 'POST', json: { username, side } }),
     onSuccess: done,
   })
+  const editMessage = useMutation({
+    mutationFn: ({ id, message }: { id: string; message: string }) =>
+      api<Challenge>(`/api/challenges/${id}/message`, { method: 'PATCH', json: { message } }),
+    onSuccess: done,
+  })
+  const setVisibility = useMutation({
+    mutationFn: ({ id, is_public }: { id: string; is_public: boolean }) =>
+      api<Challenge>(`/api/challenges/${id}/visibility`, { method: 'PATCH', json: { is_public } }),
+    onSuccess: done,
+  })
   const report = useMutation({
     mutationFn: ({ id, ...body }: { id: string; winner_id: string; score_challenger: string; score_opponent: string }) =>
       api<Challenge>(`/api/challenges/${id}/result`, { method: 'POST', json: body }),
     onSuccess: done,
   })
-  return { create, act, report, addPlayer }
+  return { create, act, report, addPlayer, editMessage, setVisibility }
 }

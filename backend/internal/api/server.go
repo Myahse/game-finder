@@ -192,6 +192,8 @@ func (s *Server) Routes() http.Handler {
 			r.Post("/challenges/{id}/cancel", s.challengeAction(`select cancel_challenge($1)`))
 			r.Post("/challenges/{id}/result", s.reportChallenge)
 			r.With(s.rateLimitedUser("game")).Post("/challenges/{id}/players", s.addChallengePlayer)
+			r.Patch("/challenges/{id}/message", s.updateChallengeMessage)
+			r.Patch("/challenges/{id}/visibility", s.setChallengeVisibility)
 			r.Post("/challenges/{id}/confirm", s.challengeAction(`select confirm_challenge($1, true)`))
 			r.Post("/challenges/{id}/dispute", s.challengeAction(`select confirm_challenge($1, false)`))
 			r.Get("/courts/{id}/challenges", s.openChallengesAtCourt)
@@ -493,6 +495,7 @@ var appErrors = map[string]struct {
 	"challenge_not_found":        {http.StatusNotFound, "Challenge not found."},
 	"same_court":                 {http.StatusUnprocessableEntity, "That's already the court."},
 	"challenge_closed":           {http.StatusConflict, "This challenge is no longer open."},
+	"open_challenge_public":      {http.StatusConflict, "Open challenges are always public."},
 	"challenge_pending":          {http.StatusConflict, "You already have a pending challenge with this player."},
 	"too_many_challenges":        {http.StatusTooManyRequests, "Too many open challenges. Wait for answers first."},
 	"side_full":                  {http.StatusConflict, "This side is already full."},

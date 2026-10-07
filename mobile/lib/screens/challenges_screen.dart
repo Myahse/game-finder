@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../core/api.dart';
 import '../core/auth.dart';
 import '../core/catalog.dart';
+import '../core/game_share.dart';
 import '../core/l10n.dart';
 import '../core/location.dart';
 import '../core/models.dart';
@@ -133,6 +135,49 @@ class _ChallengeCardState extends State<ChallengeCard> {
     }
   }
 
+  Future<void> _share(Challenge c) async {
+    final a = '@${c.challenger.username}';
+    final b = c.opponent != null ? '@${c.opponent!.username}' : tr('Open', 'Ouvert');
+    final format = formatById(c.format)?.name ?? c.format;
+    final url = '$webAppUrl/challenges/${Uri.encodeComponent(c.id)}';
+    final text = tr('$a vs $b · $format at ${c.court.name}, ${_when(c.startTime)}. Who you got?',
+        '$a contre $b · $format à ${c.court.name}, ${_when(c.startTime)}. Tu paries sur qui ?');
+    await Clipboard.setData(ClipboardData(text: '$text $url'));
+    if (!mounted) return;
+    showSnack(
+        context,
+        c.isPublic
+            ? tr('Challenge link copied — paste it anywhere', 'Lien du défi copié — colle-le où tu veux')
+            : tr('Link copied — it’s private, so only its players can open it.', 'Lien copié — le défi est privé, seuls ses joueurs peuvent l’ouvrir.'));
+  }
+
+  Future<void> _setVisibility(Challenge c, bool isPublic) async {
+    if (isPublic == c.isPublic) return;
+    setState(() => _busy = true);
+    try {
+      await context.read<Api>().patch('/api/challenges/${c.id}/visibility', {'is_public': isPublic});
+      if (mounted) showSnack(context, isPublic ? tr('Challenge is now public.', 'Le défi est maintenant public.') : tr('Challenge is now private.', 'Le défi est maintenant privé.'));
+      widget.onChanged();
+    } catch (e) {
+      if (mounted) showSnack(context, errorText(e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _editMessage(Challenge c) async {
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: _MessageSheet(challenge: c),
+      ),
+    );
+    if (ok == true) widget.onChanged();
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = widget.challenge;
@@ -149,6 +194,7 @@ class _ChallengeCardState extends State<ChallengeCard> {
         if ((side == 'opponent' || c.teamSize > 1) && c.acceptedOn(side) < c.teamSize && (iAmChallenger || (c.myStatus == 'accepted' && mySide == side))) side
     ];
     final canAdd = (c.status == 'pending' || c.status == 'accepted') && addable.isNotEmpty;
+    final canEditMessage = iAmChallenger && (c.status == 'pending' || c.status == 'accepted');
     final won = c.status == 'completed' ? c.winnerId : null;
     final score = (c.scoreChallenger != null || c.scoreOpponent != null) ? '${c.scoreChallenger ?? '–'}–${c.scoreOpponent ?? '–'}' : '';
     PublicUser? reporter = c.reportedBy == c.challenger.id ? c.challenger : c.opponent;
@@ -199,6 +245,20 @@ class _ChallengeCardState extends State<ChallengeCard> {
               decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)),
               child: Text(_statusLabel(c), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
             ),
+            if (!c.isOpen)
+              Padding(
+                padding: const EdgeInsets.only(left: 6),
+                child: Tooltip(
+                  message: c.isPublic ? tr('Public', 'Public') : tr('Private', 'Privé'),
+                  child: Icon(c.isPublic ? Icons.public : Icons.lock_outline, size: 18, color: theme.colorScheme.onSurfaceVariant),
+                ),
+              ),
+            IconButton(
+              onPressed: () => _share(c),
+              icon: const Icon(Icons.share_outlined, size: 20),
+              tooltip: tr('Share', 'Partager'),
+              visualDensity: VisualDensity.compact,
+            ),
           ]),
           const SizedBox(height: 12),
           Row(children: [
@@ -222,8 +282,26 @@ class _ChallengeCardState extends State<ChallengeCard> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)),
-              child: Text('“${c.message}”', textAlign: TextAlign.center, style: const TextStyle(fontStyle: FontStyle.italic)),
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Flexible(child: Text('“${c.message}”', textAlign: TextAlign.center, style: const TextStyle(fontStyle: FontStyle.italic))),
+                if (canEditMessage)
+                  IconButton(
+                    onPressed: () => _editMessage(c),
+                    icon: const Icon(Icons.edit_outlined, size: 16),
+                    tooltip: tr('Edit message', 'Modifier le message'),
+                    visualDensity: VisualDensity.compact,
+                  ),
+              ]),
             ),
+          ] else if (canEditMessage)
+            TextButton.icon(
+              onPressed: () => _editMessage(c),
+              icon: const Icon(Icons.edit_outlined, size: 16),
+              label: Text(tr('Add a message', 'Ajouter un message')),
+            ),
+          if (iAmChallenger && !c.isOpen && !const ['declined', 'cancelled', 'expired'].contains(c.status)) ...[
+            const SizedBox(height: 10),
+            _VisibilityPicker(isPublic: c.isPublic, onChanged: _busy ? null : (v) => _setVisibility(c, v)),
           ],
           if (c.status == 'reported' && reporter != null && winner != null) ...[
             const SizedBox(height: 8),
@@ -415,6 +493,7 @@ class _ComposerState extends State<_Composer> {
   Sport? _sport;
   String? _format;
   bool _live = true;
+  bool _public = false;
   DateTime _when = DateTime.now().add(const Duration(hours: 1));
   List<Court> _courts = [];
   String? _courtId;
@@ -487,6 +566,7 @@ class _ComposerState extends State<_Composer> {
         'court_id': _courtId,
         if (!_live) 'start_time': _when.toUtc().toIso8601String(),
         if (_message.text.trim().isNotEmpty) 'message': _message.text.trim(),
+        if (widget.opponent != null) 'is_public': _public,
       });
       if (!mounted) return;
       Navigator.pop(context);
@@ -589,6 +669,18 @@ class _ComposerState extends State<_Composer> {
               maxLength: 140,
               decoration: InputDecoration(labelText: tr('Message (optional)', 'Message (facultatif)'), hintText: tr('Trash talk welcome 😤', 'Le chambrage est permis 😤')),
             ),
+            Wrap(spacing: 6, runSpacing: 4, children: [
+              for (final idea in _messageIdeas())
+                ChoiceChip(
+                  label: Text(idea),
+                  selected: _message.text == idea,
+                  onSelected: (_) => setState(() => _message.text = idea),
+                ),
+            ]),
+          ],
+          if (widget.opponent != null) ...[
+            const SizedBox(height: 10),
+            _VisibilityPicker(isPublic: _public, onChanged: (v) => setState(() => _public = v)),
           ],
           if (_error != null) ErrorBanner(_error!),
           const SizedBox(height: 10),
@@ -767,6 +859,25 @@ class _AddPlayerSheetState extends State<_AddPlayerSheet> {
   late String _side = widget.sides.contains('opponent') && widget.mySide != 'opponent' ? 'opponent' : widget.sides.first;
   bool _busy = false;
   String? _error;
+  List<PublicUser> _friends = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFriends();
+  }
+
+  Future<void> _loadFriends() async {
+    try {
+      final j = await context.read<Api>().get('/api/me/friends');
+      final c = widget.challenge;
+      final taken = {c.challenger.id, for (final p in c.players) p.user.id};
+      final list = [for (final f in j as List) PublicUser.fromJson(Map<String, dynamic>.from(f))].where((f) => !taken.contains(f.id)).toList();
+      if (mounted) setState(() => _friends = list);
+    } catch (_) {
+      // Friends are a shortcut; typing a @username still works.
+    }
+  }
 
   @override
   void dispose() {
@@ -811,6 +922,20 @@ class _AddPlayerSheetState extends State<_AddPlayerSheet> {
             ),
             const SizedBox(height: 12),
           ],
+          if (_friends.isNotEmpty) ...[
+            Text(tr('Friends', 'Amis'), style: const TextStyle(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 6),
+            Wrap(spacing: 6, runSpacing: 4, children: [
+              for (final f in _friends)
+                ChoiceChip(
+                  avatar: UserAvatar(f, size: 22),
+                  label: Text('@${f.username}'),
+                  selected: _username.text.trim().replaceFirst(RegExp(r'^@'), '') == f.username,
+                  onSelected: (_) => setState(() => _username.text = f.username),
+                ),
+            ]),
+            const SizedBox(height: 12),
+          ],
           TextField(
             controller: _username,
             autocorrect: false,
@@ -825,5 +950,108 @@ class _AddPlayerSheetState extends State<_AddPlayerSheet> {
         ]),
       ),
     );
+  }
+}
+
+List<String> _messageIdeas() => [
+      tr('You ready? 🔥', 'T’es prêt ? 🔥'),
+      tr('Loser buys the drinks 🥤', 'Le perdant paie les boissons 🥤'),
+      tr('Rematch time 😤', 'C’est l’heure de la revanche 😤'),
+      tr('Bring your A game', 'Viens avec ton meilleur jeu'),
+    ];
+
+/// Challenger rewrites (or clears) the challenge message.
+class _MessageSheet extends StatefulWidget {
+  final Challenge challenge;
+  const _MessageSheet({required this.challenge});
+  @override
+  State<_MessageSheet> createState() => _MessageSheetState();
+}
+
+class _MessageSheetState extends State<_MessageSheet> {
+  late final _message = TextEditingController(text: widget.challenge.message ?? '');
+  bool _busy = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _message.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await context.read<Api>().patch('/api/challenges/${widget.challenge.id}/message', {'message': _message.text.trim()});
+      if (!mounted) return;
+      Navigator.pop(context, true);
+      showSnack(context, tr('Message updated.', 'Message modifié.'));
+    } catch (e) {
+      if (mounted) setState(() => _error = errorText(e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final unchanged = _message.text.trim() == (widget.challenge.message ?? '');
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text(tr('CHALLENGE MESSAGE', 'MESSAGE DU DÉFI'), style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _message,
+            autofocus: true,
+            maxLength: 140,
+            decoration: InputDecoration(hintText: tr('Trash talk welcome 😤', 'Le chambrage est permis 😤')),
+            onChanged: (_) => setState(() {}),
+          ),
+          Wrap(spacing: 6, runSpacing: 4, children: [
+            for (final idea in _messageIdeas())
+              ChoiceChip(label: Text(idea), selected: _message.text == idea, onSelected: (_) => setState(() => _message.text = idea)),
+          ]),
+          if (_error != null) Padding(padding: const EdgeInsets.only(top: 8), child: ErrorBanner(_error!)),
+          const SizedBox(height: 16),
+          FilledButton(onPressed: _busy || unchanged ? null : _save, child: Text(tr('SAVE', 'ENREGISTRER'))),
+        ]),
+      ),
+    );
+  }
+}
+
+/// Public (anyone with the link can follow) or private (players only).
+class _VisibilityPicker extends StatelessWidget {
+  final bool isPublic;
+  final ValueChanged<bool>? onChanged;
+  const _VisibilityPicker({required this.isPublic, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Text(tr('Who can see it', 'Qui peut le voir'), style: const TextStyle(fontWeight: FontWeight.w700)),
+      const SizedBox(height: 6),
+      SegmentedButton<bool>(
+        segments: [
+          ButtonSegment(value: false, icon: const Icon(Icons.lock_outline), label: Text(tr('Private', 'Privé'))),
+          ButtonSegment(value: true, icon: const Icon(Icons.public), label: Text(tr('Public', 'Public'))),
+        ],
+        selected: {isPublic},
+        onSelectionChanged: onChanged == null ? null : (v) => onChanged!(v.first),
+      ),
+      const SizedBox(height: 4),
+      Text(
+        isPublic
+            ? tr('Anyone with the link can follow it. Only invited players can play.', 'Tout le monde avec le lien peut le suivre. Seuls les invités jouent.')
+            : tr('Only the players and people invited can see it.', 'Seuls les joueurs et les invités peuvent le voir.'),
+        style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
+      ),
+    ]);
   }
 }
