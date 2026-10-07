@@ -90,12 +90,13 @@ class UserAvatar extends StatelessWidget {
   Widget _picture(BuildContext context) {
     final raw = overrideUrl ?? user?.avatarUrl;
     final userConfig = user?.avatarConfig;
-    final preset = profileAvatarConfig(avatarUrl: raw, avatarConfig: userConfig);
+    // Avatar made in the studio wins over a legacy preset (web AvatarImage order):
+    // same Avataaars portrait, as a PNG.
+    final player = overrideUrl == null ? user?.playerAvatar : null;
+    final preset = player == null ? profileAvatarConfig(avatarUrl: raw, avatarConfig: userConfig) : null;
     if (preset != null) {
       return AvatarPresetWidget(config: preset, size: size, headOnly: true);
     }
-    // Avatar made in the web studio: same Avataaars portrait, as a PNG.
-    final player = overrideUrl == null ? user?.playerAvatar : null;
     final playerUrl = player == null ? null : playerAvatarPngUrl(player, size: (size * 2).round().clamp(64, 256));
     final resolved = raw != null && raw.isNotEmpty && raw != 'avatar:player' ? resolveMediaUrl(raw) : '';
     final url = playerUrl ?? (resolved.isNotEmpty ? resolved : null);
