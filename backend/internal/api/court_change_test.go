@@ -64,12 +64,12 @@ func TestCourtChanges(t *testing.T) {
 	notes, _ := nobj["items"].([]any)
 	found := false
 	for _, n := range notes {
-		if m := n.(map[string]any); m["title"] == "📍 Game moved to "+moved["court"].(map[string]any)["name"].(string) {
+		if m := n.(map[string]any); m["title"] == "Game moved to "+moved["court"].(map[string]any)["name"].(string) {
 			found = true
 		}
 	}
 	if !found {
-		t.Fatalf("no move notification: %v", notes)
+		t.Fatalf("no move notification (title without emoji): %v", notes)
 	}
 
 	// Challenge: challenger moves it before and after it's accepted; the game follows.

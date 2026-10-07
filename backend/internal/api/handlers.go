@@ -1106,7 +1106,7 @@ func (s *Server) pushTest(w http.ResponseWriter, r *http.Request) {
 	errs := []string{}
 	for _, d := range devices {
 		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
-		invalid, err := s.push.Send(ctx, d.token, "Notifications are on 🎉",
+		invalid, err := s.push.Send(ctx, d.token, "Notifications are on",
 			"You'll get game invites, challenges and reminders here.", map[string]string{"type": "system", "test": "1"})
 		cancel()
 		if invalid {
