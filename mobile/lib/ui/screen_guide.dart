@@ -192,14 +192,17 @@ class _GuideOverlayState extends State<_GuideOverlay> with SingleTickerProviderS
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () {}, // the dimmed screen is not tappable
-            child: TweenAnimationBuilder<Rect?>(
-              tween: RectTween(end: rect),
-              duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 260),
-              curve: Curves.easeOutCubic,
-              builder: (context, hole, _) => CustomPaint(
-                painter: SpotlightPainter(hole: rect == null ? null : hole, ring: scheme.primary),
-              ),
-            ),
+            // No target yet (or none): plain dimmed screen. A tween needs an end rect.
+            child: rect == null
+                ? CustomPaint(painter: SpotlightPainter(hole: null, ring: scheme.primary))
+                : TweenAnimationBuilder<Rect?>(
+                    tween: RectTween(end: rect),
+                    duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 260),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, hole, _) => CustomPaint(
+                      painter: SpotlightPainter(hole: hole ?? rect, ring: scheme.primary),
+                    ),
+                  ),
           ),
         ),
         Positioned.fill(
