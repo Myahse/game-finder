@@ -73,7 +73,7 @@ export function ChallengeCard({ c }: { c: Challenge }) {
   const score = c.score_challenger || c.score_opponent ? `(${c.score_challenger ?? '–'}–${c.score_opponent ?? '–'})` : ''
 
   return (
-    <Card className="grid gap-3">
+    <Card className="grid grid-cols-[minmax(0,1fr)] gap-3">
       <div className="flex items-center justify-between gap-2">
         <span className="flex min-w-0 items-center gap-1.5 font-bold">
           <span className="text-lg">{meta?.emoji}</span>
