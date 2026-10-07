@@ -167,11 +167,8 @@ class _LeaderRow extends StatelessWidget {
                             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Palette.brand)),
                       ),
                     if (row.mvps > 0)
-                      Row(mainAxisSize: MainAxisSize.min, children: [
-                        const Icon(Icons.star, size: 13, color: Color(0xFFD97706)),
-                        const SizedBox(width: 2),
-                        Text('${row.mvps} MVP', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFFD97706))),
-                      ]),
+                      Text('★ ${row.mvps} MVP',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFFD97706))),
                   ]),
               ]),
             ),

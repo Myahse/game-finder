@@ -349,11 +349,8 @@ class _TwoTeams extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 9),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(color: _accent, borderRadius: BorderRadius.circular(10)),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      const Icon(Icons.star, size: 11, color: _ink),
-                      const SizedBox(width: 3),
-                      Text(tr('WINNER', 'VAINQUEUR'), style: const TextStyle(color: _ink, fontSize: 10, fontWeight: FontWeight.w900)),
-                    ]),
+                    child: Text('★ ${tr('WINNER', 'VAINQUEUR')}',
+                        style: const TextStyle(color: _ink, fontSize: 10, fontWeight: FontWeight.w900)),
                   )
                 : null,
           ),

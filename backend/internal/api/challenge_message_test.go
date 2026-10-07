@@ -36,7 +36,7 @@ func TestChallengeMessageEdit(t *testing.T) {
 	nobj, _ := e.must(200, ben.Token, "GET", "/api/notifications", nil)
 	told := false
 	for _, n := range nobj["items"].([]any) {
-		if m := n.(map[string]any); m["title"] == "@ana updated the challenge" && m["body"] == "“Bring your A game”" {
+		if m := n.(map[string]any); m["title"] == "💬 @ana updated the challenge" && m["body"] == "“Bring your A game”" {
 			told = true
 		}
 	}

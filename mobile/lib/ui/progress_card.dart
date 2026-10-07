@@ -5,7 +5,6 @@ import '../core/api.dart';
 import '../core/catalog.dart';
 import '../core/l10n.dart';
 import '../core/progress_models.dart';
-import 'app_icons.dart';
 import 'widgets.dart';
 
 /// XP + level, streak, ratings, crowns and badges. [userId] null = me.
@@ -35,7 +34,7 @@ class _ProgressCardState extends State<ProgressCard> {
       setState(() => _p = p);
       for (final id in p.newBadges) {
         final b = badgeInfo(id);
-        showSnack(context, '${tr('New badge!', 'Nouveau badge !')} ${b.name}');
+        showSnack(context, '${tr('New badge!', 'Nouveau badge !')} ${b.emoji} ${b.name}');
       }
     } catch (_) {
       if (mounted) setState(() => _failed = true);
@@ -57,7 +56,7 @@ class _ProgressCardState extends State<ProgressCard> {
     final streakNote = p.streakCurrent == 0
         ? (mine ? tr('Play this week to start a streak', 'Jouez cette semaine pour lancer une série') : tr('Best: ${p.streakBest} weeks', 'Record : ${p.streakBest} semaines'))
         : p.streakActiveThisWeek
-            ? tr('Played this week', 'Joué cette semaine')
+            ? tr('Played this week ✓', 'Joué cette semaine ✓')
             : mine
                 ? tr('Play before Sunday to keep it', 'Jouez avant dimanche pour la garder')
                 : tr('Best: ${p.streakBest} weeks', 'Record : ${p.streakBest} semaines');
@@ -105,23 +104,15 @@ class _ProgressCardState extends State<ProgressCard> {
               margin: const EdgeInsets.only(top: 12),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(color: const Color(0xFFF5B301).withValues(alpha: 0.18), borderRadius: BorderRadius.circular(12)),
-              child: Row(children: [
-                const CrownIcon(size: 18, color: Color(0xFFA16207)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text('${tr('King of the Court at', 'Roi du terrain à')} ${c.name}',
-                      style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFA16207))),
-                ),
-              ]),
+              child: Text('👑 ${tr('King of the Court at', 'Roi du terrain à')} ${c.name}',
+                  style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFA16207))),
             ),
           const SizedBox(height: 12),
           Row(children: [
             Expanded(
               child: _Tile(
                 label: tr('Streak', 'Série'),
-                value: '${p.streakCurrent}',
-                valueIcon: Icons.local_fire_department,
-                valueIconColor: const Color(0xFFEA580C),
+                value: '🔥 ${p.streakCurrent}',
                 note: streakNote,
               ),
             ),
@@ -164,9 +155,7 @@ class _ProgressCardState extends State<ProgressCard> {
 
 class _Tile extends StatelessWidget {
   final String label, value, note;
-  final IconData? valueIcon;
-  final Color? valueIconColor;
-  const _Tile({required this.label, required this.value, required this.note, this.valueIcon, this.valueIconColor});
+  const _Tile({required this.label, required this.value, required this.note});
 
   @override
   Widget build(BuildContext context) {
@@ -176,10 +165,7 @@ class _Tile extends StatelessWidget {
       decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(14)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: theme.colorScheme.onSurfaceVariant)),
-        Row(children: [
-          if (valueIcon != null) ...[Icon(valueIcon, size: 22, color: valueIconColor), const SizedBox(width: 4)],
-          Text(value, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
-        ]),
+        Text(value, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
         Text(note, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
       ]),
     );
@@ -210,7 +196,7 @@ class _BadgeTile extends StatelessWidget {
                 shape: BoxShape.circle,
                 color: badge.earned ? info.color : theme.colorScheme.surfaceContainerHighest,
               ),
-              child: AppGlyphIcon(info.icon, size: 24, color: badge.earned ? Colors.white : theme.colorScheme.onSurfaceVariant),
+              child: Text(info.emoji, style: const TextStyle(fontSize: 24)),
             ),
           ),
           if (badge.isNew)
@@ -259,7 +245,7 @@ Future<void> showBadgeSheet(BuildContext context, PlayerBadge badge) {
                 height: 104,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(shape: BoxShape.circle, color: badge.earned ? info.color : theme.colorScheme.surfaceContainerHighest),
-                child: AppGlyphIcon(info.icon, size: 52, color: badge.earned ? Colors.white : muted),
+                child: Text(info.emoji, style: const TextStyle(fontSize: 52)),
               ),
             ),
             const SizedBox(height: 12),
