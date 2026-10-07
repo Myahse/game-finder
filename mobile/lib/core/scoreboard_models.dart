@@ -128,7 +128,7 @@ Map<String, dynamic> scoreboardInput({
     'teams': [
       for (final t in teams)
         {
-          'name': t.name.trim().isEmpty ? 'Team' : t.name.trim(),
+          'name': t.name.trim().isEmpty ? tr('Team', 'Équipe') : t.name.trim(),
           'color': t.color,
           'score': started ? t.score : 0,
           'players': t.players,

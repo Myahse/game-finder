@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../core/l10n.dart';
 
 /// Gallery or camera. OS permission dialogs are handled by [ImagePicker].
 Future<XFile?> pickImageFile(
@@ -17,12 +18,12 @@ Future<XFile?> pickImageFile(
         children: [
           ListTile(
             leading: const Icon(Icons.photo_library_outlined),
-            title: const Text('Photo library'),
+            title: Text(tr('Photo library', 'Photothèque')),
             onTap: () => Navigator.pop(ctx, ImageSource.gallery),
           ),
           ListTile(
             leading: const Icon(Icons.photo_camera_outlined),
-            title: const Text('Camera'),
+            title: Text(tr('Camera', 'Appareil photo')),
             onTap: () => Navigator.pop(ctx, ImageSource.camera),
           ),
         ],

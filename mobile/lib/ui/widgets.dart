@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../core/avatar_presets.dart';
 import '../core/format.dart';
+import '../core/l10n.dart';
 import '../core/media_url.dart';
 import '../core/models.dart';
+import '../core/player_avatar.dart';
 import 'app_icons.dart';
 import 'avatar_preset.dart';
 import 'theme.dart';
@@ -15,9 +17,9 @@ class StatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = switch (activity) {
-      Activity.active => 'GAME ACTIVE',
-      Activity.players => 'PLAYERS PRESENT',
-      Activity.inactive => 'INACTIVE',
+      Activity.active => tr('GAME ACTIVE', 'MATCH EN COURS'),
+      Activity.players => tr('PLAYERS PRESENT', 'JOUEURS PRÉSENTS'),
+      Activity.inactive => tr('INACTIVE', 'INACTIF'),
     };
     final color = Palette.activity(activity);
     return Container(
@@ -51,8 +53,11 @@ class UserAvatar extends StatelessWidget {
     if (preset != null) {
       return AvatarPresetWidget(config: preset, size: size, headOnly: true);
     }
-    final resolved = raw != null && raw.isNotEmpty ? resolveMediaUrl(raw) : '';
-    final url = resolved.isNotEmpty ? resolved : null;
+    // Avatar made in the web studio: same Avataaars portrait, as a PNG.
+    final player = overrideUrl == null ? user?.playerAvatar : null;
+    final playerUrl = player == null ? null : playerAvatarPngUrl(player, size: (size * 2).round().clamp(64, 256));
+    final resolved = raw != null && raw.isNotEmpty && raw != 'avatar:player' ? resolveMediaUrl(raw) : '';
+    final url = playerUrl ?? (resolved.isNotEmpty ? resolved : null);
     final initials = user?.initials ?? '?';
     final fallback = Text(
       initials,
@@ -146,10 +151,10 @@ class GameCard extends StatelessWidget {
                       margin: const EdgeInsets.only(right: 6),
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                       decoration: BoxDecoration(color: Palette.live, borderRadius: BorderRadius.circular(4)),
-                      child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.local_fire_department, size: 12, color: Colors.white),
-                        SizedBox(width: 2),
-                        Text('LIVE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11)),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        const Icon(Icons.local_fire_department, size: 12, color: Colors.white),
+                        const SizedBox(width: 2),
+                        Text(tr('LIVE', 'EN DIRECT'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11)),
                       ]),
                     ),
                   if (upcoming)
@@ -157,8 +162,8 @@ class GameCard extends StatelessWidget {
                       margin: const EdgeInsets.only(right: 6),
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                       decoration: BoxDecoration(color: Palette.upcoming, borderRadius: BorderRadius.circular(4)),
-                      child: const Text('UPCOMING',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11)),
+                      child: Text(tr('UPCOMING', 'À VENIR'),
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11)),
                     ),
                   Expanded(
                     child: Text('${gameTypeLabels[game.gameType]} ${game.sport.name.toLowerCase()}',
@@ -204,10 +209,11 @@ class GameCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                     full
-                        ? 'Full'
+                        ? tr('Full', 'Complet')
                         : game.unlimitedPlayers
-                            ? 'Open'
-                            : '${game.spotsLeft} spot${game.spotsLeft == 1 ? '' : 's'}',
+                            ? tr('Open', 'Ouvert')
+                            : tr('${game.spotsLeft} spot${game.spotsLeft == 1 ? '' : 's'}',
+                                '${game.spotsLeft} place${game.spotsLeft == 1 ? '' : 's'}'),
                     style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -291,7 +297,7 @@ class _PasswordTextFieldState extends State<PasswordTextField> {
           suffixIcon: IconButton(
             onPressed: () => setState(() => _obscure = !_obscure),
             icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-            tooltip: _obscure ? 'Show password' : 'Hide password',
+            tooltip: _obscure ? tr('Show password', 'Afficher le mot de passe') : tr('Hide password', 'Masquer le mot de passe'),
           ),
         ),
       );

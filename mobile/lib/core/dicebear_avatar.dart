@@ -1,7 +1,16 @@
 import 'avatar_presets.dart';
+import 'player_avatar.dart' show AvatarExpression;
 
 /// Matches web `avatarDicebearApiUrl` for the same player config.
-String dicebearAvatarUrl(AvatarConfigV2 config, {int size = 256}) {
+/// [format] 'png' gives a raster Flutter can decode (DiceBear caps PNGs at 256 px);
+/// [expression] swaps the face (stickers); [transparent] drops the backdrop.
+String dicebearAvatarUrl(
+  AvatarConfigV2 config, {
+  int size = 256,
+  String format = 'svg',
+  AvatarExpression expression = const AvatarExpression(),
+  bool transparent = false,
+}) {
   final skin = _hex(skinFaceColors[config.skin] ?? skinFaceColors['s2']!);
   final clothes = _hex(jerseyFillColors[config.color] ?? jerseyFillColors['j1']!);
   final top = _top(config);
@@ -15,14 +24,16 @@ String dicebearAvatarUrl(AvatarConfigV2 config, {int size = 256}) {
     'top=$top',
     'clothing=$clothing',
     'scale=$scale',
-    'backgroundColor=e8eef4',
-    'eyes=default',
-    'mouth=smile',
+    if (!transparent) 'backgroundColor=e8eef4',
+    'eyes=${expression.eyes ?? 'default'}',
+    'mouth=${expression.mouth ?? 'smile'}',
+    if (expression.eyebrows != null) 'eyebrows=${expression.eyebrows}',
+    if (format == 'png') 'size=$size',
   ];
   final acc = _accessory(config);
   if (acc != null) q.add('accessories=$acc');
   if (config.outfit == 'o0') q.add('clothingGraphic=diamond');
-  return 'https://api.dicebear.com/9.x/avataaars/svg?${q.join('&')}';
+  return 'https://api.dicebear.com/9.x/avataaars/$format?${q.join('&')}';
 }
 
 int _sizeIndex(String size) => const ['z0', 'z1', 'z2', 'z3'].indexOf(size).clamp(0, 3);

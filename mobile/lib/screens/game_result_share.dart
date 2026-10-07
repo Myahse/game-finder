@@ -1,16 +1,13 @@
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../core/api.dart';
 import '../core/game_share.dart';
 import '../core/l10n.dart';
 import '../core/models.dart';
 import '../core/scoreboard_models.dart';
+import '../ui/share_image.dart';
 import '../ui/widgets.dart';
 
 /// Card frame in logical pixels (4:5); captured at 3× → 1080×1350 like the web card.
@@ -72,38 +69,19 @@ class _ResultSheetState extends State<_ResultSheet> {
     });
   }
 
-  Future<Uint8List?> _capture() async {
-    // Let avatars finish painting before the snapshot.
-    await Future<void>.delayed(const Duration(milliseconds: 50));
-    final ro = _boundary.currentContext?.findRenderObject();
-    if (ro is! RenderRepaintBoundary) return null;
-    final image = await ro.toImage(pixelRatio: 3);
-    final data = await image.toByteData(format: ui.ImageByteFormat.png);
-    image.dispose();
-    return data?.buffer.asUint8List();
-  }
-
-  Rect? _origin() {
-    final box = _shareButton.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null || !box.hasSize) return null;
-    return box.localToGlobal(Offset.zero) & box.size;
-  }
-
   Future<void> _share() async {
     final url = _url;
     if (url == null) return;
     setState(() => _busy = true);
     final text = '${tr('Game result on Find the Game:', 'Résultat du match sur Find the Game :')} $url';
     try {
-      final png = await _capture();
-      final origin = _origin();
-      await SharePlus.instance.share(ShareParams(
+      final png = await captureBoundaryPng(_boundary);
+      await sharePngs(
+        [if (png != null) (bytes: png, name: 'find-the-game-result-${widget.game.id.substring(0, 8)}.png')],
         title: tr('Game result', 'Résultat du match'),
         text: text,
-        files: png == null ? null : [XFile.fromData(png, mimeType: 'image/png')],
-        fileNameOverrides: png == null ? null : ['find-the-game-result-${widget.game.id.substring(0, 8)}.png'],
-        sharePositionOrigin: origin,
-      ));
+        origin: shareOriginOf(_shareButton),
+      );
     } catch (_) {
       await Clipboard.setData(ClipboardData(text: text));
       if (mounted) showSnack(context, tr('Could not open sharing — link copied instead.', 'Partage impossible — lien copié à la place.'));

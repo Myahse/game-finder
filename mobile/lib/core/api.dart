@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show SocketException;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
+import 'api_errors.dart';
 import 'env.dart';
 import 'l10n.dart';
 
@@ -17,29 +19,19 @@ class ApiException implements Exception {
   String toString() => message;
 }
 
+/// The message to show the player, in the device language (see api_errors.dart).
 String apiUserMessage(ApiException e) {
-  switch (e.code) {
-    case 'browse_location_mismatch':
-      return 'This map area is outside your alert zone. Open the map where you play, or check in at a court when you travel.';
-    case 'notify_jump_too_far':
-      return 'Move your alert zone gradually, or check in at a court first.';
-    case 'notify_rate_limited':
-      return 'You can change your alert zone again in a few minutes.';
-    case 'rate_limited':
-      return 'Too many requests. Wait a minute and try again.';
-    case 'too_many_pending_courts':
-      return 'You already have pending court proposals waiting for review.';
-    case 'game_not_started':
-      return tr('Scores and stats open once the game starts.', 'Le score et les stats s’ouvrent au début du match.');
-    default:
-      return e.message;
-  }
+  // Alert-area codes get the longer explanation the web shows in its modal.
+  const modal = {'browse_location_mismatch', 'notify_jump_too_far', 'notify_rate_limited'};
+  final toast = modal.contains(e.code) ? apiErrorToast(e.code) : null;
+  if (toast != null) return toast.description;
+  return apiErrorCopy(e.code, e.message);
 }
 
 String errorText(Object e) {
   if (e is ApiException) return apiUserMessage(e);
-  if (e is TimeoutException || e is http.ClientException) return "Can't reach the server. Check your connection.";
-  return 'Something went wrong.';
+  if (e is TimeoutException || e is http.ClientException || e is SocketException) return networkErrorText;
+  return genericErrorText;
 }
 
 class Session {
@@ -140,7 +132,7 @@ class Api extends ChangeNotifier {
     if (res.statusCode == 204) return null;
     final data = res.body.isEmpty ? null : jsonDecode(utf8.decode(res.bodyBytes));
     if (res.statusCode >= 400) {
-      throw ApiException(res.statusCode, data?['error'] ?? 'error', data?['message'] ?? 'Something went wrong.');
+      throw ApiException(res.statusCode, data?['error'] ?? 'error', data?['message'] ?? '');
     }
     return data;
   }
@@ -166,7 +158,7 @@ class Api extends ChangeNotifier {
       }
       final data = _decode(res);
       if (data is! Map || data['url'] is! String) {
-        throw ApiException(res.statusCode, 'invalid_response', 'Upload failed — try again.');
+        throw ApiException(res.statusCode, 'invalid_response', tr('Upload failed — try again.', 'Échec de l’envoi — réessayez.'));
       }
       // Store the server URL in the DB; resolve to [apiUrl] only when displaying.
       return data['url'] as String;

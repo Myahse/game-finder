@@ -138,7 +138,7 @@ class _GameScreenState extends State<GameScreen> {
   Future<void> _shareGame(Game g) async {
     final url = await createGameShareUrl(context.read<Api>(), g.id);
     await Clipboard.setData(ClipboardData(text: url));
-    if (mounted) showSnack(context, 'Game link copied — share it with friends');
+    if (mounted) showSnack(context, tr('Game link copied — share it with friends', 'Lien du match copié — partagez-le avec vos amis'));
   }
 
   Future<void> _sendInvite() async {
@@ -147,11 +147,11 @@ class _GameScreenState extends State<GameScreen> {
     try {
       await context.read<Api>().post('/api/games/${widget.gameId}/invite', {'username': name});
       _invite.clear();
-      if (mounted) showSnack(context, 'Invited @$name');
+      if (mounted) showSnack(context, tr('Invited @$name — they\'ll get a notification.', '@$name est invité — il va recevoir une notification.'));
     } catch (e) {
       if (!mounted) return;
       if (e is ApiException && e.code == 'user_not_found') {
-        await showAppAlert(context, title: 'Player not found', message: e.message);
+        await showAppAlert(context, title: tr('Player not found', 'Joueur introuvable'), message: apiUserMessage(e));
       } else {
         showSnack(context, errorText(e));
       }
@@ -166,10 +166,10 @@ class _GameScreenState extends State<GameScreen> {
       return Scaffold(appBar: AppBar(), body: Center(child: _error != null ? Text(_error!) : const CircularProgressIndicator()));
     }
     final (statusLabel, statusIcon, statusColor) = switch (g.status) {
-      'active' => ('ACTIVE', Icons.local_fire_department, Palette.live),
-      'scheduled' => ('UPCOMING', Icons.schedule, Palette.idle),
-      'completed' => ('FINISHED', Icons.check, Palette.idle),
-      _ => ('CANCELLED', Icons.close, Theme.of(context).colorScheme.error),
+      'active' => (gameStatusLabel('active'), Icons.local_fire_department, Palette.live),
+      'scheduled' => (gameStatusLabel('scheduled'), Icons.schedule, Palette.idle),
+      'completed' => (gameStatusLabel('completed'), Icons.check, Palette.idle),
+      _ => (gameStatusLabel('cancelled'), Icons.close, Theme.of(context).colorScheme.error),
     };
     final isCreator = g.creatorId == me?.id;
     final isAdmin = me?.isAdmin == true;
@@ -179,7 +179,7 @@ class _GameScreenState extends State<GameScreen> {
         title: Text('${gameTypeLabels[g.gameType]} ${g.sport.name}'.toUpperCase()),
         actions: [
           IconButton(
-            tooltip: 'Share game',
+            tooltip: tr('Share game', 'Partager le match'),
             icon: const Icon(Icons.share_outlined),
             onPressed: () => _shareGame(g),
           ),
@@ -213,7 +213,7 @@ class _GameScreenState extends State<GameScreen> {
                     child: Row(children: [
                       Icon(Icons.place, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       const SizedBox(width: 4),
-                      Text('${formatDistance(g.distanceM)} away'),
+                      Text(tr('${formatDistance(g.distanceM)} away', 'à ${formatDistance(g.distanceM)}')),
                     ]),
                   ),
                 const SizedBox(height: 18),
@@ -223,10 +223,12 @@ class _GameScreenState extends State<GameScreen> {
                   const Spacer(),
                   Text(
                     g.unlimitedPlayers
-                        ? 'Open to all'
+                        ? tr('Open to all', 'Ouvert à tous')
                         : g.spotsLeft == 0
-                            ? 'Full'
-                            : '${g.spotsLeft} spots left',
+                            ? tr('Full', 'Complet')
+                            : g.spotsLeft == 1
+                                ? tr('1 spot left', '1 place restante')
+                                : tr('${g.spotsLeft} spots left', '${g.spotsLeft} places restantes'),
                     style: TextStyle(
                       fontWeight: FontWeight.w800,
                       color: g.unlimitedPlayers || g.spotsLeft > 0
@@ -265,7 +267,7 @@ class _GameScreenState extends State<GameScreen> {
                   ]),
                 ]),
                 if (g.cancelledReason != null)
-                  Text('Reason: ${g.cancelledReason}', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                  Text(tr('Reason: ${g.cancelledReason}', 'Raison : ${g.cancelledReason}'), style: TextStyle(color: Theme.of(context).colorScheme.error)),
                 const SizedBox(height: 18),
                 ErrorBanner(_error),
                 if (g.isOpen)
@@ -273,18 +275,18 @@ class _GameScreenState extends State<GameScreen> {
                       ? OutlinedButton(
                           style: OutlinedButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
                           onPressed: _busy ? null : () => _action('leave'),
-                          child: const Text('LEAVE GAME'),
+                          child: Text(tr('LEAVE GAME', 'QUITTER LE MATCH')),
                         )
                       : FilledButton(
                           style: FilledButton.styleFrom(backgroundColor: Palette.live),
                           onPressed: _busy || !gameHasOpenSpots(g) ? null : () => _action('join'),
-                          child: Text(gameHasOpenSpots(g) ? 'JOIN GAME' : 'GAME FULL'),
+                          child: Text(gameHasOpenSpots(g) ? tr('JOIN GAME', 'REJOINDRE LE MATCH') : tr('GAME FULL', 'MATCH COMPLET')),
                         ),
                 const SizedBox(height: 10),
                 OutlinedButton.icon(
                   onPressed: () => openDirections(g.courtLat, g.courtLng),
                   icon: const Icon(Icons.navigation_outlined),
-                  label: const Text('GET DIRECTIONS'),
+                  label: Text(tr('GET DIRECTIONS', 'ITINÉRAIRE')),
                 ),
                 if (g.isOpen && (isCreator || isAdmin)) ...[
                   const SizedBox(height: 10),
@@ -307,7 +309,7 @@ class _GameScreenState extends State<GameScreen> {
                             final reason = await _askReason(context);
                             if (reason != null) _action('cancel', reason: reason);
                           },
-                    child: const Text('Cancel game'),
+                    child: Text(tr('Cancel game', 'Annuler le match')),
                   ),
               ]),
             ),
@@ -325,7 +327,7 @@ class _GameScreenState extends State<GameScreen> {
           if (g.isOpen && g.joined) ...[
             const SizedBox(height: 12),
             Row(children: [
-              Expanded(child: TextField(controller: _invite, decoration: const InputDecoration(hintText: 'Invite by @username', isDense: true))),
+              Expanded(child: TextField(controller: _invite, decoration: InputDecoration(hintText: tr('Invite by @username', 'Inviter par @pseudo'), isDense: true))),
               const SizedBox(width: 8),
               FilledButton.tonal(
                 style: FilledButton.styleFrom(
@@ -334,7 +336,7 @@ class _GameScreenState extends State<GameScreen> {
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 onPressed: _sendInvite,
-                child: const Text('INVITE'),
+                child: Text(tr('INVITE', 'INVITER')),
               ),
             ]),
           ],
@@ -343,14 +345,14 @@ class _GameScreenState extends State<GameScreen> {
             GameScoreboard(key: ValueKey('scoreboard-${g.id}'), game: g, canEdit: isCreator || g.joined || isAdmin),
           ],
           const SizedBox(height: 20),
-          Text('PLAYERS', style: Theme.of(context).textTheme.titleLarge),
+          Text(tr('PLAYERS', 'JOUEURS'), style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
           for (final p in g.players)
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: UserAvatar(p),
               title: Text('@${p.username}', style: const TextStyle(fontWeight: FontWeight.w600)),
-              trailing: p.id == g.creatorId ? const Text('HOST', style: TextStyle(color: Palette.brand, fontWeight: FontWeight.w900)) : null,
+              trailing: p.id == g.creatorId ? Text(tr('HOST', 'ORGANISATEUR'), style: const TextStyle(color: Palette.brand, fontWeight: FontWeight.w900)) : null,
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => UserScreen(userId: p.id))),
             ),
         ]),
@@ -363,11 +365,11 @@ class _GameScreenState extends State<GameScreen> {
     return showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Cancel this game?'),
-        content: TextField(controller: c, decoration: const InputDecoration(hintText: 'Reason (shown to players)')),
+        title: Text(tr('Cancel this game for everyone?', 'Annuler ce match pour tout le monde ?')),
+        content: TextField(controller: c, decoration: InputDecoration(hintText: tr('Reason (shown to players)', 'Raison (visible par les joueurs)'))),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Keep it')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, c.text), child: const Text('Cancel game')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(tr('Keep it', 'Le garder'))),
+          FilledButton(onPressed: () => Navigator.pop(ctx, c.text), child: Text(tr('Cancel game', 'Annuler le match'))),
         ],
       ),
     );
@@ -440,7 +442,7 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
     try {
       final bytes = await f.readAsBytes();
       if (bytes.isEmpty) {
-        setState(() => _error = 'Could not read that image. Try another photo.');
+        setState(() => _error = tr('Could not read that image. Try another photo.', 'Impossible de lire cette image. Essaie une autre photo.'));
         return;
       }
       final url = await api.upload(bytes, f.name, 'court');
@@ -501,8 +503,9 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
         body: Center(
           child: EmptyState(
             icon: sportIconData(created.sport.slug),
-            title: 'Game created successfully.',
-            body: "You're in. Players near ${created.courtName} can see it now.",
+            title: tr('Game created successfully.', 'Match créé avec succès.'),
+            body: tr("You're in. Players near ${created.courtName} can see it now.",
+                'Tu es inscrit. Les joueurs près de ${created.courtName} peuvent le voir dès maintenant.'),
           ),
         ),
         bottomNavigationBar: StickyScreenActions(
@@ -516,7 +519,7 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
                 Navigator.pop(context);
                 openGameOnNavigator(nav, pause, id);
               },
-              child: const Text('VIEW GAME'),
+              child: Text(tr('VIEW GAME', 'VOIR LE MATCH')),
             ),
           ],
         ),
@@ -532,7 +535,7 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
     final suggestPlacePhoto = court != null && courtPhotoCount == 0 && _placePhotos.isEmpty;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('CREATE GAME')),
+      appBar: AppBar(title: Text(tr('CREATE GAME', 'CRÉER UN MATCH'))),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
         children: [
@@ -540,14 +543,15 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
           Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: Text(
-              'No courts nearby. Add a court from the Map tab (+), then come back to create a game.',
+              tr('No courts nearby. Add a court from the Map tab (+), then come back to create a game.',
+                  'Aucun terrain à proximité. Ajoute un terrain depuis l’onglet Carte (+), puis reviens créer un match.'),
               style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ),
         DropdownButtonFormField<String>(
           initialValue: _courts.any((c) => c.id == _courtId) ? _courtId : null,
           isExpanded: true,
-          decoration: const InputDecoration(labelText: 'Court'),
+          decoration: InputDecoration(labelText: tr('Court', 'Terrain')),
           items: [
             for (final c in _courts)
               DropdownMenuItem(value: c.id, child: Text('${c.name}  ·  ${formatDistance(c.distanceM)}', overflow: TextOverflow.ellipsis)),
@@ -561,14 +565,17 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
         if (court != null) ...[
           const SizedBox(height: 16),
           Text(
-            courtPhotoCount == 0 ? 'Photo of the place (recommended)' : 'Photo of the place (optional)',
+            courtPhotoCount == 0
+                ? tr('Photo of the place (recommended)', 'Photo du lieu (recommandée)')
+                : tr('Photo of the place (optional)', 'Photo du lieu (facultative)'),
             style: const TextStyle(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 6),
           Text(
             courtPhotoCount == 0
-                ? 'A photo helps others find the court. You can create the game without one.'
-                : 'This court already has photos. You can add another.',
+                ? tr('A photo helps others find the court. You can create the game without one.',
+                    'Une photo aide les autres à trouver le terrain. Tu peux quand même créer le match sans photo.')
+                : tr('This court already has photos. You can add another.', 'Ce terrain a déjà des photos. Tu peux en ajouter une autre.'),
             style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 8),
@@ -619,7 +626,7 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
           ),
         ],
         const SizedBox(height: 16),
-        const Text('Sport', style: TextStyle(fontWeight: FontWeight.w700)),
+        Text(tr('Sport', 'Sport'), style: const TextStyle(fontWeight: FontWeight.w700)),
         const SizedBox(height: 6),
         if (locked != null)
           SportInline(locked, iconSize: 20)
@@ -634,13 +641,13 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
               ),
           ]),
         const SizedBox(height: 16),
-        const Text('Start time', style: TextStyle(fontWeight: FontWeight.w700)),
+        Text(tr('Start time', 'Heure de début'), style: const TextStyle(fontWeight: FontWeight.w700)),
         const SizedBox(height: 6),
         Row(children: [
           Expanded(
             child: ChoiceTile(
               leading: const Icon(Icons.local_fire_department, size: 18),
-              label: 'Right now',
+              label: tr('Right now', 'Tout de suite'),
               selected: _now,
               onTap: () => setState(() => _now = true),
             ),
@@ -649,7 +656,7 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
           Expanded(
             child: ChoiceTile(
               leading: const Icon(Icons.schedule, size: 18),
-              label: 'Later',
+              label: tr('Later', 'Plus tard'),
               selected: !_now,
               onTap: () => setState(() => _now = false),
             ),
@@ -658,7 +665,7 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
         if (!_now)
           TextButton.icon(onPressed: _pickTime, icon: const Icon(Icons.schedule), label: Text(gameTimeFor(_start))),
         const SizedBox(height: 16),
-        Text('Maximum players: ${maxPlayersSliderLabel(_maxSlider)}', style: const TextStyle(fontWeight: FontWeight.w700)),
+        Text(tr('Maximum players: ${maxPlayersSliderLabel(_maxSlider)}', 'Nombre max de joueurs : ${maxPlayersSliderLabel(_maxSlider)}'), style: const TextStyle(fontWeight: FontWeight.w700)),
         Slider(
           value: _maxSlider.toDouble(),
           min: maxPlayersSliderMin.toDouble(),
@@ -668,20 +675,20 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
           onChanged: (v) => setState(() => _maxSlider = v.round()),
         ),
         Text(
-          'Drag to the end for unlimited players ($maxPlayersSliderCap+).',
+          tr('Drag to the end for unlimited players ($maxPlayersSliderCap+).', 'Glisse jusqu’au bout pour un nombre illimité de joueurs ($maxPlayersSliderCap+).'),
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
         DropdownButtonFormField<String>(
           initialValue: _skill,
-          decoration: const InputDecoration(labelText: 'Skill level'),
+          decoration: InputDecoration(labelText: tr('Skill level', 'Niveau')),
           items: [for (final e in skillLabels.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
           onChanged: (v) => setState(() => _skill = v!),
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
           initialValue: _type,
-          decoration: const InputDecoration(labelText: 'Game type'),
+          decoration: InputDecoration(labelText: tr('Game type', 'Type de match')),
           items: [for (final e in gameTypeLabels.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
           onChanged: (v) => setState(() => _type = v!),
         ),
@@ -689,7 +696,8 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
           Padding(
             padding: const EdgeInsets.only(top: 12),
             child: Text(
-              'No court photo yet — adding one is recommended but not required.',
+              tr('No court photo yet — adding one is recommended but not required.',
+                  'Pas encore de photo du terrain — en ajouter une est recommandé, mais pas obligatoire.'),
               style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ),
@@ -699,7 +707,7 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
           ErrorBanner(_error),
           PrimaryButton(
             onPressed: _busy || _uploading || _courtId == null || sport == null ? null : () => _submit(sport.id),
-            child: Text(_busy ? '…' : 'CREATE GAME'),
+            child: Text(_busy ? '…' : tr('CREATE GAME', 'CRÉER LE MATCH')),
           ),
         ],
       ),
@@ -707,4 +715,4 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
   }
 }
 
-String gameTimeFor(DateTime t) => '${t.day}/${t.month} at ${clock(t)}';
+String gameTimeFor(DateTime t) => tr('${t.day}/${t.month} at ${clock(t)}', '${t.day}/${t.month} à ${clock(t)}');

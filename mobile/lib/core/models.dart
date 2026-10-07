@@ -1,5 +1,7 @@
 // Data models mirroring the Go API's JSON.
 
+import 'player_avatar.dart';
+
 DateTime? _date(dynamic v) => v == null ? null : DateTime.parse(v as String).toLocal();
 double? _num(dynamic v) => v == null ? null : (v as num).toDouble();
 
@@ -26,6 +28,8 @@ class PublicUser {
   final String id, firstName, lastName, username;
   final String? avatarUrl, preferredSportId, skillLevel;
   final Map<String, dynamic>? avatarConfig;
+  /// Avatar made in the web studio (users.player_avatar), when it is the player's look.
+  final PlayerAvatar? playerAvatar;
   final DateTime createdAt;
   final int gamesPlayed, gamesCreated;
 
@@ -36,6 +40,7 @@ class PublicUser {
         username = j['username'] ?? '',
         avatarUrl = j['avatar_url'],
         avatarConfig = j['avatar_config'] is Map ? Map<String, dynamic>.from(j['avatar_config'] as Map) : null,
+        playerAvatar = PlayerAvatar.forUserJson(j),
         preferredSportId = j['preferred_sport_id'],
         skillLevel = j['skill_level'],
         createdAt = _date(j['created_at']) ?? DateTime.now(),

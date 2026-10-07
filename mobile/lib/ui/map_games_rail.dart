@@ -7,6 +7,7 @@ import '../screens/lists_screens.dart';
 import 'app_icons.dart';
 import 'live_enter.dart';
 import 'theme.dart';
+import '../core/l10n.dart';
 
 /// Maresi-style docked sheet: handle + header + horizontal game cards.
 class MapGamesRail extends StatelessWidget {
@@ -62,10 +63,10 @@ class MapGamesRail extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Games nearby', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                      Text(tr('Games nearby', 'Matchs à proximité'), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
                       if (!loading)
                         Text(
-                          sorted.isEmpty ? 'No open games' : '${sorted.length} open',
+                          sorted.isEmpty ? tr('No open games', 'Aucun match ouvert') : tr('${sorted.length} open', '${sorted.length} ouverts'),
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
                         ),
                     ],
@@ -77,12 +78,12 @@ class MapGamesRail extends StatelessWidget {
                     MaterialPageRoute(builder: (_) => const CreateGameScreen()),
                   ),
                   icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Create'),
+                  label: Text(tr('Create', 'Créer')),
                 ),
                 if (sorted.isNotEmpty)
                   TextButton(
                     onPressed: onSeeAll ?? () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PlayScreen())),
-                    child: const Text('See all'),
+                    child: Text(tr('See all', 'Tout voir')),
                   ),
               ],
             ),
@@ -117,9 +118,9 @@ class MapGamesRail extends StatelessWidget {
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        const Text('No open games yet', style: TextStyle(fontWeight: FontWeight.w700)),
+                                        Text(tr('No open games yet', 'Aucun match ouvert pour l’instant'), style: const TextStyle(fontWeight: FontWeight.w700)),
                                         Text(
-                                          'Create a game at a court near you.',
+                                          tr('Create a game at a court near you.', 'Créez un match sur un terrain près de vous.'),
                                           style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
                                         ),
                                       ],

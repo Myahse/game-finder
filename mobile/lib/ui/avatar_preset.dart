@@ -12,7 +12,8 @@ class AvatarPresetWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final h = headOnly ? size : size * 1.35;
-    final url = dicebearAvatarUrl(config, size: (size * 2).round().clamp(128, 512));
+    // PNG: Flutter's Image can't decode DiceBear's SVG (PNGs are capped at 256 px).
+    final url = dicebearAvatarUrl(config, size: (size * 2).round().clamp(64, 256), format: 'png');
     return ClipRRect(
       borderRadius: BorderRadius.circular(headOnly ? size : 16),
       child: SizedBox(

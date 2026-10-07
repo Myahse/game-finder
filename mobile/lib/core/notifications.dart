@@ -10,6 +10,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'api.dart';
 import 'firebase_bootstrap.dart';
 import 'models.dart';
+import '../core/l10n.dart';
 
 /// Local notifications (the "Are you still playing?" check, scheduled on the
 /// device so it works offline) and FCM remote push (reminders, invites,
@@ -31,10 +32,10 @@ class Notifications {
   /// Taps and action buttons (YES, I'M STILL HERE / I LEFT).
   Stream<NotificationResponse> get responses => _responses.stream;
 
-  static const _channel = AndroidNotificationDetails(
+  static final _channel = AndroidNotificationDetails(
     'game_activity',
-    'Games & reminders',
-    channelDescription: 'Game reminders, invitations and nearby activity',
+    tr('Games & reminders', 'Matchs et rappels'),
+    channelDescription: tr('Game reminders, invitations and nearby activity', 'Rappels de match, invitations et activité à proximité'),
     importance: Importance.high,
     priority: Priority.high,
   );
@@ -50,9 +51,9 @@ class Notifications {
           requestSoundPermission: false,
           notificationCategories: [
             DarwinNotificationCategory(presenceCategory, actions: [
-              DarwinNotificationAction.plain(actionStillHere, "Yes, I'm still here",
+              DarwinNotificationAction.plain(actionStillHere, tr("Yes, I'm still here", 'Oui, je suis toujours là'),
                   options: {DarwinNotificationActionOption.foreground}),
-              DarwinNotificationAction.plain(actionLeft, 'I left',
+              DarwinNotificationAction.plain(actionLeft, tr('I left', 'Je suis parti'),
                   options: {DarwinNotificationActionOption.foreground}),
             ]),
           ],
@@ -124,7 +125,7 @@ class Notifications {
         id: DateTime.now().millisecondsSinceEpoch ~/ 1000 % 100000,
         title: title,
         body: body,
-        notificationDetails: const NotificationDetails(android: _channel, iOS: DarwinNotificationDetails()),
+        notificationDetails: NotificationDetails(android: _channel, iOS: const DarwinNotificationDetails()),
         payload: payload,
       );
 
@@ -136,23 +137,23 @@ class Notifications {
     await _local.zonedSchedule(
       id: presenceId,
       scheduledDate: tz.TZDateTime.from(when, tz.UTC),
-      title: 'Are you still playing?',
-      body: 'Are you still playing at ${p.courtName}?',
+      title: tr('Are you still playing?', 'Vous jouez encore ?'),
+      body: tr('Are you still playing at ${p.courtName}?', 'Vous jouez encore à ${p.courtName} ?'),
       payload: 'presence:${p.courtId}',
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-      notificationDetails: const NotificationDetails(
+      notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
           'presence',
-          'Check-in reminders',
-          channelDescription: 'Asks if you are still at the court',
+          tr('Check-in reminders', 'Rappels de présence'),
+          channelDescription: tr('Asks if you are still at the court', 'Vous demande si vous êtes toujours sur le terrain'),
           importance: Importance.high,
           priority: Priority.high,
           actions: [
-            AndroidNotificationAction(actionStillHere, "YES, I'M STILL HERE", showsUserInterface: true),
-            AndroidNotificationAction(actionLeft, 'I LEFT', showsUserInterface: true),
+            AndroidNotificationAction(actionStillHere, tr("YES, I'M STILL HERE", 'OUI, JE SUIS TOUJOURS LÀ'), showsUserInterface: true),
+            AndroidNotificationAction(actionLeft, tr('I LEFT', 'JE SUIS PARTI'), showsUserInterface: true),
           ],
         ),
-        iOS: DarwinNotificationDetails(categoryIdentifier: presenceCategory),
+        iOS: const DarwinNotificationDetails(categoryIdentifier: presenceCategory),
       ),
     );
   }

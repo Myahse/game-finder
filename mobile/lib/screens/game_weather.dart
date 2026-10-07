@@ -271,7 +271,7 @@ class _GameWeatherState extends State<GameWeather> {
               onTap: () => launchUrl(Uri.parse('https://open-meteo.com/'), mode: LaunchMode.externalApplication),
               child: Padding(
                 padding: const EdgeInsets.only(top: 8),
-                child: Text('Weather data by Open-Meteo.com',
+                child: Text(tr('Weather data by Open-Meteo.com', 'Données météo : Open-Meteo.com'),
                     style: TextStyle(fontSize: 10, color: muted, decoration: TextDecoration.underline)),
               ),
             ),

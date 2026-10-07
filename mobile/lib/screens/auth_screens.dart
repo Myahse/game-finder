@@ -16,6 +16,7 @@ import '../ui/apple_button.dart';
 import '../ui/google_button.dart';
 import '../ui/widgets.dart';
 import 'legal_screens.dart';
+import '../core/l10n.dart';
 
 class SplashScreen extends StatelessWidget {
   final String? status;
@@ -88,24 +89,24 @@ class _ServerConnectScreenState extends State<ServerConnectScreen> {
               const Spacer(),
               const Icon(Icons.wifi_off, size: 56, color: Palette.brand),
               const SizedBox(height: 16),
-              Text('CAN\'T REACH THE SERVER', style: Theme.of(context).textTheme.headlineMedium),
+              Text(tr('CAN\'T REACH THE SERVER', 'SERVEUR INJOIGNABLE'), style: Theme.of(context).textTheme.headlineMedium),
               const SizedBox(height: 8),
               Text(
-                'Start Docker on your PC: docker compose up -d db api\n'
-                'Phone and PC must be on the same Wi‑Fi.',
+                tr('Start Docker on your PC: docker compose up -d db api\nPhone and PC must be on the same Wi‑Fi.',
+                    'Lancez Docker sur votre PC : docker compose up -d db api\nLe téléphone et le PC doivent être sur le même Wi‑Fi.'),
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: 24),
               TextField(
                 controller: _url,
-                decoration: const InputDecoration(labelText: 'API URL', hintText: 'http://192.168.1.10:8080'),
+                decoration: InputDecoration(labelText: tr('API URL', 'URL de l’API'), hintText: 'http://192.168.1.10:8080'),
                 keyboardType: TextInputType.url,
                 autocorrect: false,
               ),
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: _busy ? null : _saveAndRetry,
-                child: _busy ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('TRY AGAIN'),
+                child: _busy ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2)) : Text(tr('TRY AGAIN', 'RÉESSAYER')),
               ),
               const Spacer(flex: 2),
             ],
@@ -154,16 +155,16 @@ class WelcomeScreen extends StatelessWidget {
             Row(children: [
               Container(width: 10, height: 10, decoration: const BoxDecoration(color: Palette.live, shape: BoxShape.circle)),
               const SizedBox(width: 8),
-              const Text('Games happening near you right now',
-                  style: TextStyle(color: Color(0xFF9AA3AE), fontWeight: FontWeight.w600)),
+              Text(tr('Games happening near you right now', 'Des matchs près de vous en ce moment'),
+                  style: const TextStyle(color: Color(0xFF9AA3AE), fontWeight: FontWeight.w600)),
             ]),
             const SizedBox(height: 16),
             const _Wordmark(size: 72),
             const SizedBox(height: 20),
-            const Text.rich(TextSpan(children: [
-              TextSpan(text: "Don't search for a court.\n"),
-              TextSpan(text: 'Find the game.', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-            ]), style: TextStyle(color: Color(0xFFC9CED6), fontSize: 20, height: 1.35)),
+            Text.rich(TextSpan(children: [
+              TextSpan(text: '${tr("Don't search for a court.", 'Ne cherchez pas un terrain.')}\n'),
+              TextSpan(text: tr('Find the game.', 'Trouvez le match.'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+            ]), style: const TextStyle(color: Color(0xFFC9CED6), fontSize: 20, height: 1.35)),
             const SizedBox(height: 40),
             const AppleSignInButton(onDark: true),
             const SizedBox(height: 12),
@@ -171,26 +172,26 @@ class WelcomeScreen extends StatelessWidget {
             const SizedBox(height: 12),
             FilledButton(
               onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen())),
-              child: const Text('CREATE ACCOUNT'),
+              child: Text(tr('CREATE ACCOUNT', 'CRÉER UN COMPTE')),
             ),
             const SizedBox(height: 12),
             OutlinedButton(
               style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: const BorderSide(color: Colors.white24)),
               onPressed: () => showLoginSheet(context),
-              child: const Text('LOG IN'),
+              child: Text(tr('LOG IN', 'SE CONNECTER')),
             ),
             const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 TextButton(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LegalTextScreen(title: 'Terms', sections: termsSections))),
-                  child: const Text('Terms', style: TextStyle(color: Palette.brand)),
+                  onPressed: () => openTerms(context),
+                  child: Text(tr('Terms', 'Conditions'), style: const TextStyle(color: Palette.brand)),
                 ),
                 Text('·', style: TextStyle(color: Colors.white38)),
                 TextButton(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LegalTextScreen(title: 'Privacy', sections: privacySections))),
-                  child: const Text('Privacy', style: TextStyle(color: Palette.brand)),
+                  onPressed: () => openPrivacy(context),
+                  child: Text(tr('Privacy', 'Confidentialité'), style: const TextStyle(color: Palette.brand)),
                 ),
               ],
             ),
@@ -261,9 +262,9 @@ class _LoginSheetState extends State<_LoginSheet> {
                 decoration: BoxDecoration(color: Theme.of(context).dividerColor, borderRadius: BorderRadius.circular(99)),
               ),
             ),
-            Text('LOG IN', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
+            Text(tr('LOG IN', 'SE CONNECTER'), style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
             const SizedBox(height: 4),
-            Text('Pick up where you left off on the map.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            Text(tr('Pick up where you left off on the map.', 'Reprenez là où vous en étiez sur la carte.'), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
             const SizedBox(height: 20),
             AppleSignInButton(onDark: Theme.of(context).brightness == Brightness.dark),
             const SizedBox(height: 12),
@@ -275,25 +276,25 @@ class _LoginSheetState extends State<_LoginSheet> {
               autofillHints: const [AutofillHints.username],
               textCapitalization: TextCapitalization.none,
               autocorrect: false,
-              decoration: const InputDecoration(labelText: 'Email or username'),
+              decoration: InputDecoration(labelText: tr('Email or username', 'E-mail ou nom d’utilisateur')),
             ),
             const SizedBox(height: 12),
             PasswordTextField(
               controller: _password,
-              labelText: 'Password',
+              labelText: tr('Password', 'Mot de passe'),
               autofillHints: const [AutofillHints.password],
               onSubmitted: (_) => _submit(),
             ),
             const SizedBox(height: 16),
             ErrorBanner(_error),
-            FilledButton(onPressed: _busy ? null : _submit, child: Text(_busy ? '…' : 'LOG IN')),
+            FilledButton(onPressed: _busy ? null : _submit, child: Text(_busy ? '…' : tr('LOG IN', 'SE CONNECTER'))),
             const SizedBox(height: 12),
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen()));
               },
-              child: const Text('Create an account'),
+              child: Text(tr('Create an account', 'Créer un compte')),
             ),
           ]),
         ),
@@ -333,7 +334,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _submit() async {
     if (!_form.currentState!.validate()) return;
     if (!_agreedTerms) {
-      setState(() => _error = 'Please accept the Terms and Privacy Policy.');
+      setState(() => _error = tr('Please accept the Terms and Privacy Policy.', 'Veuillez accepter les Conditions et la Politique de confidentialité.'));
       return;
     }
     setState(() {
@@ -364,11 +365,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  String? _required(String? v) => (v == null || v.trim().isEmpty) ? 'Required' : null;
+  String? _required(String? v) => (v == null || v.trim().isEmpty) ? tr('Required', 'Obligatoire') : null;
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('CREATE ACCOUNT')),
+        appBar: AppBar(title: Text(tr('CREATE ACCOUNT', 'CRÉER UN COMPTE'))),
         body: Form(
           key: _form,
           child: ListView(padding: const EdgeInsets.all(20), children: [
@@ -385,34 +386,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
               const SizedBox(width: 14),
-              Text(_photo == null ? 'Add profile photo (optional)' : 'Photo selected',
+              Text(_photo == null ? tr('Add profile photo (optional)', 'Ajouter une photo de profil (optionnel)') : tr('Photo selected', 'Photo sélectionnée'),
                   style: const TextStyle(color: Palette.brand, fontWeight: FontWeight.w700)),
             ]),
             const SizedBox(height: 20),
             Row(children: [
-              Expanded(child: TextFormField(controller: _first, validator: _required, decoration: const InputDecoration(labelText: 'First name'))),
+              Expanded(child: TextFormField(controller: _first, validator: _required, decoration: InputDecoration(labelText: tr('First name', 'Prénom')))),
               const SizedBox(width: 12),
-              Expanded(child: TextFormField(controller: _last, validator: _required, decoration: const InputDecoration(labelText: 'Last name'))),
+              Expanded(child: TextFormField(controller: _last, validator: _required, decoration: InputDecoration(labelText: tr('Last name', 'Nom')))),
             ]),
             const SizedBox(height: 12),
             TextFormField(
               controller: _username,
-              decoration: const InputDecoration(labelText: 'Username', helperText: '3–24 letters, numbers, _ or .'),
-              validator: (v) => RegExp(r'^[A-Za-z0-9_.]{3,24}$').hasMatch(v ?? '') ? null : '3–24 letters, numbers, _ or .',
+              decoration: InputDecoration(labelText: tr('Username', 'Nom d’utilisateur'), helperText: tr('3–24 letters, numbers, _ or .', '3–24 lettres, chiffres, _ ou .')),
+              validator: (v) => RegExp(r'^[A-Za-z0-9_.]{3,24}$').hasMatch(v ?? '') ? null : tr('3–24 letters, numbers, _ or .', '3–24 lettres, chiffres, _ ou .'),
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _email,
               keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(labelText: 'Email'),
-              validator: (v) => (v ?? '').contains('@') ? null : 'Enter a valid email',
+              decoration: InputDecoration(labelText: tr('Email', 'E-mail')),
+              validator: (v) => (v ?? '').contains('@') ? null : tr('Enter a valid email.', 'Saisissez une adresse e-mail valide.'),
             ),
             const SizedBox(height: 12),
             PasswordTextField(
               controller: _password,
-              labelText: 'Password',
-              helperText: 'At least 8 characters',
-              validator: (v) => (v ?? '').length >= 8 ? null : 'At least 8 characters',
+              labelText: tr('Password', 'Mot de passe'),
+              helperText: tr('At least 8 characters.', 'Au moins 8 caractères.'),
+              validator: (v) => (v ?? '').length >= 8 ? null : tr('At least 8 characters.', 'Au moins 8 caractères.'),
             ),
             const SizedBox(height: 8),
             CheckboxListTile(
@@ -420,31 +421,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
               onChanged: (v) => setState(() => _agreedTerms = v ?? false),
               controlAffinity: ListTileControlAffinity.leading,
               contentPadding: EdgeInsets.zero,
-              title: const Text('I agree to the Terms and Privacy Policy.'),
+              title: Text(tr('I agree to the Terms and Privacy Policy.', 'J’accepte les Conditions et la Politique de confidentialité.')),
               subtitle: Wrap(
                 spacing: 4,
                 children: [
                   TextButton(
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LegalTextScreen(title: 'Terms', sections: termsSections))),
-                    child: const Text('Read Terms'),
+                    onPressed: () => openTerms(context),
+                    child: Text(tr('Read Terms', 'Lire les Conditions')),
                   ),
                   TextButton(
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LegalTextScreen(title: 'Privacy', sections: privacySections))),
-                    child: const Text('Read Privacy'),
+                    onPressed: () => openPrivacy(context),
+                    child: Text(tr('Read Privacy', 'Lire la Confidentialité')),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 8),
             ErrorBanner(_error),
-            FilledButton(onPressed: _busy || !_agreedTerms ? null : _submit, child: Text(_busy ? '…' : 'CREATE ACCOUNT')),
+            FilledButton(onPressed: _busy || !_agreedTerms ? null : _submit, child: Text(_busy ? '…' : tr('CREATE ACCOUNT', 'CRÉER UN COMPTE'))),
             const SizedBox(height: 8),
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
                 showLoginSheet(context);
               },
-              child: const Text('Already playing? Log in'),
+              child: Text(tr('Already playing? Log in', 'Déjà inscrit ? Se connecter')),
             ),
           ]),
         ),
@@ -569,7 +570,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       if (_usernameTaken) return;
     } else if (_step == 1) {
       if (_sportId == null) {
-        setState(() => _error = 'Pick a sport to continue.');
+        setState(() => _error = tr('Pick a sport to continue.', 'Choisissez un sport pour continuer.'));
         return;
       }
     } else {
@@ -634,13 +635,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Welcome, ${user?.firstName ?? ''}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                Text('SET UP YOUR COURT RADAR', style: Theme.of(context).textTheme.displaySmall),
+                Text(tr('Welcome, ${user?.firstName ?? ''}', 'Bienvenue, ${user?.firstName ?? ''}'), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                Text(tr('SET UP YOUR COURT RADAR', 'CONFIGUREZ VOTRE RADAR'), style: Theme.of(context).textTheme.displaySmall),
                 const SizedBox(height: 12),
                 _onboardingDots(),
                 const SizedBox(height: 6),
                 Text(
-                  'Step ${_step + 1} of $_steps',
+                  tr('Step ${_step + 1} of $_steps', 'Étape ${_step + 1} sur $_steps'),
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
@@ -653,38 +654,39 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       physics: const NeverScrollableScrollPhysics(),
                       children: [
                         _stepPanel(
-                          title: 'YOUR PROFILE',
-                          subtitle: 'How other players will see you.',
+                          title: tr('YOUR PROFILE', 'VOTRE PROFIL'),
+                          subtitle: tr('How other players will see you.', 'Comment les autres joueurs vous verront.'),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               Row(children: [
-                                Expanded(child: TextFormField(controller: _first, decoration: const InputDecoration(labelText: 'First name'), validator: _required)),
+                                Expanded(child: TextFormField(controller: _first, decoration: InputDecoration(labelText: tr('First name', 'Prénom')), validator: _required)),
                                 const SizedBox(width: 12),
-                                Expanded(child: TextFormField(controller: _last, decoration: const InputDecoration(labelText: 'Last name'), validator: _required)),
+                                Expanded(child: TextFormField(controller: _last, decoration: InputDecoration(labelText: tr('Last name', 'Nom')), validator: _required)),
                               ]),
                               const SizedBox(height: 12),
                               TextFormField(
                                 controller: _username,
                                 decoration: InputDecoration(
-                                  labelText: 'Username',
-                                  helperText: _usernameTaken ? 'That username is taken.' : '3–24 letters, numbers, _ or .',
+                                  labelText: tr('Username', 'Nom d’utilisateur'),
+                                  helperText: _usernameTaken ? tr('That username is taken.', 'Ce nom d’utilisateur est pris.') : tr('3–24 letters, numbers, _ or .', '3–24 lettres, chiffres, _ ou .'),
                                   helperStyle: TextStyle(color: _usernameTaken ? Theme.of(context).colorScheme.error : null),
                                 ),
                                 onChanged: (_) => setState(() => _usernameTaken = false),
                                 onEditingComplete: _checkUsername,
-                                validator: (v) => _usernameRe.hasMatch(v ?? '') ? null : '3–24 letters, numbers, _ or .',
+                                validator: (v) => _usernameRe.hasMatch(v ?? '') ? null : tr('3–24 letters, numbers, _ or .', '3–24 lettres, chiffres, _ ou .'),
                               ),
                               if (user != null && user.email.isNotEmpty) ...[
                                 const SizedBox(height: 8),
-                                Text('Email: ${user.email}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
+                                Text(tr('Email: ${user.email}', 'E-mail : ${user.email}'), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
                               ],
                             ],
                           ),
                         ),
                         _stepPanel(
-                          title: 'YOUR SPORT',
-                          subtitle: 'Pick the one sport you play. The map stays on that sport — it can\'t be changed later.',
+                          title: tr('YOUR SPORT', 'VOTRE SPORT'),
+                          subtitle: tr('Pick the one sport you play. The map stays on that sport — it can\'t be changed later.',
+                              'Choisissez le sport que vous pratiquez. La carte reste sur ce sport — il ne pourra pas être changé ensuite.'),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
@@ -705,7 +707,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                   runSpacing: 6,
                                   crossAxisAlignment: WrapCrossAlignment.center,
                                   children: [
-                                    Text('Coming soon:', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                                    Text(tr('Coming soon:', 'Bientôt :'), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                                     for (final s in soon) SportInline(s, iconSize: 14, textStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                                   ],
                                 ),
@@ -713,8 +715,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           ),
                         ),
                         _stepPanel(
-                          title: 'YOUR LEVEL',
-                          subtitle: 'Games use this as a guide for who joins.',
+                          title: tr('YOUR LEVEL', 'VOTRE NIVEAU'),
+                          subtitle: tr('Games use this as a guide for who joins.', 'Les matchs s’en servent pour indiquer qui peut rejoindre.'),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
@@ -724,7 +726,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               ]),
                               const SizedBox(height: 12),
                               Text(
-                                'Turn on location on the map for distances and nearby alerts.',
+                                tr('Turn on location on the map for distances and nearby alerts.', 'Activez la localisation sur la carte pour les distances et alertes.'),
                                 textAlign: TextAlign.center,
                                 style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13),
                               ),
@@ -741,14 +743,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   children: [
                     if (_step > 0)
                       Expanded(
-                        child: OutlinedButton(onPressed: _busy ? null : _back, child: const Text('Back')),
+                        child: OutlinedButton(onPressed: _busy ? null : _back, child: Text(tr('Back', 'Retour'))),
                       ),
                     if (_step > 0) const SizedBox(width: 12),
                     Expanded(
                       flex: _step == 0 ? 1 : 1,
                       child: PrimaryButton(
                         onPressed: _busy || !_canAdvance() ? null : _next,
-                        child: Text(_busy ? '…' : (_step < _steps - 1 ? 'Next' : 'OPEN THE MAP')),
+                        child: Text(_busy ? '…' : (_step < _steps - 1 ? tr('Next', 'Suivant') : tr('OPEN THE MAP', 'OUVRIR LA CARTE'))),
                       ),
                     ),
                   ],
@@ -772,5 +774,5 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         ],
       );
 
-  String? _required(String? v) => (v == null || v.trim().isEmpty) ? 'Required' : null;
+  String? _required(String? v) => (v == null || v.trim().isEmpty) ? tr('Required', 'Obligatoire') : null;
 }

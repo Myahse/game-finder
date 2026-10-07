@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../core/api.dart';
 import '../core/auth.dart';
+import '../core/l10n.dart';
 import '../core/google_auth.dart';
 
 /// "Continue with Google". Signs in, links an existing account with the same
@@ -31,7 +32,7 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
     } catch (e) {
       messenger.showSnackBar(SnackBar(
         behavior: SnackBarBehavior.floating,
-        content: Text(e is ApiException ? e.message : 'Google sign-in failed. Try again.'),
+        content: Text(e is ApiException ? apiUserMessage(e) : tr('Google sign-in failed. Try again.', 'La connexion Google a échoué. Réessayez.')),
       ));
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -57,7 +58,7 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
             ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
             : const CustomPaint(size: Size.square(20), painter: _GoogleLogo()),
         const SizedBox(width: 12),
-        const Text('Continue with Google'),
+        Text(tr('Continue with Google', 'Continuer avec Google')),
       ]),
     );
   }

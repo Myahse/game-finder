@@ -3,7 +3,20 @@ import 'dart:io' show Platform;
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'l10n.dart';
 import 'models.dart';
+
+/// [DateFormat] in the device language. French symbols are loaded at startup
+/// (initializeDateFormatting in main); if they are missing, fall back to the
+/// default locale instead of throwing.
+DateFormat localDateFormat(String pattern) {
+  if (isFrench) {
+    try {
+      return DateFormat(pattern, 'fr');
+    } catch (_) {}
+  }
+  return DateFormat(pattern);
+}
 
 String formatDistance(double? m) {
   if (m == null) return '';
@@ -12,24 +25,26 @@ String formatDistance(double? m) {
 }
 
 String timeAgo(DateTime? t, [DateTime? now]) {
-  if (t == null) return 'No recent activity';
+  if (t == null) return tr('No recent activity', 'Aucune activité récente');
   final s = (now ?? DateTime.now()).difference(t).inSeconds;
-  if (s < 60) return 'just now';
+  if (s < 60) return tr('just now', 'à l’instant');
   final m = (s / 60).round();
-  if (m < 60) return '$m minute${m == 1 ? '' : 's'} ago';
+  if (m < 60) return tr('$m minute${m == 1 ? '' : 's'} ago', 'il y a $m minute${m == 1 ? '' : 's'}');
   final h = (m / 60).round();
-  if (h < 24) return '$h hour${h == 1 ? '' : 's'} ago';
+  if (h < 24) return tr('$h hour${h == 1 ? '' : 's'} ago', 'il y a $h heure${h == 1 ? '' : 's'}');
   final d = (h / 24).round();
-  return '$d day${d == 1 ? '' : 's'} ago';
+  return tr('$d day${d == 1 ? '' : 's'} ago', 'il y a $d jour${d == 1 ? '' : 's'}');
 }
 
 String clock(DateTime t) => DateFormat.Hm().format(t);
 
 String gameTime(Game g) {
-  if (g.isLive) return 'Started ${clock(g.startTime)}';
+  if (g.isLive) return tr('Started ${clock(g.startTime)}', 'Commencé à ${clock(g.startTime)}');
   final now = DateTime.now();
   final sameDay = g.startTime.year == now.year && g.startTime.month == now.month && g.startTime.day == now.day;
-  return sameDay ? 'Today ${clock(g.startTime)}' : DateFormat('EEE d MMM, HH:mm').format(g.startTime);
+  return sameDay
+      ? tr('Today ${clock(g.startTime)}', 'Aujourd’hui ${clock(g.startTime)}')
+      : localDateFormat('EEE d MMM, HH:mm').format(g.startTime);
 }
 
 const maxPlayersSliderMin = 2;
@@ -43,36 +58,46 @@ int maxPlayersSliderToApi(int slider) =>
     slider >= maxPlayersSliderUnlimited ? maxPlayersApiUnlimited : slider;
 
 String maxPlayersSliderLabel(int slider) =>
-    slider >= maxPlayersSliderUnlimited ? 'Unlimited' : '$slider';
+    slider >= maxPlayersSliderUnlimited ? tr('Unlimited', 'Illimité') : '$slider';
 
 String gamePlayerCountLabel(int playerCount, int maxPlayers) =>
     isUnlimitedMaxPlayers(maxPlayers) ? '$playerCount/∞' : '$playerCount/$maxPlayers';
 
 bool gameHasOpenSpots(Game g) => g.unlimitedPlayers || g.spotsLeft > 0;
 
-const skillLabels = {
-  'beginner': 'Beginner',
-  'intermediate': 'Intermediate',
-  'advanced': 'Advanced',
-  'all_levels': 'All levels',
-};
+// Getters (not const maps) so tr() runs at use time, in the device language.
+Map<String, String> get skillLabels => {
+      'beginner': tr('Beginner', 'Débutant'),
+      'intermediate': tr('Intermediate', 'Intermédiaire'),
+      'advanced': tr('Advanced', 'Avancé'),
+      'all_levels': tr('All levels', 'Tous niveaux'),
+    };
 
-const gameTypeLabels = {
-  'pickup': 'Pickup',
-  'training': 'Training',
-  'match': 'Match',
-  'tournament': 'Tournament',
-};
+Map<String, String> get gameTypeLabels => {
+      'pickup': tr('Pickup', 'Match libre'),
+      'training': tr('Training', 'Entraînement'),
+      'match': tr('Match', 'Match'),
+      'tournament': tr('Tournament', 'Tournoi'),
+    };
 
-const reportLabels = {
-  'not_exist': "Court doesn't exist",
-  'wrong_location': 'Wrong location',
-  'closed': 'Closed',
-  'wrong_info': 'Wrong information',
-  'unsafe': 'Unsafe',
-  'duplicate': 'Duplicate',
-  'other': 'Other',
-};
+Map<String, String> get reportLabels => {
+      'not_exist': tr("Court doesn't exist", 'Le terrain n’existe pas'),
+      'wrong_location': tr('Wrong location', 'Mauvais emplacement'),
+      'closed': tr('Closed', 'Fermé'),
+      'wrong_info': tr('Wrong information', 'Informations incorrectes'),
+      'unsafe': tr('Unsafe', 'Dangereux'),
+      'duplicate': tr('Duplicate', 'Doublon'),
+      'other': tr('Other', 'Autre'),
+    };
+
+/// Game status chip: ACTIVE, UPCOMING, FINISHED, CANCELLED.
+String gameStatusLabel(String status) => switch (status) {
+      'active' => tr('ACTIVE', 'EN COURS'),
+      'scheduled' => tr('UPCOMING', 'À VENIR'),
+      'completed' => tr('FINISHED', 'TERMINÉ'),
+      'cancelled' => tr('CANCELLED', 'ANNULÉ'),
+      _ => status.toUpperCase(),
+    };
 
 /// "I want to play" order: closest (250 m buckets), then live, then most
 /// players, then most free spots.

@@ -19,6 +19,7 @@ import '../ui/app_icons.dart';
 import '../ui/widgets.dart';
 import 'court_screens.dart';
 import 'game_screens.dart';
+import '../core/l10n.dart';
 
 /// Base for tab lists that reload on realtime game events.
 abstract class LiveListScreen extends StatefulWidget {
@@ -159,7 +160,7 @@ class _PlayScreenState extends _LiveListState<PlayScreen> {
     final upcoming = split.upcoming;
     final waitingGps = !loc.hasFix && loc.status != LocationStatus.denied && loc.status != LocationStatus.serviceOff;
     return Scaffold(
-      appBar: AppBar(title: const Text('PLAY')),
+      appBar: AppBar(title: Text(tr('PLAY', 'JOUER'))),
       body: RefreshIndicator(
         onRefresh: () => reload(showLoading: true),
         child: ListView(
@@ -170,7 +171,8 @@ class _PlayScreenState extends _LiveListState<PlayScreen> {
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Text(
-                'Finding your location… Showing games near Grand-Bassam until GPS is ready.',
+                tr('Finding your location… Showing games near Grand-Bassam until GPS is ready.',
+                    'Recherche de votre position… Affichage des matchs près de Grand-Bassam en attendant le GPS.'),
                 style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             )
@@ -178,7 +180,8 @@ class _PlayScreenState extends _LiveListState<PlayScreen> {
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Text(
-                'Location is off — distances use Grand-Bassam. Turn on location to see games near you.',
+                tr('Location is off — distances use Grand-Bassam. Turn on location to see games near you.',
+                    'Localisation désactivée — distances calculées depuis Grand-Bassam. Activez la localisation pour voir les matchs près de vous.'),
                 style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ),
@@ -187,35 +190,35 @@ class _PlayScreenState extends _LiveListState<PlayScreen> {
           if (!loading && _games.isEmpty && error == null)
             EmptyState(
               icon: Icons.sports_basketball,
-              title: 'No games nearby yet',
-              body: error != null ? 'Pull down to try again.' : 'Be the one who starts it.',
+              title: tr('No games nearby yet', 'Aucun match à proximité pour l’instant'),
+              body: error != null ? tr('Pull down to try again.', 'Tirez vers le bas pour réessayer.') : tr('Be the one who starts it.', 'Soyez celui qui le lance.'),
               action: PrimaryButton(
                 onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateGameScreen())).then((_) => reload()),
-                child: const Text('CREATE A GAME'),
+                child: Text(tr('CREATE A GAME', 'CRÉER UN MATCH')),
               ),
             ),
           if (live.isNotEmpty) ...[
             Row(children: [
               Icon(Icons.local_fire_department, color: Theme.of(context).colorScheme.primary),
               const SizedBox(width: 8),
-              Text('PLAYING NOW', style: Theme.of(context).textTheme.titleLarge),
+              Text(tr('PLAYING NOW', 'EN COURS'), style: Theme.of(context).textTheme.titleLarge),
             ]),
             const SizedBox(height: 8),
             for (final g in live) Padding(padding: const EdgeInsets.only(bottom: 8), child: GameCard(game: g, onTap: () => openGame(g.id))),
           ],
           if (soon.isNotEmpty) ...[
             const SizedBox(height: 12),
-            Text('STARTING SOON', style: Theme.of(context).textTheme.titleLarge),
+            Text(tr('STARTING SOON', 'BIENTÔT'), style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             for (final g in soon) Padding(padding: const EdgeInsets.only(bottom: 8), child: GameCard(game: g, onTap: () => openGame(g.id))),
           ],
           if (upcoming.isNotEmpty) ...[
             const SizedBox(height: 12),
-            Text('UPCOMING', style: Theme.of(context).textTheme.titleLarge),
+            Text(tr('UPCOMING', 'À VENIR'), style: Theme.of(context).textTheme.titleLarge),
             Padding(
               padding: const EdgeInsets.only(top: 4, bottom: 8),
               child: Text(
-                'Scheduled in the next week near you.',
+                tr('Scheduled in the next week near you.', 'Matchs prévus la semaine prochaine près de vous.'),
                 style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ),
@@ -251,7 +254,7 @@ class _MyGamesScreenState extends _LiveListState<MyGamesScreen> {
   Widget build(BuildContext context) {
     final presence = context.watch<PresenceState>().current;
     return Scaffold(
-      appBar: AppBar(title: const Text('MY GAMES')),
+      appBar: AppBar(title: Text(tr('MY GAMES', 'MES MATCHS'))),
       body: RefreshIndicator(
         onRefresh: reload,
         child: ListView(padding: const EdgeInsets.all(16), children: [
@@ -260,22 +263,23 @@ class _MyGamesScreenState extends _LiveListState<MyGamesScreen> {
               color: Palette.live.withValues(alpha: 0.12),
               child: ListTile(
                 leading: const Icon(Icons.circle, color: Palette.live, size: 14),
-                title: Text('Present at ${presence.courtName}', style: const TextStyle(fontWeight: FontWeight.w700)),
-                subtitle: Text('Since ${clock(presence.startedAt)} · until ${clock(presence.expiresAt)}'),
+                title: Text(tr('Present at ${presence.courtName}', 'Sur place à ${presence.courtName}'), style: const TextStyle(fontWeight: FontWeight.w700)),
+                subtitle: Text(tr('Since ${clock(presence.startedAt)} · until ${clock(presence.expiresAt)}',
+                    'Depuis ${clock(presence.startedAt)} · jusqu’à ${clock(presence.expiresAt)}')),
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CourtDetailsScreen(courtId: presence.courtId))),
               ),
             ),
           const SizedBox(height: 12),
           if (loading) const Center(child: CircularProgressIndicator()),
           ErrorBanner(error),
-          Text('NOW & UPCOMING', style: Theme.of(context).textTheme.titleLarge),
+          Text(tr('NOW & UPCOMING', 'EN COURS ET À VENIR'), style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
           if (!loading && _current.isEmpty)
-            const EmptyState(icon: Icons.event, title: 'No games yet', body: 'Tap Play to find a game near you.'),
+            EmptyState(icon: Icons.event, title: tr('No games yet', 'Pas encore de match'), body: tr('Tap Play to find a game near you.', 'Touchez Jouer pour trouver un match près de vous.')),
           for (final g in _current) Padding(padding: const EdgeInsets.only(bottom: 8), child: GameCard(game: g, onTap: () => openGame(g.id))),
           if (_past.isNotEmpty) ...[
             const SizedBox(height: 16),
-            Text('PAST', style: Theme.of(context).textTheme.titleLarge),
+            Text(tr('PAST', 'PASSÉS'), style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             for (final g in _past)
               Opacity(opacity: 0.75, child: Padding(padding: const EdgeInsets.only(bottom: 8), child: GameCard(game: g, onTap: () => openGame(g.id)))),
@@ -348,16 +352,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('NOTIFICATIONS'),
-        actions: [if (_items.any((n) => !n.read)) TextButton(onPressed: _readAll, child: const Text('Mark all read'))],
+        title: Text(tr('NOTIFICATIONS', 'NOTIFICATIONS')),
+        actions: [if (_items.any((n) => !n.read)) TextButton(onPressed: _readAll, child: Text(tr('Mark all read', 'Tout marquer comme lu')))],
       ),
       body: RefreshIndicator(
         onRefresh: _load,
         child: _loading
             ? const Center(child: CircularProgressIndicator())
             : _items.isEmpty
-                ? ListView(children: const [
-                    EmptyState(icon: Icons.notifications_outlined, title: 'All quiet', body: 'Game reminders, invites and games starting near you show up here.'),
+                ? ListView(children: [
+                    EmptyState(
+                        icon: Icons.notifications_outlined,
+                        title: tr('All quiet', 'Tout est calme'),
+                        body: tr('Game reminders, invites and games starting near you show up here.',
+                            'Les rappels de match, les invitations et les matchs qui commencent près de vous apparaissent ici.')),
                   ])
                 : ListView.separated(
                     padding: const EdgeInsets.all(16),

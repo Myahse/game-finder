@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../core/api.dart';
 import '../core/apple_auth.dart';
 import '../core/auth.dart';
+import '../core/l10n.dart';
 
 class AppleSignInButton extends StatefulWidget {
   final bool onDark;
@@ -26,7 +27,7 @@ class _AppleSignInButtonState extends State<AppleSignInButton> {
     } catch (e) {
       messenger.showSnackBar(SnackBar(
         behavior: SnackBarBehavior.floating,
-        content: Text(e is ApiException ? e.message : 'Apple sign-in failed. Try again.'),
+        content: Text(e is ApiException ? apiUserMessage(e) : tr('Apple sign-in failed. Try again.', 'La connexion Apple a échoué. Réessayez.')),
       ));
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -57,7 +58,7 @@ class _AppleSignInButtonState extends State<AppleSignInButton> {
               )
             : Icon(Icons.apple, size: 22, color: dark ? Colors.black : Colors.white),
         const SizedBox(width: 12),
-        const Text('Continue with Apple'),
+        Text(tr('Continue with Apple', 'Continuer avec Apple')),
       ]),
     );
   }

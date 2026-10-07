@@ -3,18 +3,22 @@ import '../core/l10n.dart';
 import '../ui/progress_card.dart';
 import 'challenges_screen.dart';
 import '../core/pick_image.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../core/api.dart';
 import '../core/auth.dart';
 import '../core/format.dart';
 import '../core/models.dart';
+import '../core/my_sport.dart';
+import '../core/player_avatar.dart';
 import '../core/notifications.dart';
 import '../ui/theme.dart';
 import '../ui/app_icons.dart';
 import '../core/avatar_presets.dart';
 import 'avatar_builder_screen.dart';
+import 'bump_connect.dart';
+import 'recap_sheet.dart';
+import 'sticker_sheet.dart';
 import '../ui/widgets.dart';
 
 class _ProfileCard extends StatelessWidget {
@@ -48,12 +52,12 @@ class _ProfileCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Row(children: [
-            Expanded(child: _Stat(value: user.gamesPlayed, label: 'GAMES PLAYED')),
+            Expanded(child: _Stat(value: user.gamesPlayed, label: tr('GAMES PLAYED', 'MATCHS JOUÉS'))),
             const SizedBox(width: 10),
-            Expanded(child: _Stat(value: user.gamesCreated, label: 'GAMES CREATED')),
+            Expanded(child: _Stat(value: user.gamesCreated, label: tr('GAMES CREATED', 'MATCHS CRÉÉS'))),
           ]),
           const SizedBox(height: 12),
-          Text('Joined ${DateFormat.yMMMM().format(user.createdAt)}',
+          Text(tr('Joined ${localDateFormat('MMMM y').format(user.createdAt)}', 'Inscrit en ${localDateFormat('MMMM y').format(user.createdAt)}'),
               style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
         ]),
       ),
@@ -100,10 +104,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final me = auth.user;
     if (me == null) return const SizedBox.shrink();
     return Scaffold(
-      appBar: AppBar(title: const Text('PROFILE'), actions: [
+      appBar: AppBar(title: Text(tr('PROFILE', 'PROFIL')), actions: [
         TextButton(
           onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EditProfileScreen(sports: _sports))),
-          child: const Text('Edit'),
+          child: Text(tr('Edit', 'Modifier')),
         ),
       ]),
       body: RefreshIndicator(
@@ -122,7 +126,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 );
                 if (ok == true && context.mounted) await auth.refreshMe();
               },
-              child: const Text('EDIT PLAYER'),
+              child: Text(tr('EDIT PLAYER', 'MODIFIER L’AVATAR')),
             ),
           ],
           const SizedBox(height: 12),
@@ -133,10 +137,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: const Icon(Icons.sports_kabaddi),
             label: Text(tr('MY CHALLENGES', 'MES DÉFIS')),
           ),
+          const SizedBox(height: 8),
+          RecapButton(me: me, sport: sportSlugForUser(me, _sports)),
+          if (!avatarArtOf(me).isEmpty) ...[
+            const SizedBox(height: 8),
+            StickerButton(art: avatarArtOf(me), sport: me.playerAvatar?.sport ?? sportSlugForUser(me, _sports)),
+          ],
+          const SizedBox(height: 8),
+          const BumpConnectButton(),
           if (me.isAdmin)
-            const Padding(
-              padding: EdgeInsets.only(top: 12),
-              child: Card(child: ListTile(leading: Icon(Icons.build_outlined), title: Text('Admin tools are in the web dashboard'))),
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Card(
+                  child: ListTile(
+                      leading: const Icon(Icons.build_outlined),
+                      title: Text(tr('Admin tools are in the web dashboard', 'Les outils admin sont dans le tableau de bord web')))),
             ),
           const SizedBox(height: 16),
           OutlinedButton(
@@ -144,7 +159,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               await context.read<Notifications>().unregisterDevice();
               await auth.logout();
             },
-            child: const Text('LOG OUT'),
+            child: Text(tr('LOG OUT', 'SE DÉCONNECTER')),
           ),
         ]),
       ),
@@ -183,7 +198,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       final bytes = await f.readAsBytes();
       if (bytes.isEmpty) {
-        setState(() => _error = 'Could not read that image. Try another photo.');
+        setState(() => _error = tr('Could not read that image. Try another photo.', 'Impossible de lire cette image. Essayez une autre photo.'));
         return;
       }
       final url = await api.upload(bytes, f.name, 'avatar');
@@ -221,7 +236,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('EDIT PROFILE')),
+        appBar: AppBar(title: Text(tr('EDIT PROFILE', 'MODIFIER LE PROFIL'))),
         body: ListView(padding: const EdgeInsets.all(20), children: [
           Center(
             child: SizedBox(
@@ -245,15 +260,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ),
           ),
-          TextButton(onPressed: _busy ? null : _photo, child: const Text('Change photo')),
-          TextField(controller: _first, decoration: const InputDecoration(labelText: 'First name')),
+          TextButton(onPressed: _busy ? null : _photo, child: Text(tr('Change photo', 'Changer la photo'))),
+          TextField(controller: _first, decoration: InputDecoration(labelText: tr('First name', 'Prénom'))),
           const SizedBox(height: 12),
-          TextField(controller: _last, decoration: const InputDecoration(labelText: 'Last name')),
+          TextField(controller: _last, decoration: InputDecoration(labelText: tr('Last name', 'Nom'))),
           const SizedBox(height: 12),
-          TextField(controller: _username, decoration: const InputDecoration(labelText: 'Username')),
+          TextField(controller: _username, decoration: InputDecoration(labelText: tr('Username', 'Nom d’utilisateur'))),
           const SizedBox(height: 12),
           if (_sportLocked) ...[
-            const Text('Sport', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+            Text(tr('Sport', 'Sport'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
             if (widget.sports.where((s) => s.id == _me.preferredSportId).firstOrNull case final s?)
               SportInline(s)
@@ -263,7 +278,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ] else
             DropdownButtonFormField<String>(
               initialValue: widget.sports.any((s) => s.id == _sportId) ? _sportId : null,
-              decoration: const InputDecoration(labelText: 'Preferred sport'),
+              decoration: InputDecoration(labelText: tr('Preferred sport', 'Sport préféré')),
               items: [
                 for (final s in widget.sports.where((s) => s.active))
                   DropdownMenuItem(value: s.id, child: SportInline(s)),
@@ -273,7 +288,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: _skill,
-            decoration: const InputDecoration(labelText: 'Skill level'),
+            decoration: InputDecoration(labelText: tr('Skill level', 'Niveau')),
             items: [for (final e in skillLabels.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
             onChanged: (v) => setState(() => _skill = v!),
           ),
@@ -282,7 +297,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         bottomNavigationBar: StickyScreenActions(
           children: [
             ErrorBanner(_error),
-            PrimaryButton(onPressed: _busy ? null : _save, child: Text(_busy ? '…' : 'SAVE')),
+            PrimaryButton(onPressed: _busy ? null : _save, child: Text(_busy ? '…' : tr('SAVE', 'ENREGISTRER'))),
           ],
         ),
       );
@@ -318,7 +333,7 @@ class _UserScreenState extends State<UserScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('PLAYER')),
+        appBar: AppBar(title: Text(tr('PLAYER', 'JOUEUR'))),
         body: _user == null
             ? Center(child: _error != null ? Text(_error!) : const CircularProgressIndicator())
             : ListView(padding: const EdgeInsets.all(16), children: [

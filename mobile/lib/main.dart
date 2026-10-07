@@ -1,11 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 
 import 'core/api.dart';
 import 'core/api_bootstrap.dart';
 import 'core/env.dart';
 import 'core/firebase_bootstrap.dart';
+import 'core/l10n.dart';
 import 'core/mapbox_init.dart';
 import 'core/monitoring.dart';
 import 'core/auth.dart';
@@ -21,6 +23,10 @@ import 'ui/theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   initMonitoring();
+  // French day/month names for DateFormat (see localDateFormat in format.dart).
+  try {
+    await initializeDateFormatting(deviceLanguage == 'fr' ? 'fr' : 'en');
+  } catch (_) {}
   await loadAppEnv();
   await ensureFirebaseApp();
   initMapboxAccessToken();
@@ -72,7 +78,7 @@ class RootGate extends StatefulWidget {
 class _RootGateState extends State<RootGate> {
   bool _booting = true;
   String? _sessionUser = '';
-  String _bootStatus = 'Connecting to server…';
+  String _bootStatus = tr('Connecting to server…', 'Connexion au serveur…');
   AuthState? _auth;
   bool _authListenerAttached = false;
 
@@ -102,7 +108,7 @@ class _RootGateState extends State<RootGate> {
   }
 
   Future<void> _boot() async {
-    setState(() => _bootStatus = 'Connecting to server…');
+    setState(() => _bootStatus = tr('Connecting to server…', 'Connexion au serveur…'));
     await ensureApiReachable();
     if (!mounted) return;
     if (!apiReachable) {
@@ -110,7 +116,7 @@ class _RootGateState extends State<RootGate> {
       return;
     }
     context.read<Realtime>().start();
-    setState(() => _bootStatus = 'Loading…');
+    setState(() => _bootStatus = tr('Loading…', 'Chargement…'));
     final auth = context.read<AuthState>();
     if (auth.user != null) await auth.refreshMe();
     await Future<void>.delayed(const Duration(milliseconds: 400));
@@ -123,7 +129,7 @@ class _RootGateState extends State<RootGate> {
   Future<void> _retryServer() async {
     setState(() {
       _booting = true;
-      _bootStatus = 'Connecting to server…';
+      _bootStatus = tr('Connecting to server…', 'Connexion au serveur…');
     });
     await _boot();
   }

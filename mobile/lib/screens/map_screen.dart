@@ -36,6 +36,7 @@ import '../ui/theme.dart';
 
 import 'court_screens.dart';
 import 'game_screens.dart';
+import '../core/l10n.dart';
 
 
 
@@ -407,7 +408,7 @@ class _MapScreenState extends State<MapScreen> {
 
                   const SizedBox(width: 4),
 
-                  Text('$live LIVE', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+                  Text(tr('$live LIVE', '$live EN DIRECT'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
 
                 ]),
 
@@ -424,12 +425,12 @@ class _MapScreenState extends State<MapScreen> {
               child: Row(children: [
 
                 if (isAdmin) ...[
-                  _filterChip('All', _sport == null, () => _setSport(null)),
+                  _filterChip(tr('All', 'Tous'), _sport == null, () => _setSport(null)),
                   for (final s in _sports) _filterChip(s.name, _sport == s.slug, () => _setSport(s.slug)),
                 ] else if (mySport != null)
                   _filterChip(mySport.name, true, () {}),
 
-                _filterChip('Add court', false, () {
+                _filterChip(tr('Add court', 'Ajouter un terrain'), false, () {
                   Navigator.push<Court>(context, MaterialPageRoute(builder: (_) => const AddCourtScreen())).then((court) {
                     if (!mounted) return;
                     _refreshMapData(silent: true);
@@ -453,7 +454,8 @@ class _MapScreenState extends State<MapScreen> {
 
                 decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(10)),
 
-                child: const Text('Location is off — showing Grand-Bassam. Turn it on to see games near you.'),
+                child: Text(tr('Location is off — showing Grand-Bassam. Turn it on to see games near you.',
+                    'Localisation désactivée — affichage de Grand-Bassam. Activez-la pour voir les matchs près de vous.')),
 
               ),
 
@@ -474,6 +476,7 @@ class _MapScreenState extends State<MapScreen> {
         child: FloatingActionButton.small(
 
           heroTag: 'locate',
+          tooltip: tr('Center on my location', 'Centrer sur ma position'),
 
           backgroundColor: Theme.of(context).colorScheme.surface,
 
@@ -514,7 +517,8 @@ class _MapScreenState extends State<MapScreen> {
               child: Padding(
                 padding: const EdgeInsets.all(28),
                 child: Text(
-                  'Map needs a Mapbox token.\nRun mobile\\sync-env.ps1 from the project root, then restart the app.',
+                  tr('Map needs a Mapbox token.\nRun mobile\\sync-env.ps1 from the project root, then restart the app.',
+                      'La carte nécessite un jeton Mapbox.\nLancez mobile\\sync-env.ps1 depuis la racine du projet, puis redémarrez l’app.'),
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),

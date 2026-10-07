@@ -28,6 +28,7 @@ import '../ui/theme.dart';
 import '../ui/court_photo_viewer.dart';
 import '../ui/widgets.dart';
 import 'game_screens.dart';
+import '../core/l10n.dart';
 
 /// Close the court bottom sheet and return [gameId] to [showModalBottomSheet]'s future.
 void completeCourtSheetWithGame(BuildContext context, String gameId) {
@@ -161,7 +162,7 @@ class _CourtSheetState extends State<CourtSheet> with _CourtLoader {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      '${formatDistance(c.distanceM)} away',
+                      tr('${formatDistance(c.distanceM)} away', 'à ${formatDistance(c.distanceM)}'),
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
@@ -177,7 +178,7 @@ class _CourtSheetState extends State<CourtSheet> with _CourtLoader {
           if (c.games.isNotEmpty) ...[
             const SizedBox(height: 20),
             Text(
-              live.isNotEmpty ? 'GAMES NOW' : 'UPCOMING GAMES',
+              live.isNotEmpty ? tr('GAMES NOW', 'MATCHS EN COURS') : tr('UPCOMING GAMES', 'MATCHS À VENIR'),
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 8),
@@ -198,7 +199,7 @@ class _CourtSheetState extends State<CourtSheet> with _CourtLoader {
                 builder: (_) => CourtDetailsScreen(courtId: c.id),
               ),
             ),
-            child: const Text('Court details, photos & hours →'),
+            child: Text(tr('Court details, photos & hours →', 'Détails, photos et horaires du terrain →')),
           ),
         ],
       ),
@@ -225,12 +226,14 @@ class _StatusCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             n == 0
-                ? 'NOBODY HERE YET'
-                : '$n PLAYER${n == 1 ? '' : 'S'} ${court.activity == Activity.active ? 'PLAYING NOW' : 'HERE NOW'}',
+                ? tr('NOBODY HERE YET', 'PERSONNE POUR L’INSTANT')
+                : court.activity == Activity.active
+                    ? tr('$n PLAYER${n == 1 ? '' : 'S'} PLAYING NOW', '$n JOUEUR${n == 1 ? '' : 'S'} EN TRAIN DE JOUER')
+                    : tr('$n PLAYER${n == 1 ? '' : 'S'} HERE NOW', '$n JOUEUR${n == 1 ? '' : 'S'} SUR PLACE'),
             style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
           ),
           Text(
-            'Last activity: ${timeAgo(court.lastActivityAt)}',
+            tr('Last activity: ${timeAgo(court.lastActivityAt)}', 'Dernière activité : ${timeAgo(court.lastActivityAt)}'),
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -336,7 +339,8 @@ class _CourtActionsState extends State<CourtActions> {
               children: [
                 const Icon(Icons.check_circle_outline),
                 const SizedBox(width: 8),
-                Text("YOU'RE IN · ${gamePlayerCountLabel(mine.playerCount, mine.maxPlayers)}"),
+                Text(tr("YOU'RE IN · ${gamePlayerCountLabel(mine.playerCount, mine.maxPlayers)}",
+                    'VOUS PARTICIPEZ · ${gamePlayerCountLabel(mine.playerCount, mine.maxPlayers)}')),
               ],
             ),
           )
@@ -361,10 +365,11 @@ class _CourtActionsState extends State<CourtActions> {
                   },
             child: Text(
               joinable != null
-                  ? 'JOIN GAME · ${gamePlayerCountLabel(joinable.playerCount, joinable.maxPlayers)}'
+                  ? tr('JOIN GAME · ${gamePlayerCountLabel(joinable.playerCount, joinable.maxPlayers)}',
+                      'REJOINDRE · ${gamePlayerCountLabel(joinable.playerCount, joinable.maxPlayers)}')
                   : live.isNotEmpty
-                  ? 'START ANOTHER GAME'
-                  : 'CREATE GAME',
+                  ? tr('START ANOTHER GAME', 'LANCER UN AUTRE MATCH')
+                  : tr('CREATE GAME', 'CRÉER UN MATCH'),
             ),
           ),
         const SizedBox(height: 10),
@@ -386,7 +391,7 @@ class _CourtActionsState extends State<CourtActions> {
                       const Icon(Icons.place, size: 18),
                       const SizedBox(width: 6),
                     ],
-                    Text(hereNow ? "I'VE LEFT" : "I'M HERE"),
+                    Text(hereNow ? tr("I'VE LEFT", 'JE SUIS PARTI') : tr("I'M HERE", 'JE SUIS LÀ')),
                   ],
                 ),
               ),
@@ -395,12 +400,12 @@ class _CourtActionsState extends State<CourtActions> {
             Expanded(
               child: OutlinedButton(
                 onPressed: () => openDirections(c.latitude, c.longitude),
-                child: const Row(
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.navigation_outlined, size: 18),
-                    SizedBox(width: 6),
-                    Text('DIRECTIONS'),
+                    const Icon(Icons.navigation_outlined, size: 18),
+                    const SizedBox(width: 6),
+                    Text(tr('DIRECTIONS', 'ITINÉRAIRE')),
                   ],
                 ),
               ),
@@ -413,7 +418,7 @@ class _CourtActionsState extends State<CourtActions> {
             child: SizedBox(
               width: double.infinity,
               child: PresenceLiveText(
-                "You're present since ${clock(presence.current!.startedAt)}",
+                tr("You're present since ${clock(presence.current!.startedAt)}", 'Vous êtes sur place depuis ${clock(presence.current!.startedAt)}'),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -422,7 +427,7 @@ class _CourtActionsState extends State<CourtActions> {
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
-              "Check-in works when you're at the court.",
+              tr("Check-in works when you're at the court.", 'Le check-in fonctionne quand vous êtes sur le terrain.'),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 12,
@@ -435,9 +440,9 @@ class _CourtActionsState extends State<CourtActions> {
             context,
             MaterialPageRoute(builder: (_) => ReportCourtScreen(courtId: c.id)),
           ),
-          child: const Text(
-            'Report a problem with this court',
-            style: TextStyle(fontSize: 12),
+          child: Text(
+            tr('Report a problem with this court', 'Signaler un problème avec ce terrain'),
+            style: const TextStyle(fontSize: 12),
           ),
         ),
       ],
@@ -664,12 +669,12 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen>
                           : const Icon(Icons.add_a_photo_outlined),
                       label: Text(
                         c.photos.isEmpty
-                            ? 'Add court photos'
-                            : 'Add more photos',
+                            ? tr('Add court photos', 'Ajouter des photos du terrain')
+                            : tr('Add more photos', 'Ajouter d’autres photos'),
                       ),
                     ),
                     Text(
-                      '${c.photos.length}/6 photos · remove any that don\'t match',
+                      tr('${c.photos.length}/6 photos · remove any that don\'t match', '${c.photos.length}/6 photos · retirez celles qui ne correspondent pas'),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 12,
@@ -698,7 +703,7 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen>
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Text(
-                              'COURT INFO',
+                              tr('COURT INFO', 'INFOS DU TERRAIN'),
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                             const SizedBox(height: 8),
@@ -735,8 +740,8 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen>
                             const SizedBox(height: 12),
                             TextField(
                               controller: _address,
-                              decoration: const InputDecoration(
-                                labelText: 'Address',
+                              decoration: InputDecoration(
+                                labelText: tr('Address', 'Adresse'),
                               ),
                             ),
                             Align(
@@ -747,8 +752,8 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen>
                                     : _fillAddressFromMap,
                                 child: Text(
                                   _geocodingInfoAddress
-                                      ? 'Looking up…'
-                                      : 'Fill from map location',
+                                      ? tr('Looking up…', 'Recherche…')
+                                      : tr('Fill from map location', 'Remplir depuis la carte'),
                                 ),
                               ),
                             ),
@@ -768,7 +773,7 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen>
                                     },
                                     child: Text(
                                       _opens == null
-                                          ? 'Opens'
+                                          ? tr('Opens', 'Ouverture')
                                           : timeOfDayToHm(_opens!),
                                     ),
                                   ),
@@ -792,7 +797,7 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen>
                                     },
                                     child: Text(
                                       _closes == null
-                                          ? 'Closes'
+                                          ? tr('Closes', 'Fermeture')
                                           : timeOfDayToHm(_closes!),
                                     ),
                                   ),
@@ -802,8 +807,8 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen>
                             const SizedBox(height: 8),
                             TextField(
                               controller: _surface,
-                              decoration: const InputDecoration(
-                                labelText: 'Surface',
+                              decoration: InputDecoration(
+                                labelText: tr('Surface', 'Revêtement'),
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -811,21 +816,21 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen>
                               // Rebuild with the court's value once it loads.
                               key: ValueKey('lighting-$_infoSyncedForCourtId'),
                               initialValue: _lighting,
-                              decoration: const InputDecoration(
-                                labelText: 'Lighting',
+                              decoration: InputDecoration(
+                                labelText: tr('Lighting', 'Éclairage'),
                               ),
-                              items: const [
+                              items: [
                                 DropdownMenuItem(
                                   value: null,
-                                  child: Text('Not specified'),
+                                  child: Text(tr('Not specified', 'Non précisé')),
                                 ),
                                 DropdownMenuItem(
                                   value: true,
-                                  child: Text('Lit at night'),
+                                  child: Text(tr('Lit at night', 'Éclairé la nuit')),
                                 ),
                                 DropdownMenuItem(
                                   value: false,
-                                  child: Text('No lights'),
+                                  child: Text(tr('No lights', 'Pas d’éclairage')),
                                 ),
                               ],
                               onChanged: (v) => setState(() => _lighting = v),
@@ -834,8 +839,8 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen>
                             TextField(
                               controller: _description,
                               maxLines: 3,
-                              decoration: const InputDecoration(
-                                labelText: 'Description',
+                              decoration: InputDecoration(
+                                labelText: tr('Description', 'Description'),
                               ),
                             ),
                             const SizedBox(height: 12),
@@ -849,7 +854,7 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen>
                                         strokeWidth: 2,
                                       ),
                                     )
-                                  : const Text('SAVE COURT INFO'),
+                                  : Text(tr('SAVE COURT INFO', 'ENREGISTRER LES INFOS')),
                             ),
                             if (_infoError != null)
                               Padding(
@@ -875,9 +880,9 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen>
                           children: [
                             const Icon(Icons.hourglass_top, size: 20),
                             const SizedBox(width: 10),
-                            const Expanded(
+                            Expanded(
                               child: Text(
-                                'Waiting for review. Only you can see this court.',
+                                tr('Waiting for review. Only you can see this court.', 'En attente de validation. Vous seul voyez ce terrain.'),
                               ),
                             ),
                           ],
@@ -889,11 +894,11 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen>
                   if (c.status == 'approved')
                     CourtActions(court: c, onChanged: load),
                   const SizedBox(height: 16),
-                  Text('GAMES', style: Theme.of(context).textTheme.titleLarge),
+                  Text(tr('GAMES', 'MATCHS'), style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 8),
                   if (c.games.isEmpty)
-                    const Text(
-                      'No games yet. Create one and players nearby will see it.',
+                    Text(
+                      tr('No games yet. Create one and players nearby will see it.', 'Aucun match pour l’instant. Créez-en un et les joueurs à proximité le verront.'),
                     ),
                   for (final g in c.games)
                     Padding(
@@ -919,12 +924,12 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'COURT INFO',
+                              tr('COURT INFO', 'INFOS DU TERRAIN'),
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                             const SizedBox(height: 8),
                             _infoRow(
-                              'Sports',
+                              tr('Sports', 'Sports'),
                               Wrap(
                                 spacing: 10,
                                 runSpacing: 6,
@@ -933,22 +938,22 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen>
                                 ],
                               ),
                             ),
-                            _info('Address', c.address),
-                            _info('Opening hours', c.openingHours),
-                            _info('Surface', c.surface),
+                            _info(tr('Address', 'Adresse'), c.address),
+                            _info(tr('Opening hours', 'Horaires'), c.openingHours),
+                            _info(tr('Surface', 'Revêtement'), c.surface),
                             _infoRow(
-                              'Lighting',
+                              tr('Lighting', 'Éclairage'),
                               c.lighting == null
                                   ? const Text('—')
                                   : c.lighting!
-                                  ? const Row(
+                                  ? Row(
                                       children: [
-                                        Icon(Icons.lightbulb_outline, size: 18),
-                                        SizedBox(width: 6),
-                                        Text('Lit at night'),
+                                        const Icon(Icons.lightbulb_outline, size: 18),
+                                        const SizedBox(width: 6),
+                                        Text(tr('Lit at night', 'Éclairé la nuit')),
                                       ],
                                     )
-                                  : const Text('No lights'),
+                                  : Text(tr('No lights', 'Pas d’éclairage')),
                             ),
                             if (c.description != null) ...[
                               const SizedBox(height: 8),
@@ -1112,7 +1117,7 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
 
   Future<void> _submit() async {
     if (_where == null) {
-      return setState(() => _error = 'Tap the map to place the court.');
+      return setState(() => _error = tr('Tap the map to place the court.', 'Touchez la carte pour placer le terrain.'));
     }
     setState(() {
       _busy = true;
@@ -1241,14 +1246,14 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
-                  tooltip: 'Zoom in',
+                  tooltip: tr('Zoom in', 'Zoom avant'),
                   visualDensity: VisualDensity.compact,
                   onPressed: _courtMapReady ? () => _zoomCourtMap(1) : null,
                   icon: const Icon(Icons.add),
                 ),
                 Divider(height: 1, color: Theme.of(context).dividerColor),
                 IconButton(
-                  tooltip: 'Zoom out',
+                  tooltip: tr('Zoom out', 'Zoom arrière'),
                   visualDensity: VisualDensity.compact,
                   onPressed: _courtMapReady ? () => _zoomCourtMap(-1) : null,
                   icon: const Icon(Icons.remove),
@@ -1266,7 +1271,7 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
               borderRadius: BorderRadius.circular(12),
               color: Theme.of(context).colorScheme.surface,
               child: IconButton(
-                tooltip: 'Pin my position',
+                tooltip: tr('Pin my position', 'Épingler ma position'),
                 onPressed: () => _pinMyPosition(loc.position!),
                 icon: const Icon(Icons.my_location),
               ),
@@ -1295,7 +1300,7 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                _reusedNearby ? 'Court already here' : 'Court on the map',
+                _reusedNearby ? tr('Court already here', 'Terrain déjà présent') : tr('Court on the map', 'Terrain sur la carte'),
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w900,
@@ -1304,8 +1309,10 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
               const SizedBox(height: 12),
               Text(
                 _reusedNearby
-                    ? 'Nobody was playing at this spot — use this court and start a game for others to join.'
-                    : 'It’s on the map now (pending review). Anyone nearby can create a game when the court is quiet.',
+                    ? tr('Nobody was playing at this spot — use this court and start a game for others to join.',
+                        'Personne ne jouait à cet endroit — utilisez ce terrain et lancez un match que les autres pourront rejoindre.')
+                    : tr('It’s on the map now (pending review). Anyone nearby can create a game when the court is quiet.',
+                        'Il est sur la carte (en attente de validation). Les joueurs à proximité peuvent y créer un match quand le terrain est libre.'),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -1324,12 +1331,12 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
                   builder: (_) => CreateGameScreen(courtId: c.id),
                 ),
               ),
-              child: const Text('CREATE A GAME'),
+              child: Text(tr('CREATE A GAME', 'CRÉER UN MATCH')),
             ),
             const SizedBox(height: 8),
             OutlinedButton(
               onPressed: () => Navigator.pop(context, c),
-              child: const Text('VIEW ON MAP'),
+              child: Text(tr('VIEW ON MAP', 'VOIR SUR LA CARTE')),
             ),
           ],
         ),
@@ -1339,7 +1346,7 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
     if (_mapExpanded) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('PLACE COURT'),
+          title: Text(tr('PLACE COURT', 'PLACER LE TERRAIN')),
           leading: IconButton(
             icon: const Icon(Icons.close),
             onPressed: () => setState(() => _mapExpanded = false),
@@ -1362,7 +1369,7 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
                 padding: const EdgeInsets.all(16),
                 child: PrimaryButton(
                   onPressed: () => setState(() => _mapExpanded = false),
-                  child: const Text('DONE'),
+                  child: Text(tr('DONE', 'TERMINÉ')),
                 ),
               ),
             ),
@@ -1372,7 +1379,7 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('ADD A COURT')),
+      appBar: AppBar(title: Text(tr('ADD A COURT', 'AJOUTER UN TERRAIN'))),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1380,15 +1387,15 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
             child: Row(
               children: [
-                const Text(
-                  'Location',
-                  style: TextStyle(fontWeight: FontWeight.w700),
+                Text(
+                  tr('Location', 'Emplacement'),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 const Spacer(),
                 TextButton.icon(
                   onPressed: () => setState(() => _mapExpanded = true),
                   icon: const Icon(Icons.fullscreen),
-                  label: const Text('Expand map'),
+                  label: Text(tr('Expand map', 'Agrandir la carte')),
                 ),
               ],
             ),
@@ -1410,8 +1417,10 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
                 Expanded(
                   child: Text(
                     _where == null
-                        ? 'Blue dot = you. Tap the map or pin your position for the court.'
-                        : 'Court pin matches the main map. Tap the map to move it.',
+                        ? tr('Blue dot = you. Tap the map or pin your position for the court.',
+                            'Point bleu = vous. Touchez la carte ou épinglez votre position pour le terrain.')
+                        : tr('Court pin matches the main map. Tap the map to move it.',
+                            'L’épingle correspond à la carte principale. Touchez la carte pour la déplacer.'),
                     style: TextStyle(
                       fontSize: 13,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -1421,7 +1430,7 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
                 if (loc.position != null)
                   TextButton(
                     onPressed: () => _pinMyPosition(loc.position!),
-                    child: const Text('Pin my position'),
+                    child: Text(tr('Pin my position', 'Épingler ma position')),
                   ),
               ],
             ),
@@ -1432,9 +1441,9 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
               children: [
                 TextField(
                   controller: _name,
-                  decoration: const InputDecoration(
-                    labelText: 'Name',
-                    hintText: 'e.g. Terrain Mockeyville',
+                  decoration: InputDecoration(
+                    labelText: tr('Name', 'Nom'),
+                    hintText: tr('e.g. Terrain Mockeyville', 'ex. Terrain Mockeyville'),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -1449,9 +1458,9 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Sport',
-                            style: TextStyle(fontWeight: FontWeight.w700),
+                          Text(
+                            tr('Sport', 'Sport'),
+                            style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
                           const SizedBox(height: 6),
                           SportInline(locked, iconSize: 20),
@@ -1461,9 +1470,9 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Sports',
-                          style: TextStyle(fontWeight: FontWeight.w700),
+                        Text(
+                          tr('Sports', 'Sports'),
+                          style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 6),
                         Wrap(
@@ -1488,9 +1497,9 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Photos (optional)',
-                  style: TextStyle(fontWeight: FontWeight.w700),
+                Text(
+                  tr('Photos (optional)', 'Photos (facultatif)'),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 6),
                 Wrap(
@@ -1559,16 +1568,16 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
                 TextField(
                   controller: _address,
                   decoration: InputDecoration(
-                    labelText: 'Address (optional)',
+                    labelText: tr('Address (optional)', 'Adresse (facultatif)'),
                     hintText: _geocodingAddress
-                        ? 'Looking up from map…'
-                        : 'Filled from the pin — you can edit',
+                        ? tr('Looking up address from the map…', 'Recherche de l’adresse depuis la carte…')
+                        : tr('Filled from the pin — you can edit', 'Remplie depuis l’épingle — modifiable'),
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Opening hours (optional)',
-                  style: TextStyle(fontWeight: FontWeight.w700),
+                Text(
+                  tr('Opening hours (optional)', 'Horaires (facultatif)'),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 8),
                 Row(
@@ -1584,7 +1593,7 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
                           if (t != null) setState(() => _opensAt = t);
                         },
                         child: Text(
-                          _opensAt == null ? 'Opens' : timeOfDayToHm(_opensAt!),
+                          _opensAt == null ? tr('Opens', 'Ouverture') : timeOfDayToHm(_opensAt!),
                         ),
                       ),
                     ),
@@ -1602,7 +1611,7 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
                         },
                         child: Text(
                           _closesAt == null
-                              ? 'Closes'
+                              ? tr('Closes', 'Fermeture')
                               : timeOfDayToHm(_closesAt!),
                         ),
                       ),
@@ -1613,8 +1622,8 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
                 TextField(
                   controller: _description,
                   maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Description (optional)',
+                  decoration: InputDecoration(
+                    labelText: tr('Description (optional)', 'Description (facultatif)'),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -1634,7 +1643,7 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
                     _name.text.trim().length < 2
                 ? null
                 : _submit,
-            child: Text(_busy ? '…' : 'SUBMIT COURT'),
+            child: Text(_busy ? '…' : tr('SUBMIT COURT', 'PROPOSER LE TERRAIN')),
           ),
         ],
       ),
@@ -1675,21 +1684,21 @@ class _ReportCourtScreenState extends State<ReportCourtScreen> {
     if (_sent) {
       return Scaffold(
         appBar: AppBar(),
-        body: const EmptyState(
+        body: EmptyState(
           icon: Icons.check_circle_outline,
-          title: 'Thanks for the report',
-          body: 'An admin will review it.',
+          title: tr('Thanks for the report', 'Merci pour le signalement'),
+          body: tr('An admin will review it.', 'Un administrateur va l’examiner.'),
         ),
       );
     }
     return Scaffold(
-      appBar: AppBar(title: const Text('REPORT COURT')),
+      appBar: AppBar(title: Text(tr('REPORT COURT', 'SIGNALER LE TERRAIN'))),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
         children: [
-          const Text(
-            "What's wrong?",
-            style: TextStyle(fontWeight: FontWeight.w700),
+          Text(
+            tr("What's wrong?", 'Quel est le problème ?'),
+            style: const TextStyle(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 8),
           for (final e in reportLabels.entries)
@@ -1706,7 +1715,7 @@ class _ReportCourtScreenState extends State<ReportCourtScreen> {
             controller: _details,
             maxLines: 3,
             maxLength: 1000,
-            decoration: const InputDecoration(labelText: 'Details (optional)'),
+            decoration: InputDecoration(labelText: tr('Details (optional)', 'Détails (facultatif)')),
           ),
         ],
       ),
@@ -1715,7 +1724,7 @@ class _ReportCourtScreenState extends State<ReportCourtScreen> {
           ErrorBanner(_error),
           PrimaryButton(
             onPressed: _type == null || _busy ? null : _submit,
-            child: Text(_busy ? '…' : 'SEND REPORT'),
+            child: Text(_busy ? '…' : tr('SEND REPORT', 'ENVOYER LE SIGNALEMENT')),
           ),
         ],
       ),

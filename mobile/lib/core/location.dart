@@ -51,6 +51,24 @@ class LocationState extends ChangeNotifier {
     });
   }
 
+  /// A fresh, precise fix for one-off actions (e.g. connecting on court).
+  /// Asks for permission when needed; falls back to the last known position;
+  /// null when location is off or denied.
+  Future<LatLng?> freshFix({Duration timeout = const Duration(seconds: 10)}) async {
+    if (status != LocationStatus.granted) await start();
+    if (status != LocationStatus.granted) return null;
+    try {
+      final fix = await Geolocator.getCurrentPosition(
+        locationSettings: LocationSettings(accuracy: LocationAccuracy.high, timeLimit: timeout),
+      );
+      position = LatLng(fix.latitude, fix.longitude);
+      notifyListeners();
+    } catch (_) {
+      // Keep the last known position.
+    }
+    return position;
+  }
+
   String get query => position == null ? '' : 'lat=${position!.latitude}&lng=${position!.longitude}';
 
   @override

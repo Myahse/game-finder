@@ -17,6 +17,7 @@ import 'game_screens.dart';
 import 'lists_screens.dart';
 import 'map_screen.dart';
 import 'profile_screen.dart';
+import '../core/l10n.dart';
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
@@ -107,7 +108,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     final gameId = data['game_id'] as String?;
     if (gameId == null) return null;
     return SnackBarAction(
-      label: 'OPEN',
+      label: tr('OPEN', 'OUVRIR'),
       onPressed: () => openGameScreen(context, gameId),
     );
   }
@@ -230,20 +231,20 @@ class _FloatingNavBar extends StatelessWidget {
               selectedIndex: selectedIndex,
               onDestinationSelected: onSelected,
               destinations: [
-                const NavigationDestination(
-                  icon: Icon(Icons.map_outlined),
-                  selectedIcon: Icon(Icons.map),
-                  label: 'Map',
+                NavigationDestination(
+                  icon: const Icon(Icons.map_outlined),
+                  selectedIcon: const Icon(Icons.map),
+                  label: tr('Map', 'Carte'),
                 ),
-                const NavigationDestination(
-                  icon: Icon(Icons.sports_basketball_outlined),
-                  selectedIcon: Icon(Icons.sports_basketball),
-                  label: 'Play',
+                NavigationDestination(
+                  icon: const Icon(Icons.sports_basketball_outlined),
+                  selectedIcon: const Icon(Icons.sports_basketball),
+                  label: tr('Play', 'Jouer'),
                 ),
-                const NavigationDestination(
-                  icon: Icon(Icons.event_outlined),
-                  selectedIcon: Icon(Icons.event),
-                  label: 'Games',
+                NavigationDestination(
+                  icon: const Icon(Icons.event_outlined),
+                  selectedIcon: const Icon(Icons.event),
+                  label: tr('Games', 'Matchs'),
                 ),
                 NavigationDestination(
                   icon: Stack(
@@ -268,12 +269,12 @@ class _FloatingNavBar extends StatelessWidget {
                     ],
                   ),
                   selectedIcon: const Icon(Icons.notifications),
-                  label: 'Alerts',
+                  label: tr('Alerts', 'Alertes'),
                 ),
-                const NavigationDestination(
-                  icon: Icon(Icons.person_outline),
-                  selectedIcon: Icon(Icons.person),
-                  label: 'Profile',
+                NavigationDestination(
+                  icon: const Icon(Icons.person_outline),
+                  selectedIcon: const Icon(Icons.person),
+                  label: tr('Profile', 'Profil'),
                 ),
               ],
             ),
@@ -316,18 +317,19 @@ class _StillPlayingSheetState extends State<_StillPlayingSheet> {
         padding: const EdgeInsets.all(24),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           const Icon(Icons.sports_basketball, size: 48, color: Palette.brand),
-          Text('ARE YOU STILL PLAYING?', style: Theme.of(context).textTheme.headlineMedium),
+          Text(tr('ARE YOU STILL PLAYING?', 'VOUS JOUEZ ENCORE ?'), style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 4),
-          Text('Your check-in at ${p?.courtName ?? 'the court'} ends in $mins min.'),
+          Text(tr('Your check-in at ${p?.courtName ?? 'the court'} ends in $mins min.',
+              'Votre présence à ${p?.courtName ?? 'ce terrain'} se termine dans $mins min.')),
           const SizedBox(height: 20),
           ErrorBanner(_error),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Palette.live),
             onPressed: _busy ? null : () => _run(widget.presence.confirm),
-            child: const Text("YES, I'M STILL HERE"),
+            child: Text(tr("YES, I'M STILL HERE", 'OUI, JE SUIS TOUJOURS LÀ')),
           ),
           const SizedBox(height: 10),
-          OutlinedButton(onPressed: _busy ? null : () => _run(widget.presence.leave), child: const Text('I LEFT')),
+          OutlinedButton(onPressed: _busy ? null : () => _run(widget.presence.leave), child: Text(tr('I LEFT', 'JE SUIS PARTI'))),
         ]),
       ),
     );
