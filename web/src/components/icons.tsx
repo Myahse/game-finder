@@ -76,10 +76,17 @@ export function BadmintonIcon({ className }: IconProps) {
   )
 }
 
+export function VolleyballIcon({ className }: IconProps) {
+  return <Volleyball className={cn('shrink-0', className)} aria-hidden />
+}
+
+/** Every sport the app has an icon for, in display order. */
+export const ALL_SPORT_ICONS = [BasketballIcon, FootballIcon, VolleyballIcon, TennisIcon, BadmintonIcon]
+
 const sportBySlug: Record<string, (p: IconProps) => ReactNode> = {
   basketball: BasketballIcon,
   football: FootballIcon,
-  volleyball: (p) => <Volleyball {...p} aria-hidden />,
+  volleyball: VolleyballIcon,
   tennis: TennisIcon,
   badminton: BadmintonIcon,
 }

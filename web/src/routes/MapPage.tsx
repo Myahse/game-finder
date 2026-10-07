@@ -19,10 +19,10 @@ import { CourtActions } from '../components/CourtActions'
 import { ShareCourtButton } from '../components/ShareCourtButton'
 import { CourtPhotoStrip } from '../components/CourtPhotoStrip'
 import { GameCard } from '../components/GameCard'
-import { DistanceText, LiveText, SportName } from '../components/icons'
+import { ALL_SPORT_ICONS, DistanceText, LiveText, SportName } from '../components/icons'
 import { ScreenGuide } from '../components/ScreenGuide'
 import { Chip, Spinner, StatusPill } from '../components/ui'
-import { Plus } from 'lucide-react'
+import { ArrowLeftRight, Plus, Users } from 'lucide-react'
 import { useLocale } from '../i18n/LocaleProvider'
 
 export function MapPage() {
@@ -150,9 +150,9 @@ export function MapPage() {
       <ScreenGuide
         screen="map"
         tips={[
-          { emoji: '🏀 ⚽ 🏐 🎾 🏸', title: t.guide.sportsTitle, body: t.guide.sportsBody },
-          { target: 'sport-chips', emoji: '🔄', title: t.guide.chipsTitle, body: t.guide.chipsBody },
-          { target: 'nav-play', emoji: '🤝', title: t.guide.playTabTitle, body: t.guide.playTabBody },
+          { icon: ALL_SPORT_ICONS, title: t.guide.sportsTitle, body: t.guide.sportsBody },
+          { target: 'sport-chips', icon: ArrowLeftRight, title: t.guide.chipsTitle, body: t.guide.chipsBody },
+          { target: 'nav-play', icon: Users, title: t.guide.playTabTitle, body: t.guide.playTabBody },
         ]}
       />
     </div>

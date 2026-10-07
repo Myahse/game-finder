@@ -8,6 +8,7 @@ import { useAuth } from '../lib/auth'
 import { useQueryErrorToast } from '../lib/toastErrors'
 import { sortPlayable, splitScheduledBySoon } from '../lib/sort'
 import { GameCard } from '../components/GameCard'
+import { MapPin } from 'lucide-react'
 import { BaseSportIcon, LiveText, SportName } from '../components/icons'
 import { ScreenGuide } from '../components/ScreenGuide'
 import { Chip, Empty, PageHeader } from '../components/ui'
@@ -133,7 +134,7 @@ export function PlayPage() {
           </>
         )}
       </div>
-      <ScreenGuide screen="play" tips={[{ emoji: '📍', title: t.guide.playTitle, body: t.guide.playBody }]} />
+      <ScreenGuide screen="play" tips={[{ icon: MapPin, title: t.guide.playTitle, body: t.guide.playBody }]} />
     </div>
   )
 }

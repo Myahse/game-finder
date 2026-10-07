@@ -52,7 +52,7 @@ export function ChallengesPage() {
           </>
         )}
       </div>
-      <ScreenGuide screen="challenges" tips={[{ emoji: '⚔️', title: t.guide.challengesTitle, body: t.guide.challengesBody }]} />
+      <ScreenGuide screen="challenges" tips={[{ icon: Swords, title: t.guide.challengesTitle, body: t.guide.challengesBody }]} />
     </div>
   )
 }

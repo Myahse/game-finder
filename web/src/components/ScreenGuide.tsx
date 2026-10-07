@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useState, type ComponentType } from 'react'
 import { useLocale } from '../i18n/LocaleProvider'
 import { useAuth } from '../lib/auth'
 import { guideSeen, isNewPlayer, markGuideSeen, turnOffGuide, type GuideScreen } from '../lib/guide'
@@ -7,10 +7,13 @@ import { Button } from './ui'
 export type GuideTip = {
   /** `data-guide` value of the element to spotlight; none = a centred card. */
   target?: string
-  emoji: string
+  /** One icon, or a row of them (e.g. the app's sports). */
+  icon: GuideIcon | GuideIcon[]
   title: string
   body: string
 }
+
+type GuideIcon = ComponentType<{ className?: string }>
 
 type Rect = { top: number; left: number; width: number; height: number }
 
@@ -137,9 +140,13 @@ export function ScreenGuide({ screen, tips, delay = 700 }: { screen: GuideScreen
               {tg.skip}
             </button>
           </div>
-          <p className="mt-2 text-3xl leading-none" aria-hidden>
-            {tip.emoji}
-          </p>
+          <div className="mt-3 flex flex-wrap gap-2" aria-hidden>
+            {(Array.isArray(tip.icon) ? tip.icon : [tip.icon]).map((Icon, i) => (
+              <span key={i} className="flex size-10 items-center justify-center rounded-xl bg-brand/15 text-brand">
+                <Icon className="size-5" />
+              </span>
+            ))}
+          </div>
           <h2 id="screen-guide-title" className="display mt-2 text-3xl font-extrabold leading-tight">
             {tip.title}
           </h2>

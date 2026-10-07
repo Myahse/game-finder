@@ -7,7 +7,7 @@ import { useLocale } from '../i18n/LocaleProvider'
 import type { SkillLevel } from '../lib/types'
 import { useSports, useUpdateMe, useUser } from '../lib/queries'
 import type { Me, PublicUser } from '../lib/types'
-import { Star, Swords } from 'lucide-react'
+import { Star, Swords, TrendingUp } from 'lucide-react'
 import { SportIcon, SportName, Wrench } from '../components/icons'
 import { FriendsPanel } from '../components/FriendsPanel'
 import { ProfileFriendActions } from '../components/ProfileFriendActions'
@@ -176,8 +176,8 @@ export function ProfilePage() {
             <ScreenGuide
               screen="profile"
               tips={[
-                { target: 'progress', emoji: '📈', title: t.guide.progressTitle, body: t.guide.progressBody },
-                { target: 'my-challenges', emoji: '⚔️', title: t.guide.duelTitle, body: t.guide.duelBody },
+                { target: 'progress', icon: TrendingUp, title: t.guide.progressTitle, body: t.guide.progressBody },
+                { target: 'my-challenges', icon: Swords, title: t.guide.duelTitle, body: t.guide.duelBody },
               ]}
             />
             <ShareProfileButton me={current} />

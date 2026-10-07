@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { UserRound } from 'lucide-react'
 import { AvatarStudio } from '../avatar/studio/AvatarStudio'
 import { parsePlayerAvatar } from '../avatar/resolve'
 import { AVATAR_SPORTS, defaultConfig } from '../avatar/presets'
@@ -51,7 +52,7 @@ export function AvatarStudioPage() {
         />
       )}
       {!isPending && (
-        <ScreenGuide screen="avatar" tips={[{ emoji: '🧍', title: t.guide.avatarTitle, body: t.guide.avatarBody }]} />
+        <ScreenGuide screen="avatar" tips={[{ icon: UserRound, title: t.guide.avatarTitle, body: t.guide.avatarBody }]} />
       )}
     </div>
   )

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { GameInviteField } from '../components/GameInviteField'
 import { errorMessage } from '../lib/api'
-import { Clock, Navigation, Star, Timer } from 'lucide-react'
+import { Clock, Navigation, Star, Timer, UserPlus } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import { Check, DistanceText, Flame, SearchX, SportName, TimeText, X } from '../components/icons'
 import { useAuth } from '../lib/auth'
@@ -206,7 +206,7 @@ export function GamePage() {
           </div>
         </section>
       </div>
-      <ScreenGuide screen="game" tips={[{ emoji: '👥', title: t.guide.gameTitle, body: t.guide.gameBody }]} />
+      <ScreenGuide screen="game" tips={[{ icon: UserPlus, title: t.guide.gameTitle, body: t.guide.gameBody }]} />
     </div>
   )
 }
