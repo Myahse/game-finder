@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../core/api.dart';
 import '../core/auth.dart';
 import '../core/format.dart';
+import '../core/guide.dart';
 import '../core/models.dart';
 import '../core/my_sport.dart';
 import '../core/player_avatar.dart';
@@ -19,6 +20,7 @@ import 'avatar_builder_screen.dart';
 import 'bump_connect.dart';
 import 'recap_sheet.dart';
 import 'sticker_sheet.dart';
+import '../ui/screen_guide.dart';
 import '../ui/widgets.dart';
 
 class _ProfileCard extends StatelessWidget {
@@ -88,10 +90,28 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   List<Sport> _sports = [];
+  final _progressKey = GlobalKey(debugLabel: 'progress');
+  final _challengesKey = GlobalKey(debugLabel: 'my-challenges');
 
   @override
   void initState() {
     super.initState();
+    ScreenGuide.maybeShow(context, screen: GuideScreen.profile, tips: [
+      GuideTip(
+        target: _progressKey,
+        emoji: '📈',
+        title: tr('Your player card', 'Votre carte de joueur'),
+        body: tr('Every game earns XP, badges and streaks. The more you play, the higher your level.',
+            'Chaque match rapporte de l’XP, des badges et des séries. Plus vous jouez, plus votre niveau monte.'),
+      ),
+      GuideTip(
+        target: _challengesKey,
+        emoji: '⚔️',
+        title: tr('Ready for a duel?', 'Prêt pour un duel ?'),
+        body: tr('Your challenges live here — and so do your stickers and monthly recap to share.',
+            'Vos défis sont ici — tout comme vos stickers et votre récap du mois à partager.'),
+      ),
+    ]);
     context.read<AuthState>().refreshMe();
     context.read<Api>().get('/api/sports').then((j) {
       if (mounted) setState(() => _sports = [for (final s in j) Sport.fromJson(s)]);
@@ -130,9 +150,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ],
           const SizedBox(height: 12),
-          const ProgressCard(),
+          KeyedSubtree(key: _progressKey, child: const ProgressCard()),
           const SizedBox(height: 12),
           FilledButton.icon(
+            key: _challengesKey,
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChallengesScreen())),
             icon: const Icon(Icons.sports_kabaddi),
             label: Text(tr('MY CHALLENGES', 'MES DÉFIS')),

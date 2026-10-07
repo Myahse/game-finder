@@ -4,13 +4,18 @@ import 'package:provider/provider.dart';
 import '../core/api.dart';
 import '../core/auth.dart';
 import '../core/avatar_presets.dart';
+import '../core/guide.dart';
 import '../ui/avatar_preset.dart';
+import '../ui/screen_guide.dart';
 import '../ui/theme.dart';
 import '../core/l10n.dart';
 
 class AvatarBuilderScreen extends StatefulWidget {
-  const AvatarBuilderScreen({super.key, this.initialUrl, this.initialConfig, this.seed});
+  const AvatarBuilderScreen({super.key, this.initialUrl, this.initialConfig, this.seed, this.welcome = false});
   final String? initialUrl;
+
+  /// Opened right after sign-up: shows a Skip action that goes on to the map.
+  final bool welcome;
   final Map<String, dynamic>? initialConfig;
   final String? seed;
 
@@ -25,6 +30,20 @@ class _AvatarBuilderScreenState extends State<AvatarBuilderScreen> {
   String? _error;
 
   static const _stepCount = 7;
+
+  @override
+  void initState() {
+    super.initState();
+    ScreenGuide.maybeShow(context, screen: GuideScreen.avatar, tips: [
+      GuideTip(
+        emoji: '🧍',
+        title: tr('This is you on court', 'C’est vous sur le terrain'),
+        body: tr(
+            'Your player shows up on games, challenges, the court ranking and your stickers. Make it look like you — you can change it anytime.',
+            'Votre joueur apparaît sur les matchs, les défis, le classement du terrain et vos stickers. Faites-le à votre image — vous pourrez le changer quand vous voulez.'),
+      ),
+    ]);
+  }
 
   Future<void> _save() async {
     setState(() {
@@ -44,7 +63,17 @@ class _AvatarBuilderScreenState extends State<AvatarBuilderScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(tr('BUILD PLAYER', 'CRÉER VOTRE JOUEUR')), leading: BackButton(onPressed: _step > 0 ? () => setState(() => _step--) : null)),
+      appBar: AppBar(
+        title: Text(tr('BUILD PLAYER', 'CRÉER VOTRE JOUEUR')),
+        leading: BackButton(onPressed: _step > 0 ? () => setState(() => _step--) : null),
+        actions: [
+          if (widget.welcome)
+            TextButton(
+              onPressed: _busy ? null : () => Navigator.pop(context, false),
+              child: Text(tr('Skip', 'Passer')),
+            ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [

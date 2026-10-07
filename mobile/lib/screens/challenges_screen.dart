@@ -6,11 +6,13 @@ import '../core/api.dart';
 import '../core/auth.dart';
 import '../core/catalog.dart';
 import '../core/game_share.dart';
+import '../core/guide.dart';
 import '../core/l10n.dart';
 import '../core/location.dart';
 import '../core/models.dart';
 import '../core/my_sport.dart';
 import '../core/progress_models.dart';
+import '../ui/screen_guide.dart';
 import '../ui/widgets.dart';
 import 'court_move.dart';
 import 'court_screens.dart';
@@ -31,6 +33,14 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
   void initState() {
     super.initState();
     _load();
+    ScreenGuide.maybeShow(context, screen: GuideScreen.challenges, tips: [
+      GuideTip(
+        emoji: '⚔️',
+        title: tr('Challenge your friends', 'Défiez vos amis'),
+        body: tr('1v1, 2v2, penalties, rallies… Send a challenge, play it, and win to level up and earn badges.',
+            '1v1, 2v2, tirs au but, échanges… Lancez un défi, jouez-le et gagnez pour monter de niveau et débloquer des badges.'),
+      ),
+    ]);
   }
 
   Future<void> _load() async {

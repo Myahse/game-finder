@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../core/api.dart';
+import '../core/auth.dart';
 import '../core/notifications.dart';
 import '../core/presence.dart';
 import '../core/map_pause.dart';
@@ -11,6 +12,7 @@ import '../core/progress_models.dart';
 import '../core/realtime.dart';
 import '../ui/theme.dart';
 import '../ui/widgets.dart';
+import 'avatar_builder_screen.dart';
 import 'challenges_screen.dart';
 import 'court_move.dart';
 import 'game_screens.dart';
@@ -20,7 +22,13 @@ import 'profile_screen.dart';
 import '../core/l10n.dart';
 
 class HomeShell extends StatefulWidget {
-  const HomeShell({super.key});
+  const HomeShell({super.key, this.welcomeAvatar = false, this.onWelcomeShown});
+
+  /// Straight after onboarding: open the avatar builder once (with Skip), like
+  /// the web's /profile/avatar?welcome=1.
+  final bool welcomeAvatar;
+  final VoidCallback? onWelcomeShown;
+
   @override
   State<HomeShell> createState() => _HomeShellState();
 }
@@ -32,6 +40,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   int _unread = 0;
   bool _promptOpen = false;
   final List<StreamSubscription> _subs = [];
+  final _playNavKey = GlobalKey(debugLabel: 'nav-play');
 
   @override
   void initState() {
@@ -39,6 +48,9 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _maybePrompt(context.read<PresenceState>());
     });
+    if (widget.welcomeAvatar) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openWelcomeAvatar());
+    }
     context.read<PresenceState>().addListener(_onPresence);
     final rt = context.read<Realtime>();
     _subs.add(rt.ofType('notification').listen((ev) {
@@ -68,6 +80,23 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _changesTimer = Timer.periodic(const Duration(seconds: 60), (_) => _checkCourtChanges());
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkCourtChanges());
+  }
+
+  Future<void> _openWelcomeAvatar() async {
+    if (!mounted) return;
+    widget.onWelcomeShown?.call();
+    final auth = context.read<AuthState>();
+    final me = auth.user;
+    if (me == null) return;
+    final saved = await Navigator.of(context, rootNavigator: true).push<bool>(MaterialPageRoute(
+      builder: (_) => AvatarBuilderScreen(
+        welcome: true,
+        initialUrl: me.avatarUrl,
+        initialConfig: me.avatarConfig,
+        seed: me.username,
+      ),
+    ));
+    if (saved == true && mounted) await auth.refreshMe();
   }
 
   @override
@@ -163,6 +192,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             key: const PageStorageKey('home-map'),
             onOpenPlayTab: () => setState(() => _tab = 1),
             tabActive: _tab == 0,
+            playTabKey: _playNavKey,
           ),
         ),
         if (_tab == 1) PlayScreen(key: const ValueKey('home-play'), tabActive: true),
@@ -178,6 +208,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       bottomNavigationBar: _FloatingNavBar(
         selectedIndex: _tab,
         unread: _unread,
+        playKey: _playNavKey,
         onSelected: (i) => setState(() => _tab = i),
       ),
     );
@@ -190,10 +221,12 @@ class _FloatingNavBar extends StatelessWidget {
     required this.selectedIndex,
     required this.unread,
     required this.onSelected,
+    this.playKey,
   });
 
   final int selectedIndex;
   final int unread;
+  final GlobalKey? playKey;
   final ValueChanged<int> onSelected;
 
   @override
@@ -237,6 +270,7 @@ class _FloatingNavBar extends StatelessWidget {
                   label: tr('Map', 'Carte'),
                 ),
                 NavigationDestination(
+                  key: playKey,
                   icon: const Icon(Icons.sports_basketball_outlined),
                   selectedIcon: const Icon(Icons.sports_basketball),
                   label: tr('Play', 'Jouer'),

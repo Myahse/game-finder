@@ -9,6 +9,7 @@ import '../core/auth.dart';
 import '../core/my_sport.dart';
 import '../core/user_errors.dart';
 import '../core/format.dart';
+import '../core/guide.dart';
 import '../core/location.dart';
 import '../core/nearby.dart';
 import '../core/models.dart';
@@ -16,6 +17,7 @@ import '../core/presence.dart';
 import '../core/realtime.dart';
 import '../ui/theme.dart';
 import '../ui/app_icons.dart';
+import '../ui/screen_guide.dart';
 import '../ui/widgets.dart';
 import 'court_screens.dart';
 import 'game_screens.dart';
@@ -116,6 +118,14 @@ class _PlayScreenState extends _LiveListState<PlayScreen> {
       _location = context.read<LocationState>();
       _location!.addListener(_onLocation);
     });
+    ScreenGuide.maybeShow(context, screen: GuideScreen.play, when: () => widget.tabActive, tips: [
+      GuideTip(
+        emoji: '📍',
+        title: tr('Games near you', 'Les matchs près de vous'),
+        body: tr('Live games first, then upcoming ones. Tap a game to join, or create your own.',
+            'Les matchs en cours d’abord, puis ceux à venir. Touchez un match pour le rejoindre, ou créez le vôtre.'),
+      ),
+    ]);
   }
 
   @override

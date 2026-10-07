@@ -29,8 +29,10 @@ import '../core/realtime.dart';
 import '../core/nearby.dart';
 import '../core/notify_area_sync.dart';
 import '../core/weather.dart';
+import '../core/guide.dart';
 import '../ui/home_globe_map.dart';
 import '../ui/map_games_rail.dart';
+import '../ui/screen_guide.dart';
 
 import '../ui/theme.dart';
 
@@ -45,7 +47,10 @@ class MapScreen extends StatefulWidget {
   final VoidCallback? onOpenPlayTab;
   final bool tabActive;
 
-  const MapScreen({super.key, this.onOpenPlayTab, this.tabActive = true});
+  /// The Play destination in the bottom bar (first-visit tip points at it).
+  final GlobalKey? playTabKey;
+
+  const MapScreen({super.key, this.onOpenPlayTab, this.tabActive = true, this.playTabKey});
 
   @override
 
@@ -85,6 +90,40 @@ class _MapScreenState extends State<MapScreen> {
   Timer? _pulseClear;
 
   bool _routeReady = false;
+
+  final _sportChipsKey = GlobalKey();
+
+  /// First-visit tips; only while the map is the active tab (waits under sheets/routes).
+  void _maybeShowGuide() {
+    if (!widget.tabActive) return;
+    ScreenGuide.maybeShow(
+      context,
+      screen: GuideScreen.map,
+      when: () => widget.tabActive,
+      tips: [
+        GuideTip(
+          emoji: '🏀 ⚽ 🏐 🎾 🏸',
+          title: tr('Every sport, one app', 'Tous les sports, une seule app'),
+          body: tr('Basketball, football, volleyball, tennis, badminton… Find people near you to play with, whatever your game.',
+              'Basket, foot, volley, tennis, badminton… Trouvez des gens près de chez vous pour jouer, quel que soit votre sport.'),
+        ),
+        GuideTip(
+          target: _sportChipsKey,
+          emoji: '🔄',
+          title: tr('Switch sport here', 'Changez de sport ici'),
+          body: tr('The map shows courts and games for the sport you pick. Add more sports from your profile.',
+              'La carte montre les terrains et les matchs du sport choisi. Ajoutez d’autres sports depuis votre profil.'),
+        ),
+        GuideTip(
+          target: widget.playTabKey,
+          emoji: '🤝',
+          title: tr('Play together', 'Jouez ensemble'),
+          body: tr('Join a game near you or start one in a few taps — players around you get notified.',
+              'Rejoignez un match près de vous ou lancez-en un en quelques gestes — les joueurs autour sont prévenus.'),
+        ),
+      ],
+    );
+  }
 
   @override
   void didChangeDependencies() {
@@ -159,6 +198,7 @@ class _MapScreenState extends State<MapScreen> {
       _refreshMapData();
       _centerOnUserIfNeeded();
     });
+    _maybeShowGuide();
   }
 
   void _centerOnUserIfNeeded() {
@@ -175,6 +215,7 @@ class _MapScreenState extends State<MapScreen> {
     if (widget.tabActive && !oldWidget.tabActive) {
       _refreshMapData(silent: true);
       WidgetsBinding.instance.addPostFrameCallback((_) => _centerOnUserIfNeeded());
+      _maybeShowGuide();
     }
   }
 
@@ -419,6 +460,8 @@ class _MapScreenState extends State<MapScreen> {
             const SizedBox(height: 8),
 
             SingleChildScrollView(
+
+              key: _sportChipsKey,
 
               scrollDirection: Axis.horizontal,
 

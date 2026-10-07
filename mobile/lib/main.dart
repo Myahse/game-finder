@@ -82,6 +82,9 @@ class _RootGateState extends State<RootGate> {
   AuthState? _auth;
   bool _authListenerAttached = false;
 
+  /// This session went through onboarding: the home opens the avatar builder once.
+  bool _justOnboarded = false;
+
   @override
   void initState() {
     super.initState();
@@ -160,8 +163,14 @@ class _RootGateState extends State<RootGate> {
     if (!_authListenerAttached) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _attachAuthListener());
     }
-    if (user == null) return const WelcomeScreen();
-    if (!user.onboarded) return const OnboardingScreen();
-    return const HomeShell();
+    if (user == null) {
+      _justOnboarded = false;
+      return const WelcomeScreen();
+    }
+    if (!user.onboarded) {
+      _justOnboarded = true;
+      return const OnboardingScreen();
+    }
+    return HomeShell(welcomeAvatar: _justOnboarded, onWelcomeShown: () => _justOnboarded = false);
   }
 }

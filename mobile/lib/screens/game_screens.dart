@@ -10,6 +10,7 @@ import '../core/media_url.dart';
 import '../core/auth.dart';
 import '../core/format.dart';
 import '../core/game_share.dart';
+import '../core/guide.dart';
 import '../core/l10n.dart';
 import '../core/location.dart';
 import '../core/models.dart';
@@ -19,6 +20,7 @@ import '../core/my_sport.dart';
 import '../core/realtime.dart';
 import '../ui/theme.dart';
 import '../ui/app_icons.dart';
+import '../ui/screen_guide.dart';
 import '../ui/widgets.dart';
 import 'court_move.dart';
 import 'game_scoreboard.dart';
@@ -69,6 +71,7 @@ class _GameScreenState extends State<GameScreen> {
   StreamSubscription? _rt;
   Timer? _loadDebounce;
   final _invite = TextEditingController();
+  bool _guideQueued = false;
 
   @override
   void initState() {
@@ -97,6 +100,17 @@ class _GameScreenState extends State<GameScreen> {
     if (game != null) {
       _game = game;
       _error = null;
+      if (!_guideQueued) {
+        _guideQueued = true;
+        ScreenGuide.maybeShow(context, screen: GuideScreen.game, tips: [
+          GuideTip(
+            emoji: '👥',
+            title: tr('Bring your crew', 'Venez avec votre équipe'),
+            body: tr('Invite friends by @username, keep the score and share the result when you’re done.',
+                'Invitez vos amis par @pseudo, notez le score et partagez le résultat à la fin.'),
+          ),
+        ]);
+      }
     }
     if (error != null) _error = error;
     _scheduleRebuild();
