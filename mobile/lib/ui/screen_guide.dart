@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'theme.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
 
@@ -260,7 +261,7 @@ class _GuideOverlayState extends State<_GuideOverlay> with SingleTickerProviderS
                   onPressed: () => Navigator.of(context).pop(_skip),
                   style: TextButton.styleFrom(
                     foregroundColor: scheme.onSurfaceVariant,
-                    textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                    textStyle: const TextStyle(fontFamily: kFontFamily, fontSize: 13, fontWeight: FontWeight.w700),
                   ),
                   child: Text(tr('Skip tips', 'Passer les astuces')),
                 ),

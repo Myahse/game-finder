@@ -1,0 +1,6 @@
+/* French permission prompts and app name (English is in Info.plist). */
+"CFBundleDisplayName" = "Find the Game";
+"NSLocationWhenInUseUsageDescription" = "Find the Game utilise votre position pour afficher les terrains et les matchs en direct près de vous et pour vous enregistrer sur un terrain. Les autres joueurs ne voient jamais votre position exacte.";
+"NSPhotoLibraryUsageDescription" = "Choisissez une photo de profil ou des photos du terrain que vous ajoutez.";
+"NSCameraUsageDescription" = "Prenez en photo le terrain que vous ajoutez.";
+"NSLocalNetworkUsageDescription" = "En développement, Find the Game cherche le serveur sur votre réseau Wi‑Fi local.";

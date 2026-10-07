@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 
@@ -21,8 +22,20 @@ import 'screens/home_shell.dart';
 import 'ui/theme.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  final binding = WidgetsFlutterBinding.ensureInitialized();
   initMonitoring();
+  // Draw behind the status and navigation bars on every Android version, like
+  // iOS (Android 15+ enforces this anyway); screens pad with SafeArea.
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  // Phones: portrait only on both platforms (Info.plist lists only portrait for
+  // iPhone). Tablets keep rotation. Measured after the first frame, when the
+  // view size is known.
+  binding.addPostFrameCallback((_) {
+    final view = binding.platformDispatcher.implicitView;
+    if (view != null && view.physicalSize.shortestSide / view.devicePixelRatio < 600) {
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    }
+  });
   // French day/month names for DateFormat (see localDateFormat in format.dart).
   try {
     await initializeDateFormatting(deviceLanguage == 'fr' ? 'fr' : 'en');
@@ -63,6 +76,7 @@ class FindTheGameApp extends StatelessWidget {
       theme: buildTheme(Brightness.light),
       darkTheme: buildTheme(Brightness.dark),
       themeMode: ThemeMode.system,
+      builder: withSystemBars,
       home: const RootGate(),
     );
   }

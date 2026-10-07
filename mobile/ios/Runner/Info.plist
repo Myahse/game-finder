@@ -6,6 +6,11 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>fr</string>
+	</array>
 	<key>CFBundleDisplayName</key>
 	<string>Find the Game</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
@@ -14,6 +19,20 @@
 	<string>Choose a profile photo or photos of a court you are adding.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Take a photo of a court you are adding.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>In development builds, Find the Game looks for the server on your local Wi-Fi network.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<!-- Google Sign-In callback: the reversed iOS client id, set in ios/Flutter/GoogleSignIn.xcconfig. -->
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>$(GOOGLE_REVERSED_CLIENT_ID)</string>
+			</array>
+		</dict>
+	</array>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>maps</string>
@@ -71,8 +90,6 @@
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>

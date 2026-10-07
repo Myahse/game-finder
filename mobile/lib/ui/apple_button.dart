@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'theme.dart';
 import 'package:provider/provider.dart';
 
 import '../core/api.dart';
@@ -45,7 +46,7 @@ class _AppleSignInButtonState extends State<AppleSignInButton> {
         foregroundColor: dark ? Colors.black : Colors.white,
         side: BorderSide(color: dark ? Colors.white : Colors.black),
         shape: const StadiumBorder(),
-        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, letterSpacing: 0.2),
+        textStyle: const TextStyle(fontFamily: kFontFamily, fontWeight: FontWeight.w600, fontSize: 15, letterSpacing: 0.2),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         _busy

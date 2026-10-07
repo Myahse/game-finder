@@ -129,7 +129,8 @@ class _CourtSheetState extends State<CourtSheet> with _CourtLoader {
     }
     final live = c.games.where((g) => g.isLive).toList();
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+      // Last button clears the home indicator / gesture bar.
+      padding: EdgeInsets.fromLTRB(20, 0, 20, 24 + MediaQuery.paddingOf(context).bottom),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'theme.dart';
 
 import '../core/media_url.dart';
 
@@ -28,6 +29,7 @@ class CourtPhotoViewerScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         elevation: 0,
+        systemOverlayStyle: systemBarsFor(Brightness.dark),
       ),
       body: PageView.builder(
         controller: PageController(initialPage: initialIndex.clamp(0, urls.length - 1)),

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'theme.dart';
 import 'package:provider/provider.dart';
 
 import '../core/api.dart';
@@ -51,7 +52,7 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
         foregroundColor: dark ? const Color(0xFFE3E3E3) : const Color(0xFF1F1F1F),
         side: BorderSide(color: dark ? const Color(0xFF8E918F) : const Color(0xFF747775)),
         shape: const StadiumBorder(),
-        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, letterSpacing: 0.2),
+        textStyle: const TextStyle(fontFamily: kFontFamily, fontWeight: FontWeight.w600, fontSize: 15, letterSpacing: 0.2),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         _busy

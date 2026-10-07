@@ -114,9 +114,13 @@ class _MoveCourtSheetState extends State<_MoveCourtSheet> {
     final courts = _courts;
     final rainHere = _rain[widget.courtId];
     return Padding(
-      padding: EdgeInsets.fromLTRB(16, 8, 16, 16 + MediaQuery.of(context).viewInsets.bottom),
-      child: SingleChildScrollView(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
+      // Clear the keyboard, or else the home indicator / gesture bar.
+      padding: EdgeInsets.fromLTRB(16, 8, 16, 16 + MediaQuery.viewInsetsOf(context).bottom + MediaQuery.paddingOf(context).bottom),
+      // The list scrolls; the button stays pinned so it's always reachable on small phones.
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
+        Flexible(
+          child: SingleChildScrollView(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
           Text(tr('MOVE TO ANOTHER COURT', 'DÉPLACER VERS UN AUTRE TERRAIN'), style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
           const SizedBox(height: 12),
           Container(
@@ -177,14 +181,16 @@ class _MoveCourtSheetState extends State<_MoveCourtSheet> {
           const SizedBox(height: 6),
           Text(tr('Every player gets a notification and an alert.', 'Chaque joueur reçoit une notification et une alerte.'), style: theme.textTheme.bodySmall),
           if (_error != null) Padding(padding: const EdgeInsets.only(top: 6), child: Text(_error!, style: TextStyle(color: theme.colorScheme.error))),
-          const SizedBox(height: 10),
-          FilledButton.icon(
-            onPressed: _busy || _picked == null ? null : _submit,
-            icon: const Icon(Icons.place),
-            label: Text(tr('MOVE HERE', 'DÉPLACER ICI')),
+            ]),
           ),
-        ]),
-      ),
+        ),
+        const SizedBox(height: 10),
+        FilledButton.icon(
+          onPressed: _busy || _picked == null ? null : _submit,
+          icon: const Icon(Icons.place),
+          label: Text(tr('MOVE HERE', 'DÉPLACER ICI')),
+        ),
+      ]),
     );
   }
 }
@@ -248,8 +254,10 @@ Future<String?> showCourtChangeAlert(BuildContext context, CourtChange c) {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () => openDirections(c.toCourt.latitude!, c.toCourt.longitude!),
+                    style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 12)),
                     icon: const Icon(Icons.navigation_outlined),
-                    label: Text(tr('DIRECTIONS', 'ITINÉRAIRE')),
+                    // One line: the dialog is narrow on small phones.
+                    label: FittedBox(fit: BoxFit.scaleDown, child: Text(tr('DIRECTIONS', 'ITINÉRAIRE'), maxLines: 1)),
                   ),
                 ),
               const SizedBox(width: 8),

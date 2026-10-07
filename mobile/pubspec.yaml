@@ -81,6 +81,23 @@ flutter:
 
   assets:
     - assets/.env
+
+  # Inter (SIL OFL 1.1, assets/fonts/inter/OFL.txt), the web app's UI font:
+  # the same glyphs and metrics on iOS and Android instead of SF Pro / Roboto.
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/inter/Inter-Regular.ttf
+        - asset: assets/fonts/inter/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/inter/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/inter/Inter-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/inter/Inter-ExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/inter/Inter-Black.ttf
+          weight: 900
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 

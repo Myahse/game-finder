@@ -41,6 +41,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   bool _promptOpen = false;
   final List<StreamSubscription> _subs = [];
   final _playNavKey = GlobalKey(debugLabel: 'nav-play');
+  // Kept so dispose() doesn't look up an ancestor of a deactivated element.
+  late final PresenceState _presence;
 
   @override
   void initState() {
@@ -51,7 +53,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     if (widget.welcomeAvatar) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _openWelcomeAvatar());
     }
-    context.read<PresenceState>().addListener(_onPresence);
+    _presence = context.read<PresenceState>()..addListener(_onPresence);
     final rt = context.read<Realtime>();
     _subs.add(rt.ofType('notification').listen((ev) {
       _loadUnread();
@@ -153,7 +155,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _changesTimer?.cancel();
-    context.read<PresenceState>().removeListener(_onPresence);
+    _presence.removeListener(_onPresence);
     for (final s in _subs) {
       s.cancel();
     }

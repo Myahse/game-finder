@@ -229,6 +229,7 @@ Future<void> showBadgeSheet(BuildContext context, PlayerBadge badge) {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
+    useSafeArea: true,
     showDragHandle: true,
     builder: (ctx) {
       final theme = Theme.of(ctx);

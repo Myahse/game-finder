@@ -65,3 +65,5 @@ flutter run --dart-define=API_URL=http://192.168.x.x:8080 --dart-define=MAPBOX_A
 Debug builds allow HTTP to your LAN API. Release builds should use HTTPS.
 
 Push notifications need Firebase (`google-services.json`, `GoogleService-Info.plist`); without them you still get in-app notifications.
+
+On iOS, Google Sign-In also needs its URL scheme: put `GOOGLE_REVERSED_CLIENT_ID = com.googleusercontent.apps.…` (the iOS OAuth client's reversed id) in `ios/Flutter/GoogleSignIn.xcconfig` (git-ignored). Push needs the Push Notifications capability on the App ID (`aps-environment` is in `Runner.entitlements`) and an APNs key in Firebase.

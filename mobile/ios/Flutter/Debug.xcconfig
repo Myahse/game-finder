@@ -1,1 +1,7 @@
 #include "Generated.xcconfig"
+
+// Google Sign-In URL scheme (Info.plist CFBundleURLTypes): the iOS OAuth client's
+// REVERSED_CLIENT_ID, e.g. com.googleusercontent.apps.1234-abcd. Override it in
+// GoogleSignIn.xcconfig (same folder, optional, not committed).
+GOOGLE_REVERSED_CLIENT_ID = com.googleusercontent.apps.not-configured
+#include? "GoogleSignIn.xcconfig"

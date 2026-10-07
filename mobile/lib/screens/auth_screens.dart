@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../core/pick_image.dart';
@@ -22,20 +23,23 @@ class SplashScreen extends StatelessWidget {
   final String? status;
   const SplashScreen({super.key, this.status});
   @override
-  Widget build(BuildContext context) => Scaffold(
-        backgroundColor: Palette.night,
-        body: Center(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.sports_basketball, size: 72, color: Palette.brand),
-            const SizedBox(height: 12),
-            const _Wordmark(size: 40),
-            if (status != null) ...[
-              const SizedBox(height: 28),
-              Text(status!, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70)),
-              const SizedBox(height: 16),
-              const SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 2, color: Palette.brand)),
-            ],
-          ]),
+  Widget build(BuildContext context) => AnnotatedRegion<SystemUiOverlayStyle>(
+        value: systemBarsFor(Brightness.dark), // light icons on the night background
+        child: Scaffold(
+          backgroundColor: Palette.night,
+          body: Center(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.sports_basketball, size: 72, color: Palette.brand),
+              const SizedBox(height: 12),
+              const _Wordmark(size: 40),
+              if (status != null) ...[
+                const SizedBox(height: 28),
+                Text(status!, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70)),
+                const SizedBox(height: 16),
+                const SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 2, color: Palette.brand)),
+              ],
+            ]),
+          ),
         ),
       );
 }
@@ -134,6 +138,9 @@ void showLoginSheet(BuildContext context) {
   showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
+    // Keeps the sheet below the status bar / Dynamic Island when the keyboard
+    // pushes it up on short phones; its content scrolls instead.
+    useSafeArea: true,
     backgroundColor: Colors.transparent,
     useRootNavigator: true,
     builder: (ctx) => const _LoginSheet(),
@@ -145,61 +152,85 @@ class WelcomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Palette.night,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            const Spacer(),
-            Row(children: [
-              Container(width: 10, height: 10, decoration: const BoxDecoration(color: Palette.live, shape: BoxShape.circle)),
-              const SizedBox(width: 8),
-              Text(tr('Games happening near you right now', 'Des matchs près de vous en ce moment'),
-                  style: const TextStyle(color: Color(0xFF9AA3AE), fontWeight: FontWeight.w600)),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: systemBarsFor(Brightness.dark), // light icons on the night background
+      child: Scaffold(
+        backgroundColor: Palette.night,
+        // The login sheet's keyboard must not squeeze this screen behind the sheet.
+        resizeToAvoidBottomInset: false,
+        body: SafeArea(
+          child: _FillOrScroll(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              const Spacer(),
+              Row(children: [
+                Container(width: 10, height: 10, decoration: const BoxDecoration(color: Palette.live, shape: BoxShape.circle)),
+                const SizedBox(width: 8),
+                Text(tr('Games happening near you right now', 'Des matchs près de vous en ce moment'),
+                    style: const TextStyle(color: Color(0xFF9AA3AE), fontWeight: FontWeight.w600)),
+              ]),
+              const SizedBox(height: 16),
+              const _Wordmark(size: 72),
+              const SizedBox(height: 20),
+              Text.rich(TextSpan(children: [
+                TextSpan(text: '${tr("Don't search for a court.", 'Ne cherchez pas un terrain.')}\n'),
+                TextSpan(text: tr('Find the game.', 'Trouvez le match.'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+              ]), style: const TextStyle(color: Color(0xFFC9CED6), fontSize: 20, height: 1.35)),
+              const SizedBox(height: 40),
+              const AppleSignInButton(onDark: true),
+              const SizedBox(height: 12),
+              const GoogleSignInButton(onDark: true),
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen())),
+                child: Text(tr('CREATE ACCOUNT', 'CRÉER UN COMPTE')),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton(
+                style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: const BorderSide(color: Colors.white24)),
+                onPressed: () => showLoginSheet(context),
+                child: Text(tr('LOG IN', 'SE CONNECTER')),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TextButton(
+                    onPressed: () => openTerms(context),
+                    child: Text(tr('Terms', 'Conditions'), style: const TextStyle(color: Palette.brand)),
+                  ),
+                  Text('·', style: TextStyle(color: Colors.white38)),
+                  TextButton(
+                    onPressed: () => openPrivacy(context),
+                    child: Text(tr('Privacy', 'Confidentialité'), style: const TextStyle(color: Palette.brand)),
+                  ),
+                ],
+              ),
             ]),
-            const SizedBox(height: 16),
-            const _Wordmark(size: 72),
-            const SizedBox(height: 20),
-            Text.rich(TextSpan(children: [
-              TextSpan(text: '${tr("Don't search for a court.", 'Ne cherchez pas un terrain.')}\n'),
-              TextSpan(text: tr('Find the game.', 'Trouvez le match.'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-            ]), style: const TextStyle(color: Color(0xFFC9CED6), fontSize: 20, height: 1.35)),
-            const SizedBox(height: 40),
-            const AppleSignInButton(onDark: true),
-            const SizedBox(height: 12),
-            const GoogleSignInButton(onDark: true),
-            const SizedBox(height: 12),
-            FilledButton(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen())),
-              child: Text(tr('CREATE ACCOUNT', 'CRÉER UN COMPTE')),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton(
-              style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: const BorderSide(color: Colors.white24)),
-              onPressed: () => showLoginSheet(context),
-              child: Text(tr('LOG IN', 'SE CONNECTER')),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                TextButton(
-                  onPressed: () => openTerms(context),
-                  child: Text(tr('Terms', 'Conditions'), style: const TextStyle(color: Palette.brand)),
-                ),
-                Text('·', style: TextStyle(color: Colors.white38)),
-                TextButton(
-                  onPressed: () => openPrivacy(context),
-                  child: Text(tr('Privacy', 'Confidentialité'), style: const TextStyle(color: Palette.brand)),
-                ),
-              ],
-            ),
-          ]),
+          ),
         ),
       ),
     );
   }
+}
+
+/// Fills the viewport (so [Spacer]s work) and scrolls when the content is taller
+/// — iPhone SE with the Apple button, or large accessibility text.
+class _FillOrScroll extends StatelessWidget {
+  final EdgeInsets padding;
+  final Widget child;
+  const _FillOrScroll({required this.padding, required this.child});
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+        builder: (context, box) => SingleChildScrollView(
+          padding: padding,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: box.maxHeight - padding.vertical),
+            child: IntrinsicHeight(child: child),
+          ),
+        ),
+      );
 }
 
 class _LoginSheet extends StatefulWidget {

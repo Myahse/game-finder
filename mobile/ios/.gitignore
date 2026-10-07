@@ -32,3 +32,6 @@ Runner/GeneratedPluginRegistrant.*
 !default.mode2v3
 !default.pbxuser
 !default.perspectivev3
+
+# Owner-specific Google Sign-In URL scheme (see Flutter/Debug.xcconfig)
+Flutter/GoogleSignIn.xcconfig
