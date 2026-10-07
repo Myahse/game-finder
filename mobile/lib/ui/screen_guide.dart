@@ -10,11 +10,13 @@ import '../core/guide.dart';
 import '../core/l10n.dart';
 
 /// One card of a screen's first-visit tips. With a [target], everything but
-/// that widget is dimmed; without one the card sits in the middle.
+/// that widget is dimmed; without one the card sits in the middle. [icon] is
+/// drawn primary-coloured in a tinted square (an Icon, or a row of them).
 class GuideTip {
   final GlobalKey? target;
-  final String emoji, title, body;
-  const GuideTip({this.target, required this.emoji, required this.title, required this.body});
+  final Widget icon;
+  final String title, body;
+  const GuideTip({this.target, required this.icon, required this.title, required this.body});
 }
 
 /// First-visit tips for one screen (port of web/src/components/ScreenGuide.tsx):
@@ -269,7 +271,15 @@ class _GuideOverlayState extends State<_GuideOverlay> with SingleTickerProviderS
               Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  ExcludeSemantics(child: Text(tip.emoji, style: const TextStyle(fontSize: 32, height: 1.1))),
+                  ExcludeSemantics(
+                    child: Container(
+                      height: 48,
+                      constraints: const BoxConstraints(minWidth: 48),
+                      padding: const EdgeInsets.symmetric(horizontal: 11),
+                      decoration: BoxDecoration(color: scheme.primary.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(14)),
+                      child: IconTheme.merge(data: IconThemeData(color: scheme.primary, size: 26), child: tip.icon),
+                    ),
+                  ),
                   const SizedBox(height: 10),
                   Text(tip.title.toUpperCase(), style: theme.textTheme.headlineMedium?.copyWith(height: 1.05)),
                   const SizedBox(height: 6),

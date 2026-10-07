@@ -17,7 +17,7 @@ class CourtMapPin extends StatelessWidget {
   final CourtPinTone? pinTone;
   final String? placementSportSlug;
   final String? placementPhotoUrl;
-  /// Rain expected in the next hours: small 🌧️ badge on the pin.
+  /// Rain expected in the next hours: small rain-cloud badge on the pin.
   final CourtRain? rain;
 
   const CourtMapPin({
@@ -149,7 +149,7 @@ class CourtMapPin extends StatelessWidget {
                     border: Border.all(color: const Color(0xFF0EA5E9), width: 2),
                     boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black26)],
                   ),
-                  child: const Text('🌧️', style: TextStyle(fontSize: 11, height: 1)),
+                  child: const RainIcon(size: 13, color: Color(0xFF0284C7)),
                 ),
               ),
             ),

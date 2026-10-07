@@ -15,6 +15,7 @@ import '../core/nearby.dart';
 import '../core/models.dart';
 import '../core/presence.dart';
 import '../core/realtime.dart';
+import '../core/strip_emoji.dart';
 import '../ui/theme.dart';
 import '../ui/app_icons.dart';
 import '../ui/screen_guide.dart';
@@ -120,7 +121,7 @@ class _PlayScreenState extends _LiveListState<PlayScreen> {
     });
     ScreenGuide.maybeShow(context, screen: GuideScreen.play, when: () => widget.tabActive, tips: [
       GuideTip(
-        emoji: '📍',
+        icon: const Icon(Icons.place),
         title: tr('Games near you', 'Les matchs près de vous'),
         body: tr('Live games first, then upcoming ones. Tap a game to join, or create your own.',
             'Les matchs en cours d’abord, puis ceux à venir. Touchez un match pour le rejoindre, ou créez le vôtre.'),
@@ -398,9 +399,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       return Card(
                         color: n.read ? null : Palette.brand.withValues(alpha: 0.06),
                         child: ListTile(
-                          leading: Icon(notificationIconData(n.type), color: Palette.brand),
-                          title: Text(n.title, style: const TextStyle(fontWeight: FontWeight.w700)),
-                          subtitle: Text('${n.body}\n${timeAgo(n.createdAt)}'),
+                          leading: Icon(notificationIconData(n.type, data: n.data), color: Palette.brand),
+                          title: Text(stripEmoji(n.title), style: const TextStyle(fontWeight: FontWeight.w700)),
+                          subtitle: Text('${stripEmoji(n.body)}\n${timeAgo(n.createdAt)}'),
                           isThreeLine: true,
                           trailing: n.read ? null : const CircleAvatar(radius: 5, backgroundColor: Palette.brand),
                           onTap: () => _open(n),

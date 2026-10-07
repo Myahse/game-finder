@@ -149,7 +149,10 @@ class PresenceLiveText extends StatelessWidget {
       );
 }
 
-IconData notificationIconData(String type) {
+/// Row icon for a notification; [data] refines a type (a court move arrives
+/// as game_activity with kind court_change).
+IconData notificationIconData(String type, {Map<String, dynamic> data = const {}}) {
+  if (data['kind'] == 'court_change') return Icons.place;
   switch (type) {
     case 'game_reminder':
       return Icons.schedule;
@@ -168,4 +171,139 @@ IconData notificationIconData(String type) {
     default:
       return Icons.campaign_outlined;
   }
+}
+
+/// Icons Material has no (good) match for, drawn from lucide's outlines (24×24 grid,
+/// 2px round stroke) so they match the web app.
+enum CustomGlyph { crown, swords, cloudRain }
+
+/// One icon of the app's set: a Material glyph or a [CustomGlyph]. Lets data
+/// (badges, challenge formats) name an icon without caring how it is drawn.
+class AppGlyph {
+  final IconData? material;
+  final CustomGlyph? custom;
+  const AppGlyph(IconData this.material) : custom = null;
+  const AppGlyph._custom(CustomGlyph this.custom) : material = null;
+
+  static const crown = AppGlyph._custom(CustomGlyph.crown);
+  static const swords = AppGlyph._custom(CustomGlyph.swords);
+  static const cloudRain = AppGlyph._custom(CustomGlyph.cloudRain);
+}
+
+/// Draws an [AppGlyph]; sized and coloured like [Icon] (IconTheme defaults).
+class AppGlyphIcon extends StatelessWidget {
+  final AppGlyph glyph;
+  final double? size;
+  final Color? color;
+  final String? semanticLabel;
+  const AppGlyphIcon(this.glyph, {super.key, this.size, this.color, this.semanticLabel});
+
+  @override
+  Widget build(BuildContext context) {
+    final material = glyph.material;
+    if (material != null) return Icon(material, size: size, color: color, semanticLabel: semanticLabel);
+    return CustomGlyphIcon(glyph.custom!, size: size, color: color, semanticLabel: semanticLabel);
+  }
+}
+
+/// A [CustomGlyph] as an icon widget.
+class CustomGlyphIcon extends StatelessWidget {
+  final CustomGlyph glyph;
+  final double? size;
+  final Color? color;
+  final String? semanticLabel;
+  const CustomGlyphIcon(this.glyph, {super.key, this.size, this.color, this.semanticLabel});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = IconTheme.of(context);
+    final s = size ?? theme.size ?? 24;
+    var c = color ?? theme.color ?? const Color(0xFF000000);
+    final opacity = theme.opacity;
+    if (color == null && opacity != null && opacity < 1) c = c.withValues(alpha: c.a * opacity);
+    final icon = SizedBox(width: s, height: s, child: Center(child: CustomPaint(size: Size.square(s), painter: _GlyphPainter(glyph, c))));
+    final label = semanticLabel;
+    return label == null ? ExcludeSemantics(child: icon) : Semantics(label: label, child: ExcludeSemantics(child: icon));
+  }
+}
+
+class CrownIcon extends CustomGlyphIcon {
+  const CrownIcon({super.key, super.size, super.color, super.semanticLabel}) : super(CustomGlyph.crown);
+}
+
+class SwordsIcon extends CustomGlyphIcon {
+  const SwordsIcon({super.key, super.size, super.color, super.semanticLabel}) : super(CustomGlyph.swords);
+}
+
+class _GlyphPainter extends CustomPainter {
+  final CustomGlyph glyph;
+  final Color color;
+  const _GlyphPainter(this.glyph, this.color);
+
+  // Polylines on lucide's 24×24 grid (a line that ends where it starts is closed).
+  static const _crown = [
+    [Offset(12, 3.2), Offset(16.1, 9.3), Offset(21.6, 5.7), Offset(18.6, 17), Offset(5.4, 17), Offset(2.4, 5.7), Offset(7.9, 9.3), Offset(12, 3.2)],
+    [Offset(5, 21), Offset(19, 21)],
+  ];
+  static const _swords = [
+    [Offset(14.5, 17.5), Offset(3, 6), Offset(3, 3), Offset(6, 3), Offset(17.5, 14.5)],
+    [Offset(13, 19), Offset(19, 13)],
+    [Offset(16, 16), Offset(20, 20)],
+    [Offset(19, 21), Offset(21, 19)],
+    [Offset(14.5, 6.5), Offset(18, 3), Offset(21, 3), Offset(21, 6), Offset(17.5, 9.5)],
+    [Offset(5, 14), Offset(9, 18)],
+    [Offset(7, 17), Offset(4, 20)],
+    [Offset(3, 19), Offset(5, 21)],
+  ];
+  static const _rainDrops = [
+    [Offset(16, 14), Offset(16, 20)],
+    [Offset(8, 14), Offset(8, 20)],
+    [Offset(12, 16), Offset(12, 22)],
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final k = size.shortestSide / 24;
+    canvas.scale(k);
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    final path = Path();
+    final lines = switch (glyph) {
+      CustomGlyph.crown => _crown,
+      CustomGlyph.swords => _swords,
+      CustomGlyph.cloudRain => _rainDrops,
+    };
+    for (final line in lines) {
+      path.moveTo(line.first.dx, line.first.dy);
+      for (final p in line.skip(1)) {
+        path.lineTo(p.dx, p.dy);
+      }
+      if (line.first == line.last) path.close();
+    }
+    if (glyph == CustomGlyph.cloudRain) {
+      // lucide cloud-rain: M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242
+      path
+        ..moveTo(4, 14.899)
+        ..arcToPoint(const Offset(15.71, 8), radius: const Radius.circular(7), largeArc: true)
+        ..lineTo(17.5, 8)
+        ..arcToPoint(const Offset(20, 16.242), radius: const Radius.circular(4.5));
+    }
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(_GlyphPainter old) => old.glyph != glyph || old.color != color;
+}
+
+/// Rain marker used everywhere rain is flagged (tags, pins, alerts, the badge),
+/// lucide's CloudRain like the web.
+const kRainGlyph = AppGlyph.cloudRain;
+
+/// [kRainGlyph] as an icon widget.
+class RainIcon extends CustomGlyphIcon {
+  const RainIcon({super.key, super.size, super.color, super.semanticLabel}) : super(CustomGlyph.cloudRain);
 }

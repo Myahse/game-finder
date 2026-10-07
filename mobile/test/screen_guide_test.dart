@@ -32,8 +32,8 @@ class _GuideHostState extends State<GuideHost> {
   void initState() {
     super.initState();
     ScreenGuide.maybeShow(context, screen: widget.screen, tips: [
-      GuideTip(target: target, emoji: '🔄', title: 'Switch sport here', body: 'Pick a sport.'),
-      const GuideTip(emoji: '🤝', title: 'Play together', body: 'Join a game.'),
+      GuideTip(target: target, icon: const Icon(Icons.swap_horiz), title: 'Switch sport here', body: 'Pick a sport.'),
+      const GuideTip(icon: Icon(Icons.groups), title: 'Play together', body: 'Join a game.'),
     ]);
   }
 

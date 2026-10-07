@@ -6,6 +6,7 @@ import '../core/format.dart';
 import '../core/l10n.dart';
 import '../core/models.dart';
 import '../core/progress_models.dart';
+import '../ui/app_icons.dart';
 
 /// Host (game) or challenger (challenge) moves it to another court. True once moved.
 Future<bool?> showMoveCourtSheet(
@@ -104,7 +105,11 @@ class _MoveCourtSheetState extends State<_MoveCourtSheet> {
   Widget _rainTag(int pct) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
         decoration: BoxDecoration(color: Colors.lightBlue.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(20)),
-        child: Text('🌧️ ${tr('Rain', 'Pluie')} $pct%', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF0369A1))),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          const RainIcon(size: 14, color: Color(0xFF0369A1)),
+          const SizedBox(width: 4),
+          Text('${tr('Rain', 'Pluie')} $pct%', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF0369A1))),
+        ]),
       );
 
   @override
@@ -146,10 +151,11 @@ class _MoveCourtSheetState extends State<_MoveCourtSheet> {
           const SizedBox(height: 6),
           SegmentedButton<String>(
             segments: [
-              ButtonSegment(value: 'rain', label: Text('🌧️ ${tr('Rain', 'Pluie')}')),
+              ButtonSegment(value: 'rain', icon: const RainIcon(), label: Text(tr('Rain', 'Pluie'))),
               ButtonSegment(value: 'other', label: Text(tr('Other reason', 'Autre raison'))),
             ],
             selected: {_reason},
+            showSelectedIcon: false,
             onSelectionChanged: (s) => setState(() => _reason = s.first),
           ),
           const SizedBox(height: 12),
@@ -216,13 +222,14 @@ Future<String?> showCourtChangeAlert(BuildContext context, CourtChange c) {
             ),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(c.rain ? '🌧️' : '📍', style: const TextStyle(fontSize: 36)),
+            c.rain ? const RainIcon(size: 36, color: Colors.white) : const Icon(Icons.place, size: 36, color: Colors.white),
+            const SizedBox(height: 4),
             Text(
               c.challengeId != null ? tr('CHALLENGE MOVED!', 'DÉFI DÉPLACÉ !') : tr('GAME MOVED!', 'MATCH DÉPLACÉ !'),
               style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900),
             ),
             Text(
-              c.rain ? tr('$who moved it because of rain 🌧️', '$who l’a déplacé à cause de la pluie 🌧️') : tr('$who moved it', '$who l’a déplacé'),
+              c.rain ? tr('$who moved it because of rain', '$who l’a déplacé à cause de la pluie') : tr('$who moved it', '$who l’a déplacé'),
               style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
             ),
           ]),

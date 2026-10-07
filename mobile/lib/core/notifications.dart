@@ -10,6 +10,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'api.dart';
 import 'firebase_bootstrap.dart';
 import 'models.dart';
+import 'strip_emoji.dart';
 import '../core/l10n.dart';
 
 /// Local notifications (the "Are you still playing?" check, scheduled on the
@@ -74,7 +75,7 @@ class Notifications {
     _messagingHooked = true;
     FirebaseMessaging.onMessage.listen((m) {
       final n = m.notification;
-      if (n != null) show(n.title ?? 'Find the Game', n.body ?? '', payload: m.data['game_id'] ?? m.data['court_id']);
+      if (n != null) show(stripEmoji(n.title ?? 'Find the Game'), stripEmoji(n.body ?? ''), payload: m.data['game_id'] ?? m.data['court_id']);
     });
   }
 

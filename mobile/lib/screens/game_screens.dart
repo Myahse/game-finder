@@ -104,7 +104,7 @@ class _GameScreenState extends State<GameScreen> {
         _guideQueued = true;
         ScreenGuide.maybeShow(context, screen: GuideScreen.game, tips: [
           GuideTip(
-            emoji: '👥',
+            icon: const Icon(Icons.person_add),
             title: tr('Bring your crew', 'Venez avec votre équipe'),
             body: tr('Invite friends by @username, keep the score and share the result when you’re done.',
                 'Invitez vos amis par @pseudo, notez le score et partagez le résultat à la fin.'),

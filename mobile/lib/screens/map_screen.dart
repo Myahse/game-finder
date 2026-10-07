@@ -109,21 +109,26 @@ class _MapScreenState extends State<MapScreen> {
       when: () => widget.tabActive,
       tips: [
         GuideTip(
-          emoji: '🏀 ⚽ 🏐 🎾 🏸',
+          icon: Row(mainAxisSize: MainAxisSize.min, children: [
+            for (final (i, slug) in const ['basketball', 'football', 'volleyball', 'tennis', 'badminton'].indexed) ...[
+              if (i > 0) const SizedBox(width: 8),
+              SportIcon(slug, size: 24),
+            ],
+          ]),
           title: tr('Every sport, one app', 'Tous les sports, une seule app'),
           body: tr('Basketball, football, volleyball, tennis, badminton… Find people near you to play with, whatever your game.',
               'Basket, foot, volley, tennis, badminton… Trouvez des gens près de chez vous pour jouer, quel que soit votre sport.'),
         ),
         GuideTip(
           target: _sportChipsKey,
-          emoji: '🔄',
+          icon: const Icon(Icons.swap_horiz),
           title: tr('Switch sport here', 'Changez de sport ici'),
           body: tr('The map shows courts and games for the sport you pick. Add more sports from your profile.',
               'La carte montre les terrains et les matchs du sport choisi. Ajoutez d’autres sports depuis votre profil.'),
         ),
         GuideTip(
           target: widget.playTabKey,
-          emoji: '🤝',
+          icon: const Icon(Icons.groups),
           title: tr('Play together', 'Jouez ensemble'),
           body: tr('Join a game near you or start one in a few taps — players around you get notified.',
               'Rejoignez un match près de vous ou lancez-en un en quelques gestes — les joueurs autour sont prévenus.'),

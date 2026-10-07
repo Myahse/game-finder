@@ -12,6 +12,7 @@ import '../core/location.dart';
 import '../core/models.dart';
 import '../core/my_sport.dart';
 import '../core/progress_models.dart';
+import '../ui/app_icons.dart';
 import '../ui/screen_guide.dart';
 import '../ui/widgets.dart';
 import 'court_move.dart';
@@ -35,7 +36,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
     _load();
     ScreenGuide.maybeShow(context, screen: GuideScreen.challenges, tips: [
       GuideTip(
-        emoji: '⚔️',
+        icon: const SwordsIcon(),
         title: tr('Challenge your friends', 'Défiez vos amis'),
         body: tr('1v1, 2v2, penalties, rallies… Send a challenge, play it, and win to level up and earn badges.',
             '1v1, 2v2, tirs au but, échanges… Lancez un défi, jouez-le et gagnez pour monter de niveau et débloquer des badges.'),
@@ -255,7 +256,7 @@ class _ChallengeCardState extends State<ChallengeCard> {
         padding: const EdgeInsets.all(14),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Row(children: [
-            Text(format?.emoji ?? '⚔️', style: const TextStyle(fontSize: 18)),
+            AppGlyphIcon(format?.icon ?? AppGlyph.swords, size: 20, color: theme.colorScheme.primary),
             const SizedBox(width: 6),
             Expanded(child: Text('${c.sport.name} · ${format?.name ?? c.format}', style: const TextStyle(fontWeight: FontWeight.w800), overflow: TextOverflow.ellipsis)),
             Container(
@@ -291,9 +292,17 @@ class _ChallengeCardState extends State<ChallengeCard> {
           Wrap(alignment: WrapAlignment.center, spacing: 12, children: [
             InkWell(
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CourtDetailsScreen(courtId: c.court.id))),
-              child: Text('📍 ${c.court.name}', style: const TextStyle(fontWeight: FontWeight.w700)),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.place, size: 16, color: theme.colorScheme.primary),
+                const SizedBox(width: 3),
+                Flexible(child: Text(c.court.name, style: const TextStyle(fontWeight: FontWeight.w700))),
+              ]),
             ),
-            Text('🕒 ${_when(c.startTime)}', style: const TextStyle(fontWeight: FontWeight.w700)),
+            Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.schedule, size: 16, color: theme.colorScheme.primary),
+              const SizedBox(width: 3),
+              Text(_when(c.startTime), style: const TextStyle(fontWeight: FontWeight.w700)),
+            ]),
           ]),
           if (c.message != null) ...[
             const SizedBox(height: 8),
@@ -381,7 +390,7 @@ class _Side extends StatelessWidget {
         user == null
             ? CircleAvatar(radius: 26, backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest, child: const Text('?', style: TextStyle(fontSize: 22)))
             : UserAvatar(user, size: 52),
-        if (crowned) const Positioned(right: -8, top: -10, child: Text('👑', style: TextStyle(fontSize: 20))),
+        if (crowned) const Positioned(right: -8, top: -10, child: CrownIcon(size: 22, color: Color(0xFFF5B301))),
       ]),
       const SizedBox(height: 4),
       Text(user == null ? tr('Open', 'Ouvert') : '@${user!.username}', overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800)),
@@ -638,7 +647,9 @@ class _ComposerState extends State<_Composer> {
             Wrap(spacing: 8, runSpacing: 8, children: [
               for (final f in formats)
                 ChoiceChip(
-                  label: Text('${f.emoji} ${f.name}${f.teamSize > 1 ? ' · ${f.teamSize}/${tr('side', 'équipe')}' : ''}'),
+                  avatar: AppGlyphIcon(f.icon, size: 18),
+                  showCheckmark: false,
+                  label: Text('${f.name}${f.teamSize > 1 ? ' · ${f.teamSize}/${tr('side', 'équipe')}' : ''}'),
                   selected: _format == f.id,
                   onSelected: (_) => setState(() => _format = f.id),
                 ),
@@ -687,7 +698,7 @@ class _ComposerState extends State<_Composer> {
             TextField(
               controller: _message,
               maxLength: 140,
-              decoration: InputDecoration(labelText: tr('Message (optional)', 'Message (facultatif)'), hintText: tr('Trash talk welcome 😤', 'Le chambrage est permis 😤')),
+              decoration: InputDecoration(labelText: tr('Message (optional)', 'Message (facultatif)'), hintText: tr('Trash talk welcome', 'Le chambrage est permis')),
             ),
             Wrap(spacing: 6, runSpacing: 4, children: [
               for (final idea in _messageIdeas())
@@ -989,9 +1000,9 @@ class _BannerAvatar extends StatelessWidget {
 }
 
 List<String> _messageIdeas() => [
-      tr('You ready? 🔥', 'T’es prêt ? 🔥'),
-      tr('Loser buys the drinks 🥤', 'Le perdant paie les boissons 🥤'),
-      tr('Rematch time 😤', 'C’est l’heure de la revanche 😤'),
+      tr('You ready?', 'T’es prêt ?'),
+      tr('Loser buys the drinks', 'Le perdant paie les boissons'),
+      tr('Rematch time', 'C’est l’heure de la revanche'),
       tr('Bring your A game', 'Viens avec ton meilleur jeu'),
     ];
 
@@ -1044,7 +1055,7 @@ class _MessageSheetState extends State<_MessageSheet> {
             controller: _message,
             autofocus: true,
             maxLength: 140,
-            decoration: InputDecoration(hintText: tr('Trash talk welcome 😤', 'Le chambrage est permis 😤')),
+            decoration: InputDecoration(hintText: tr('Trash talk welcome', 'Le chambrage est permis')),
             onChanged: (_) => setState(() {}),
           ),
           Wrap(spacing: 6, runSpacing: 4, children: [

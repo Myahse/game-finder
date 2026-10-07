@@ -99,14 +99,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ScreenGuide.maybeShow(context, screen: GuideScreen.profile, tips: [
       GuideTip(
         target: _progressKey,
-        emoji: '📈',
+        icon: const Icon(Icons.trending_up),
         title: tr('Your player card', 'Votre carte de joueur'),
         body: tr('Every game earns XP, badges and streaks. The more you play, the higher your level.',
             'Chaque match rapporte de l’XP, des badges et des séries. Plus vous jouez, plus votre niveau monte.'),
       ),
       GuideTip(
         target: _challengesKey,
-        emoji: '⚔️',
+        icon: const SwordsIcon(),
         title: tr('Ready for a duel?', 'Prêt pour un duel ?'),
         body: tr('Your challenges live here — and so do your stickers and monthly recap to share.',
             'Vos défis sont ici — tout comme vos stickers et votre récap du mois à partager.'),

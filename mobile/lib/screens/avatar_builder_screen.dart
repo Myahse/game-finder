@@ -36,7 +36,7 @@ class _AvatarBuilderScreenState extends State<AvatarBuilderScreen> {
     super.initState();
     ScreenGuide.maybeShow(context, screen: GuideScreen.avatar, tips: [
       GuideTip(
-        emoji: '🧍',
+        icon: const Icon(Icons.person),
         title: tr('This is you on court', 'C’est vous sur le terrain'),
         body: tr(
             'Your player shows up on games, challenges, the court ranking and your stickers. Make it look like you — you can change it anytime.',
