@@ -4,3 +4,4 @@
 "NSPhotoLibraryUsageDescription" = "Choisissez une photo de profil ou des photos du terrain que vous ajoutez.";
 "NSCameraUsageDescription" = "Prenez en photo le terrain que vous ajoutez.";
 "NSLocalNetworkUsageDescription" = "En développement, Find the Game cherche le serveur sur votre réseau Wi‑Fi local.";
+"NSFaceIDUsageDescription" = "Utilisez Face ID pour déverrouiller Find the Game et vous connecter rapidement.";

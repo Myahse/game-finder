@@ -19,6 +19,7 @@ import '../ui/app_icons.dart';
 import '../core/player_avatar_config.dart' show defaultPlayerConfig;
 import '../ui/player_portrait.dart';
 import 'avatar_builder_screen.dart';
+import 'biometric_card.dart';
 import 'auth_screens.dart' show RegisterScreen, showLoginSheet;
 import 'friends_panel.dart';
 import 'password_card.dart';
@@ -281,6 +282,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           FriendsPanel(key: _friendsKey),
           const SizedBox(height: 12),
           PasswordCard(key: ValueKey('password-${me.hasPassword}'), me: me),
+          BiometricCard(key: ValueKey('biometric-${me.id}'), me: me),
           if (me.isAdmin)
             Padding(
               padding: const EdgeInsets.only(top: 12),

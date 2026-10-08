@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import '../core/api.dart';
 import '../core/auth.dart';
+import '../core/biometric_auth.dart';
 import '../core/friend_invite.dart';
 import '../core/env.dart';
 import '../core/format.dart';
@@ -137,7 +138,10 @@ class _Wordmark extends StatelessWidget {
       );
 }
 
-void showLoginSheet(BuildContext context) {
+/// The login sheet. With "Unlock with fingerprint / Face ID" on and a login
+/// remembered, it offers the fingerprint button and prompts once on its own
+/// unless [autoBiometric] is false (the lock screen's "Use password").
+void showLoginSheet(BuildContext context, {bool autoBiometric = true}) {
   showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -146,7 +150,7 @@ void showLoginSheet(BuildContext context) {
     useSafeArea: true,
     backgroundColor: Colors.transparent,
     useRootNavigator: true,
-    builder: (ctx) => const _LoginSheet(),
+    builder: (ctx) => _LoginSheet(autoBiometric: autoBiometric),
   );
 }
 
@@ -250,7 +254,8 @@ class _FillOrScroll extends StatelessWidget {
 }
 
 class _LoginSheet extends StatefulWidget {
-  const _LoginSheet();
+  final bool autoBiometric;
+  const _LoginSheet({this.autoBiometric = true});
 
   @override
   State<_LoginSheet> createState() => _LoginSheetState();
@@ -262,11 +267,81 @@ class _LoginSheetState extends State<_LoginSheet> {
   String? _error;
   bool _busy = false;
 
+  /// Remembered login for the fingerprint / Face ID button (null: hidden).
+  StoredLogin? _quick;
+  bool _face = false;
+  bool _autoBiometricAttempted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadQuickLogin();
+  }
+
   @override
   void dispose() {
     _login.dispose();
     _password.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadQuickLogin() async {
+    final quick = await BiometricAuth.quickLogin();
+    if (!mounted || quick == null) return;
+    final face = await BiometricAuth.prefersFace();
+    if (!mounted) return;
+    setState(() {
+      _quick = quick;
+      _face = face;
+      if (_login.text.isEmpty) _login.text = quick.login;
+    });
+    if (widget.autoBiometric) _tryBiometricLogin(auto: true);
+  }
+
+  /// Mon Peya's quick login: scan, then the normal login with the stored
+  /// password. Auto-prompts once, 400 ms after the sheet opens.
+  Future<void> _tryBiometricLogin({bool auto = false}) async {
+    if (_busy) return;
+    if (auto) {
+      if (_autoBiometricAttempted) return;
+      _autoBiometricAttempted = true;
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      if (!mounted || _busy) return;
+    }
+    if (_quick == null) return;
+    final ok = await BiometricAuth.authenticate(reason: tr('Log in to Find the Game', 'Connectez-vous à Find the Game'));
+    if (!mounted || !ok) return;
+    final stored = await BiometricAuth.storedCredentials();
+    if (!mounted) return;
+    if (stored == null) {
+      setState(() => _quick = null);
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await context.read<AuthState>().login(stored.login, stored.password);
+      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      if (e is ApiException && (e.code == 'invalid_credentials' || e.code == 'social_account')) {
+        // Password changed elsewhere: forget it, back to the normal form.
+        await BiometricAuth.clearCredentials();
+        if (!mounted) return;
+        setState(() {
+          _quick = null;
+          _password.clear();
+          _error = tr('Your saved login no longer works. Enter your password.',
+              'Votre connexion enregistrée ne fonctionne plus. Saisissez votre mot de passe.');
+        });
+      } else {
+        setState(() => _error = errorText(e));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   Future<void> _submit() async {
@@ -275,10 +350,13 @@ class _LoginSheetState extends State<_LoginSheet> {
       _error = null;
     });
     try {
-      await context.read<AuthState>().login(_login.text, _password.text);
+      final login = _login.text, password = _password.text;
+      await context.read<AuthState>().login(login, password);
+      // Fingerprint / Face ID on: remembered for the next quick login.
+      if (await BiometricAuth.isEnabledInSettings()) await BiometricAuth.rememberCredentials(login, password);
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
-      setState(() => _error = errorText(e));
+      if (mounted) setState(() => _error = errorText(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -313,6 +391,21 @@ class _LoginSheetState extends State<_LoginSheet> {
             const SizedBox(height: 4),
             Text(tr('Pick up where you left off on the map.', 'Reprenez là où vous en étiez sur la carte.'), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
             const SizedBox(height: 20),
+            if (_quick case final quick?) ...[
+              OutlinedButton.icon(
+                key: const ValueKey('biometric-login'),
+                onPressed: _busy ? null : () => _tryBiometricLogin(),
+                icon: Icon(_face ? Icons.face : Icons.fingerprint, color: Palette.brand),
+                label: Text(tr('Log in with fingerprint / Face ID', 'Connexion par empreinte / Face ID')),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                tr('as ${quick.login}', 'en tant que ${quick.login}'),
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: 16),
+            ],
             AppleSignInButton(onDark: Theme.of(context).brightness == Brightness.dark),
             const SizedBox(height: 12),
             GoogleSignInButton(onDark: Theme.of(context).brightness == Brightness.dark),

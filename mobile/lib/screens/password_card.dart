@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../core/account.dart';
 import '../core/api.dart';
 import '../core/auth.dart';
+import '../core/biometric_auth.dart';
 import '../core/l10n.dart';
 import '../core/models.dart';
 import '../ui/theme.dart';
@@ -43,7 +44,9 @@ class _PasswordCardState extends State<PasswordCard> {
     });
     final auth = context.read<AuthState>();
     try {
-      await context.read<Api>().post('/api/me/password', passwordPayload(adding: adding, current: _current.text, next: _next.text));
+      final next = _next.text;
+      await context.read<Api>().post('/api/me/password', passwordPayload(adding: adding, current: _current.text, next: next));
+      await _keepQuickLogin(adding: adding, password: next);
       _current.clear();
       _next.clear();
       if (!mounted) return;
@@ -58,6 +61,18 @@ class _PasswordCardState extends State<PasswordCard> {
       if (mounted) setState(() => _error = errorText(e));
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Fingerprint / Face ID quick login: the remembered password follows the
+  /// change; a Google/Apple account adding one gets it remembered (switch on).
+  Future<void> _keepQuickLogin({required bool adding, required String password}) async {
+    final me = widget.me;
+    final stored = await BiometricAuth.storedCredentials();
+    if (stored != null && stored.belongsTo(email: me.email, username: me.username)) {
+      await BiometricAuth.updateStoredPassword(password);
+    } else if (adding && await BiometricAuth.isEnabledInSettings()) {
+      await BiometricAuth.rememberCredentials(me.username, password);
     }
   }
 

@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import 'core/api.dart';
 import 'core/api_bootstrap.dart';
+import 'core/app_lock.dart';
 import 'core/env.dart';
 import 'core/kings.dart';
 import 'core/firebase_bootstrap.dart';
@@ -15,10 +16,12 @@ import 'core/mapbox_init.dart';
 import 'core/monitoring.dart';
 import 'core/auth.dart';
 import 'core/location.dart';
+import 'core/models.dart' show Me;
 import 'core/map_pause.dart';
 import 'core/notifications.dart';
 import 'core/presence.dart';
 import 'core/realtime.dart';
+import 'screens/app_lock_screen.dart';
 import 'screens/auth_screens.dart';
 import 'screens/home_shell.dart';
 import 'screens/link_router.dart';
@@ -109,14 +112,26 @@ class _RootGateState extends State<RootGate> {
   /// This session went through onboarding: the home opens the avatar builder once.
   bool _justOnboarded = false;
 
+  /// Fingerprint / Face ID lock (Profile → "Unlock with fingerprint / Face ID").
+  final AppLock _lock = AppLock.instance;
+
   @override
   void initState() {
     super.initState();
+    _lock.addListener(_onLockChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) => _boot());
   }
 
+  void _onLockChanged() {
+    if (!mounted || _lock.locked) return;
+    // Unlocked (or signed out from the lock screen): start what waited.
+    _attachAuthListener();
+    LinkRouter.instance.releaseHeld();
+  }
+
   void _attachAuthListener() {
-    if (_authListenerAttached || !mounted) return;
+    // Locked on start: services and held links wait for the unlock.
+    if (_authListenerAttached || !mounted || _lock.lockedAtStart) return;
     _auth = context.read<AuthState>();
     _auth!.addListener(_onAuthChanged);
     _authListenerAttached = true;
@@ -132,6 +147,7 @@ class _RootGateState extends State<RootGate> {
   @override
   void dispose() {
     _auth?.removeListener(_onAuthChanged);
+    _lock.removeListener(_onLockChanged);
     LinkRouter.instance.detach();
     super.dispose();
   }
@@ -147,6 +163,7 @@ class _RootGateState extends State<RootGate> {
     setState(() => _bootStatus = tr('Loading…', 'Chargement…'));
     final auth = context.read<AuthState>();
     if (auth.user != null) await auth.refreshMe();
+    await _lock.lockOnStartIfNeeded(signedIn: auth.user != null);
     // Realtime (needs a signed-in user for its ws-ticket) is started by
     // _syncServices once the auth listener is attached below.
     await Future<void>.delayed(const Duration(milliseconds: 400));
@@ -200,6 +217,14 @@ class _RootGateState extends State<RootGate> {
     if (!_authListenerAttached) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _attachAuthListener());
     }
+    if (user == null && _lock.locked) {
+      // Session gone (expired refresh) while locked: nothing left to protect.
+      WidgetsBinding.instance.addPostFrameCallback((_) => _lock.release());
+    }
+    return AppLockGate(lock: _lock, child: _signedInOrWelcome(user));
+  }
+
+  Widget _signedInOrWelcome(Me? user) {
     if (user == null) {
       _justOnboarded = false;
       return const WelcomeScreen();

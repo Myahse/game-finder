@@ -59,6 +59,8 @@ dependencies:
   qr_flutter: ^4.1.0
   # Universal / App Links and the findthegame:// scheme (core/deep_links.dart).
   app_links: ^7.2.1
+  # Fingerprint / Face ID quick login and app lock (core/biometric_auth.dart).
+  local_auth: ^2.3.0
 
 dev_dependencies:
   flutter_test:

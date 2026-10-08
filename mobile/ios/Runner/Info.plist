@@ -19,6 +19,8 @@
 	<string>Choose a profile photo or photos of a court you are adding.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Take a photo of a court you are adding.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Use Face ID to unlock Find the Game and log in quickly.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>In development builds, Find the Game looks for the server on your local Wi-Fi network.</string>
 	<key>CFBundleURLTypes</key>

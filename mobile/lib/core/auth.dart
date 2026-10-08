@@ -22,6 +22,19 @@ class AuthState extends ChangeNotifier {
     await PendingFriendInvite.acceptPending(api); // invite opened before signing in
   }
 
+  /// Checks the signed-in player's password (turning on the fingerprint quick
+  /// login) without replacing the current session: the extra session the
+  /// check opens is revoked straight away.
+  Future<void> verifyPassword(String login, String password) async {
+    final s = await api.post('/api/auth/login', {'login': login.trim(), 'password': password});
+    final refresh = s is Map ? s['refresh_token'] : null;
+    if (refresh is String) {
+      try {
+        await api.post('/api/auth/logout', {'refresh_token': refresh});
+      } catch (_) {}
+    }
+  }
+
   /// Creates the account. Returns false when the server wants the email
   /// verified first: no session is kept and the app shows "check your inbox".
   Future<bool> register({

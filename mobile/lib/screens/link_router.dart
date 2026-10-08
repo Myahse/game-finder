@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../core/app_lock.dart';
 import '../core/auth.dart';
 import '../core/deep_links.dart';
 import '../core/map_pause.dart';
@@ -53,6 +54,17 @@ class LinkRouter {
     if (p != null) _afterFrame(() => open(p));
   }
 
+  /// A held link will show the login sheet itself once opened signed out.
+  bool get heldNeedsAuth => _pending?.needsAuth ?? false;
+
+  /// The app lock opened: opens the link that arrived while it was up.
+  void releaseHeld() {
+    final p = _pending;
+    if (p == null || _auth == null) return;
+    _pending = null;
+    _afterFrame(() => open(p));
+  }
+
   void detach() {
     _auth?.removeListener(_onAuth);
     _auth = null;
@@ -77,7 +89,8 @@ class LinkRouter {
   void open(DeepLink link) {
     final auth = _auth;
     final nav = navigatorKey.currentState;
-    if (auth == null || nav == null) {
+    // Behind the fingerprint / Face ID lock: opened by [releaseHeld] after the unlock.
+    if (auth == null || nav == null || AppLock.instance.locked) {
       _pending = link;
       return;
     }
