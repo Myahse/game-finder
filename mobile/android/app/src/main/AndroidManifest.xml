@@ -38,6 +38,35 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- App Links: share links open in the app (lib/core/deep_links.dart).
+                 Hosts must match defaultAppLinkHosts and web/public/.well-known/assetlinks.json. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https"/>
+                <data android:host="game-finder-swart.vercel.app"/>
+                <data android:host="out4ground.com"/>
+                <data android:host="www.out4ground.com"/>
+                <data android:pathPrefix="/g/"/>
+                <data android:pathPrefix="/friend/"/>
+                <data android:pathPrefix="/u/"/>
+                <data android:pathPrefix="/challenges"/>
+                <data android:pathPrefix="/games/"/>
+                <data android:pathPrefix="/courts/"/>
+                <data android:pathPrefix="/users/"/>
+                <data android:path="/verify-email"/>
+                <data android:path="/"/>
+            </intent-filter>
+            <!-- findthegame://g/<token> etc. (same paths as the web). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="findthegame"/>
+            </intent-filter>
+            <!-- Links are routed by app_links + LinkRouter, not Flutter's route parser. -->
+            <meta-data android:name="flutter_deeplinking_enabled" android:value="false"/>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

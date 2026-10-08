@@ -106,6 +106,76 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
   }
 }
 
+/// One challenge from a shared link (web ChallengeDetailPage): its card, then
+/// a way to all my challenges.
+class ChallengeDetailScreen extends StatefulWidget {
+  final String challengeId;
+  const ChallengeDetailScreen({super.key, required this.challengeId});
+  @override
+  State<ChallengeDetailScreen> createState() => _ChallengeDetailScreenState();
+}
+
+class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
+  Challenge? _challenge;
+  bool _loading = true;
+  bool _notFound = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final j = await context.read<Api>().get('/api/challenges/${Uri.encodeComponent(widget.challengeId)}');
+      if (!mounted) return;
+      setState(() {
+        _challenge = Challenge.fromJson(Map<String, dynamic>.from(j));
+        _notFound = false;
+        _loading = false;
+      });
+    } catch (_) {
+      // Missing, private or gone: the web shows the same "not available" card.
+      if (mounted) {
+        setState(() {
+          _notFound = _challenge == null;
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = _challenge;
+    return Scaffold(
+      appBar: AppBar(title: Text(tr('CHALLENGES', 'DÉFIS'))),
+      body: RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(padding: const EdgeInsets.all(16), children: [
+          if (_loading && c == null)
+            const Padding(padding: EdgeInsets.all(32), child: Center(child: CircularProgressIndicator())),
+          if (_notFound)
+            EmptyState(
+              icon: Icons.sports_kabaddi,
+              title: tr('Challenges', 'Défis'),
+              body: tr('This challenge isn’t available.', 'Ce défi n’est pas disponible.'),
+            ),
+          if (c != null) ChallengeCard(challenge: c, onChanged: _load),
+          const SizedBox(height: 8),
+          Center(
+            child: TextButton(
+              onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ChallengesScreen())),
+              child: Text(tr('All my challenges', 'Tous mes défis')),
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
 String _statusLabel(Challenge c) {
   if (c.isOpen && c.status == 'pending') return tr('Open', 'Ouvert');
   return switch (c.status) {

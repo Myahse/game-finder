@@ -1,3 +1,4 @@
+import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -20,6 +21,7 @@ import 'core/presence.dart';
 import 'core/realtime.dart';
 import 'screens/auth_screens.dart';
 import 'screens/home_shell.dart';
+import 'screens/link_router.dart';
 import 'ui/theme.dart';
 
 Future<void> main() async {
@@ -51,6 +53,12 @@ Future<void> main() async {
   await api.load();
   final notifications = Notifications(api);
   await notifications.init();
+  // Shared links (/g/, /friend/, /u/, /games/…) open in the app; held until boot.
+  try {
+    LinkRouter.instance.listen(AppLinks().uriLinkStream);
+  } catch (e) {
+    if (kDebugMode) debugPrint('app links unavailable: $e');
+  }
 
   runApp(MultiProvider(
     providers: [
@@ -73,6 +81,7 @@ class FindTheGameApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Find the Game',
+      navigatorKey: LinkRouter.instance.navigatorKey,
       debugShowCheckedModeBanner: false,
       theme: buildTheme(Brightness.light),
       darkTheme: buildTheme(Brightness.dark),
@@ -112,6 +121,7 @@ class _RootGateState extends State<RootGate> {
     _auth!.addListener(_onAuthChanged);
     _authListenerAttached = true;
     _syncServices(_auth!.user?.id);
+    LinkRouter.instance.attach(_auth!);
   }
 
   void _onAuthChanged() {
@@ -122,6 +132,7 @@ class _RootGateState extends State<RootGate> {
   @override
   void dispose() {
     _auth?.removeListener(_onAuthChanged);
+    LinkRouter.instance.detach();
     super.dispose();
   }
 

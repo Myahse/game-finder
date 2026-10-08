@@ -32,7 +32,21 @@
 				<string>$(GOOGLE_REVERSED_CLIENT_ID)</string>
 			</array>
 		</dict>
+		<dict>
+			<!-- findthegame://g/<token> etc. (lib/core/deep_links.dart). -->
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLName</key>
+			<string>com.findthegame.links</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>findthegame</string>
+			</array>
+		</dict>
 	</array>
+	<!-- Links are routed by app_links + LinkRouter, not Flutter's route parser. -->
+	<key>FlutterDeepLinkingEnabled</key>
+	<false/>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>maps</string>

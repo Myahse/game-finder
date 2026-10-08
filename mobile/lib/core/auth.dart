@@ -4,6 +4,7 @@ import 'account.dart';
 import 'api.dart';
 import 'env.dart';
 import 'apple_auth.dart';
+import 'friend_invite.dart';
 import 'google_auth.dart';
 import 'models.dart';
 
@@ -18,6 +19,7 @@ class AuthState extends ChangeNotifier {
   Future<void> login(String login, String password) async {
     final s = await api.post('/api/auth/login', {'login': login.trim(), 'password': password});
     await api.setSession(Session.fromJson(s));
+    await PendingFriendInvite.acceptPending(api); // invite opened before signing in
   }
 
   /// Creates the account. Returns false when the server wants the email
@@ -29,13 +31,16 @@ class AuthState extends ChangeNotifier {
     required String email,
     required String password,
   }) async {
+    final invite = await PendingFriendInvite.peek();
     final s = Session.fromJson(await api.post('/api/auth/register', {
       'first_name': firstName.trim(),
       'last_name': lastName.trim(),
       'username': username.trim(),
       'email': email.trim(),
       'password': password,
+      'friend_invite_token': ?invite,
     }));
+    if (invite != null) await PendingFriendInvite.clear(); // the server became friends on sign-up
     try {
       await api.getWithToken('/api/me', s.accessToken);
     } catch (e) {
@@ -56,8 +61,9 @@ class AuthState extends ChangeNotifier {
   Future<bool?> appleSignIn() async {
     final idToken = await AppleAuth.idToken();
     if (idToken == null) return null;
-    final s = Session.fromJson(await api.post('/api/auth/firebase', {'id_token': idToken}));
+    final s = Session.fromJson(await api.post('/api/auth/firebase', await _oauthBody(idToken)));
     await api.setSession(s);
+    await PendingFriendInvite.clear(); // sent with the sign-in
     return s.user['onboarded'] != true;
   }
 
@@ -65,9 +71,16 @@ class AuthState extends ChangeNotifier {
     final idToken = await GoogleAuth.idToken();
     if (idToken == null) return null;
     final path = firebaseConfigured ? '/api/auth/firebase' : '/api/auth/google';
-    final s = Session.fromJson(await api.post(path, {'id_token': idToken}));
+    final s = Session.fromJson(await api.post(path, await _oauthBody(idToken)));
     await api.setSession(s);
+    await PendingFriendInvite.clear(); // sent with the sign-in
     return s.user['onboarded'] != true;
+  }
+
+  /// Google / Apple sign-in body; a pending friend invite rides along (web auth.tsx).
+  Future<Map<String, dynamic>> _oauthBody(String idToken) async {
+    final invite = await PendingFriendInvite.peek();
+    return {'id_token': idToken, 'friend_invite_token': ?invite};
   }
 
   Future<Me> updateMe(Map<String, dynamic> patch) async {

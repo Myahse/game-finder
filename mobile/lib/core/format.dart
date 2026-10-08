@@ -38,13 +38,16 @@ String timeAgo(DateTime? t, [DateTime? now]) {
 
 String clock(DateTime t) => DateFormat.Hm().format(t);
 
-String gameTime(Game g) {
-  if (g.isLive) return tr('Started ${clock(g.startTime)}', 'Commencé à ${clock(g.startTime)}');
+String gameTime(Game g) => gameTimeLabel(g.status, g.startTime);
+
+/// [gameTime] from a status and start (e.g. a shared-link preview).
+String gameTimeLabel(String status, DateTime start) {
+  if (status == 'active') return tr('Started ${clock(start)}', 'Commencé à ${clock(start)}');
   final now = DateTime.now();
-  final sameDay = g.startTime.year == now.year && g.startTime.month == now.month && g.startTime.day == now.day;
+  final sameDay = start.year == now.year && start.month == now.month && start.day == now.day;
   return sameDay
-      ? tr('Today ${clock(g.startTime)}', 'Aujourd’hui ${clock(g.startTime)}')
-      : localDateFormat('EEE d MMM, HH:mm').format(g.startTime);
+      ? tr('Today ${clock(start)}', 'Aujourd’hui ${clock(start)}')
+      : localDateFormat('EEE d MMM, HH:mm').format(start);
 }
 
 const maxPlayersSliderMin = 2;

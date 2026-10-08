@@ -1,0 +1,24 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["TODO_TEAMID.com.findthegame.findTheGame"],
+        "components": [
+          { "/": "/g/*", "comment": "Shared game link" },
+          { "/": "/friend/*", "comment": "Friend invite" },
+          { "/": "/u/*", "comment": "Public profile by username" },
+          { "/": "/challenges", "comment": "My challenges" },
+          { "/": "/challenges/*", "comment": "Challenge detail" },
+          { "/": "/games/*", "comment": "Game" },
+          { "/": "/courts/*", "comment": "Court" },
+          { "/": "/users/*", "comment": "Player profile" },
+          { "/": "/verify-email", "comment": "Email verification" },
+          { "/": "/", "?": { "court": "*" }, "comment": "Court from the map (/?court=<id>)" }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["TODO_TEAMID.com.findthegame.findTheGame"]
+  }
+}

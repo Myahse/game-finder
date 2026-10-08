@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import '../core/api.dart';
 import '../core/auth.dart';
+import '../core/friend_invite.dart';
 import '../core/env.dart';
 import '../core/format.dart';
 import '../core/models.dart';
@@ -675,6 +676,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Future<void> _done(String sportId) async {
     if (!_formKey.currentState!.validate() || _usernameTaken) return;
     setState(() => _busy = true);
+    final api = context.read<Api>();
     try {
       await context.read<AuthState>().updateMe({
         'first_name': _first.text.trim(),
@@ -685,6 +687,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         'skill_level': _skill,
         'onboarded': true,
       });
+      // A friend invite opened before signing up (web OnboardingPage).
+      await PendingFriendInvite.acceptPending(api);
       if (mounted) await context.read<Notifications>().registerDevice();
     } catch (e) {
       if (mounted) setState(() => _error = errorText(e));

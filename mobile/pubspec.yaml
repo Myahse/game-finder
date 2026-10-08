@@ -57,6 +57,8 @@ dependencies:
   http_parser: ^4.1.2
   share_plus: ^13.3.1
   qr_flutter: ^4.1.0
+  # Universal / App Links and the findthegame:// scheme (core/deep_links.dart).
+  app_links: ^7.2.1
 
 dev_dependencies:
   flutter_test:
