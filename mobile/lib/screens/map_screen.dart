@@ -590,6 +590,7 @@ class _MapScreenState extends State<MapScreen> {
           pulseGameIds: _pulseGameIds,
           onGameTap: _openGame,
           onSeeAll: widget.onOpenPlayTab,
+          sportSlug: _sport,
         ),
 
       ),

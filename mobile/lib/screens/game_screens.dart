@@ -450,7 +450,9 @@ class _GameScreenState extends State<GameScreen> {
 
 class CreateGameScreen extends StatefulWidget {
   final String? courtId;
-  const CreateGameScreen({super.key, this.courtId});
+  /// Sport picked in the map's top filter; courts follow it.
+  final String? sportSlug;
+  const CreateGameScreen({super.key, this.courtId, this.sportSlug});
   @override
   State<CreateGameScreen> createState() => _CreateGameScreenState();
 }
@@ -515,13 +517,13 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
         _courts = courts;
         _mySports = mine;
         _courtsLoading = false;
-        final preferred = user?.preferredSportId;
-        if (preferred != null && !(user?.isAdmin ?? false)) {
-          _sportId = preferred;
-        } else if (_courtId != null && _sportId == null) {
-          final court = courts.where((c) => c.id == _courtId).firstOrNull;
-          final active = court?.sports.where((s) => s.active).toList() ?? const <Sport>[];
-          if (active.length == 1) _sportId = active.first.id;
+        // Same as the map: its filter, else the court I came from, else my main sport.
+        if (_sportId == null || !mine.any((s) => s.id == _sportId)) {
+          final fromMap = mine.where((s) => s.slug == widget.sportSlug).firstOrNull;
+          final fromCourt = courts.where((c) => c.id == widget.courtId).firstOrNull;
+          final courtSport = fromCourt == null ? null : mine.where((m) => fromCourt.sports.any((cs) => cs.id == m.id)).firstOrNull;
+          final main = mine.where((s) => s.id == user?.preferredSportId).firstOrNull;
+          _sportId = (fromMap ?? courtSport ?? main ?? mine.firstOrNull)?.id;
         }
       });
     } catch (e) {
@@ -656,11 +658,12 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
         if (mounted) unawaited(_loadCourts());
       });
     }
-    final court = _courts.where((c) => c.id == _courtId).firstOrNull;
-    // Any of my sports the chosen court offers (admins: any sport).
-    final sports = court == null ? _mySports : _mySports.where((m) => court.sports.any((cs) => cs.id == m.id)).toList();
+    final sports = _mySports;
     final locked = sports.length == 1 ? sports.first : null;
     final sport = sports.where((s) => s.id == _sportId).firstOrNull ?? sports.firstOrNull;
+    // Only courts for the chosen sport, like the map's filter.
+    final sportCourts = sport == null ? _courts : _courts.where((c) => c.sports.any((cs) => cs.id == sport.id)).toList();
+    final court = sportCourts.where((c) => c.id == _courtId).firstOrNull;
     final courtPhotoCount = court?.photos.where((p) => p.trim().isNotEmpty).length ?? 0;
     final suggestPlacePhoto = court != null && courtPhotoCount == 0 && _placePhotos.isEmpty;
 
@@ -669,6 +672,25 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
         children: [
+        Text(tr('Sport', 'Sport'), style: const TextStyle(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 6),
+        if (locked != null)
+          SportInline(locked, iconSize: 20)
+        else
+          Wrap(spacing: 8, children: [
+            for (final s in sports)
+              ChoiceTile(
+                leading: SportIcon(s.slug, size: 20),
+                label: s.name,
+                selected: sport?.id == s.id,
+                onTap: () => setState(() {
+                  _sportId = s.id;
+                  final c = _courts.where((x) => x.id == _courtId).firstOrNull;
+                  if (c != null && !c.sports.any((cs) => cs.id == s.id)) _courtId = null;
+                }),
+              ),
+          ]),
+        const SizedBox(height: 16),
         if (_courtsLoading && _courts.isEmpty)
           const Padding(padding: EdgeInsets.only(bottom: 16), child: LinearProgressIndicator())
         else if (_courtsError != null)
@@ -679,26 +701,26 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
               TextButton(onPressed: _loadCourts, child: Text(tr('RETRY', 'RÉESSAYER'))),
             ]),
           )
-        else if (_courts.isEmpty)
+        else if (sportCourts.isEmpty)
           Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: Text(
-              tr('No court for your sports within $listNearbyRadiusKm km. Add one (below or from the Map tab), then come back to create a game.',
-                  'Aucun terrain pour tes sports à moins de $listNearbyRadiusKm km. Ajoutes-en un (ci-dessous ou depuis l’onglet Carte), puis reviens créer un match.'),
+              tr('No ${sport?.name ?? ''} court within $listNearbyRadiusKm km. Pick another sport above, or add a court below.',
+                  'Aucun terrain de ${sport?.name ?? ''} à moins de $listNearbyRadiusKm km. Choisis un autre sport ci-dessus, ou ajoute un terrain ci-dessous.'),
               style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ),
         DropdownButtonFormField<String>(
-          initialValue: _courts.any((c) => c.id == _courtId) ? _courtId : null,
+          key: ValueKey('courts-${sport?.id}'),
+          initialValue: sportCourts.any((c) => c.id == _courtId) ? _courtId : null,
           isExpanded: true,
           decoration: InputDecoration(labelText: tr('Court', 'Terrain')),
           items: [
-            for (final c in _courts)
+            for (final c in sportCourts)
               DropdownMenuItem(value: c.id, child: Text('${c.name}  ·  ${formatDistance(c.distanceM)}', overflow: TextOverflow.ellipsis)),
           ],
           onChanged: (v) => setState(() {
             _courtId = v;
-            _sportId = null;
             _placePhotos.clear();
           }),
         ),
@@ -774,21 +796,6 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
             ],
           ),
         ],
-        const SizedBox(height: 16),
-        Text(tr('Sport', 'Sport'), style: const TextStyle(fontWeight: FontWeight.w700)),
-        const SizedBox(height: 6),
-        if (locked != null)
-          SportInline(locked, iconSize: 20)
-        else
-          Wrap(spacing: 8, children: [
-            for (final s in sports)
-              ChoiceTile(
-                leading: SportIcon(s.slug, size: 20),
-                label: s.name,
-                selected: sport?.id == s.id,
-                onTap: () => setState(() => _sportId = s.id),
-              ),
-          ]),
         const SizedBox(height: 16),
         Text(tr('Start time', 'Heure de début'), style: const TextStyle(fontWeight: FontWeight.w700)),
         const SizedBox(height: 6),

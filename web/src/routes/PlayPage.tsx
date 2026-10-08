@@ -86,7 +86,7 @@ export function PlayPage() {
         ) : sorted.length === 0 ? (
           <Empty icon={<BaseSportIcon className="size-14" />} title={t.courts.play.emptyTitle}>
             {t.courts.play.emptyBody}{' '}
-            <Link to="/games/new" className="font-semibold text-brand">
+            <Link to={sport ? `/games/new?sport=${sport}` : '/games/new'} className="font-semibold text-brand">
               {t.courts.play.createGame}
             </Link>
           </Empty>
