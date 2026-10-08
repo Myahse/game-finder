@@ -90,6 +90,9 @@ export const en = {
     skillLevel: 'Skill level',
     gameType: 'Game type',
     noPhotoYet: 'No court photo yet — adding one is recommended but not required.',
+    noCourtsNearby: 'No court for your sports within {km} km. Add one, or pan the map to another area.',
+    courtsLoadFailed: 'Couldn’t load courts.',
+    retry: 'Retry',
     submit: 'Create game',
   },
   my: {
@@ -217,6 +220,9 @@ export const fr: typeof en = {
     skillLevel: 'Niveau',
     gameType: 'Type de match',
     noPhotoYet: 'Pas encore de photo du terrain — en ajouter une est recommandé, mais pas obligatoire.',
+    noCourtsNearby: 'Aucun terrain pour tes sports à moins de {km} km. Ajoutes-en un, ou déplace la carte vers une autre zone.',
+    courtsLoadFailed: 'Impossible de charger les terrains.',
+    retry: 'Réessayer',
     submit: 'Créer le match',
   },
   my: {

@@ -60,7 +60,7 @@ const Map<String, _Pair> _codes = {
   'request_pending': ('Friend request already sent.', 'Demande d’ami déjà envoyée.'),
   'invite_not_found': ('This invite link is invalid or expired.', 'Ce lien d’invitation est invalide ou a expiré.'),
   'sport_locked': ('Your sport was set at signup and can\'t be changed.', 'Votre sport a été choisi à l’inscription et ne peut pas être modifié.'),
-  'wrong_sport': ('You can only use your chosen sport.', 'Vous ne pouvez utiliser que le sport que vous avez choisi.'),
+  'wrong_sport': ('That sport isn’t one of yours. Add it in your profile first.', 'Ce sport ne fait pas partie des tiens. Ajoute-le d’abord dans ton profil.'),
   'sport_required': ('Choose at least one sport.', 'Choisissez au moins un sport.'),
   'invalid_sport': ('Unknown sport.', 'Sport inconnu.'),
   'too_many_sports': ('You can add up to 2 extra sports.', 'Vous pouvez ajouter jusqu’à 2 sports supplémentaires.'),

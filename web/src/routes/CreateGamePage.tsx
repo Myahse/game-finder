@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { api, errorMessage, uploadImage } from '../lib/api'
@@ -17,8 +17,8 @@ import { isAtCourt, notAtCourtMessage, notAtCourtTitle } from '../lib/courtProxi
 import { useLocation } from '../lib/location'
 import { LIST_NEARBY_RADIUS_KM } from '../lib/nearby'
 import { useAuth } from '../lib/auth'
-import { useMySport } from '../lib/mySport'
-import { useCourtsNearby, useSports } from '../lib/queries'
+import { useMySport, useMySports } from '../lib/mySport'
+import { useCourtsNearbySports, useSports } from '../lib/queries'
 import type { Game, GameType, SkillLevel } from '../lib/types'
 import { Clock, Flame, SportIcon, SportName } from '../components/icons'
 import { Plus } from 'lucide-react'
@@ -39,10 +39,14 @@ export function CreateGamePage() {
   const { t } = useLocale()
   const tc = t.games.create
   const mySport = useMySport()
+  const mySports = useMySports()
+  const isAdmin = user?.role === 'admin'
   const { center, coords } = useLocation()
   const { data: sports } = useSports()
-  const sportSlug = user?.role === 'admin' ? null : mySport?.slug ?? null
-  const { data: courts } = useCourtsNearby(center, sportSlug, LIST_NEARBY_RADIUS_KM)
+  // Courts for any of my sports (main + extras), nearest first. Admins see all.
+  const slugs = isAdmin ? [] : mySports.map((s) => s.slug)
+  const { data: merged, isLoading: courtsLoading, error: courtsError } = useCourtsNearbySports(center, slugs, LIST_NEARBY_RADIUS_KM)
+  const courts = useMemo(() => [...merged].sort((a, b) => (a.distance_m ?? Infinity) - (b.distance_m ?? Infinity)), [merged])
   const active = sports?.filter((s) => s.active) ?? []
 
   const [courtId, setCourtId] = useState(params.get('court') ?? '')
@@ -60,7 +64,7 @@ export function CreateGamePage() {
   const [uploading, setUploading] = useState(false)
   const [farModal, setFarModal] = useState(false)
 
-  const court = courts?.find((c) => c.id === courtId)
+  const court = courts.find((c) => c.id === courtId)
   const existingPhotos = (court?.photos ?? []).filter((p) => p.trim().length > 0)
   const suggestPlacePhoto = !!courtId && existingPhotos.length === 0 && placePhotos.length === 0
 
@@ -72,10 +76,10 @@ export function CreateGamePage() {
     if (mySport) setSportId(mySport.id)
   }, [mySport?.id])
 
-  const courtSports = court ? active.filter((s) => court.sports.some((cs) => cs.id === s.id)) : active
-  const lockedSport = mySport && user?.role !== 'admin' ? mySport : null
-  const selectableSports = lockedSport ? courtSports.filter((s) => s.id === lockedSport.id) : courtSports
-  const chosenSport = selectableSports.find((s) => s.id === sportId) ?? selectableSports[0] ?? lockedSport
+  // I can host any of my sports the court offers (admins: any sport).
+  const allowed = isAdmin ? active : mySports.filter((s) => s.active)
+  const selectableSports = court ? allowed.filter((s) => court.sports.some((cs) => cs.id === s.id)) : allowed
+  const chosenSport = selectableSports.find((s) => s.id === sportId) ?? selectableSports[0] ?? null
 
   const addPlacePhoto = async (files: FileList | null) => {
     if (!files?.length) return
@@ -163,12 +167,22 @@ export function CreateGamePage() {
             <option value="" disabled>
               {tc.chooseCourt}
             </option>
-            {courts?.map((c) => (
+            {courts.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name} {c.distance_m != null ? `· ${formatDistance(c.distance_m)}` : ''}
               </option>
             ))}
           </Select>
+          {courtsError ? (
+            <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-danger">
+              {tc.courtsLoadFailed} {errorMessage(courtsError)}
+              <button type="button" className="font-semibold text-brand" onClick={() => void qc.invalidateQueries({ queryKey: ['courts'] })}>
+                {tc.retry}
+              </button>
+            </p>
+          ) : (
+            !courtsLoading && courts.length === 0 && <p className="mt-2 text-sm text-ink-2">{tc.noCourtsNearby.replace('{km}', String(LIST_NEARBY_RADIUS_KM))}</p>
+          )}
         </Field>
 
         {courtId && (
@@ -203,9 +217,9 @@ export function CreateGamePage() {
         )}
 
         <Field label={tc.sport}>
-          {lockedSport ? (
+          {selectableSports.length <= 1 ? (
             <p className="flex items-center gap-2 rounded-xl border border-line bg-surface-2 px-4 py-2.5 font-semibold">
-              <SportName sport={lockedSport} />
+              {chosenSport ? <SportName sport={chosenSport} /> : mySport ? <SportName sport={mySport} /> : '—'}
             </p>
           ) : (
             <div className="flex flex-wrap gap-2">
