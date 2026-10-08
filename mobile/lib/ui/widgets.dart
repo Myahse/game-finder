@@ -135,6 +135,8 @@ class GameCard extends StatelessWidget {
   final bool showCourt;
   final bool dense;
   final bool upcomingAccent;
+  /// Host as @username (web GameCard showHost — the map's court sheet).
+  final bool showHost;
   final VoidCallback onTap;
   const GameCard({
     super.key,
@@ -143,6 +145,7 @@ class GameCard extends StatelessWidget {
     this.showCourt = true,
     this.dense = false,
     this.upcomingAccent = false,
+    this.showHost = false,
   });
 
   @override
@@ -217,6 +220,15 @@ class GameCard extends StatelessWidget {
                     Icon(Icons.place, size: 14, color: muted),
                     const SizedBox(width: 4),
                     Expanded(child: Text(game.courtName, overflow: TextOverflow.ellipsis, style: TextStyle(color: muted))),
+                  ]),
+                if (showHost && (game.creator?.username ?? '').isNotEmpty)
+                  Row(children: [
+                    Icon(Icons.person_outline, size: 14, color: muted),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text('@${game.creator!.username}',
+                          overflow: TextOverflow.ellipsis, style: TextStyle(color: muted, fontWeight: FontWeight.w600)),
+                    ),
                   ]),
                 const SizedBox(height: 2),
                 Row(children: [

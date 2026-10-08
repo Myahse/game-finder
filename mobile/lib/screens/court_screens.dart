@@ -202,6 +202,7 @@ class _CourtSheetState extends State<CourtSheet> with _CourtLoader {
                 child: GameCard(
                   game: g,
                   showCourt: false,
+                  showHost: true,
                   onTap: () => completeCourtSheetWithGame(context, g.id),
                 ),
               ),
@@ -235,6 +236,40 @@ class ShareCourtButton extends StatelessWidget {
           if (copied && context.mounted) showSnack(context, tr('Link copied!', 'Lien copié !'));
         },
       );
+}
+
+/// Web CourtPage: "You opened this court from a link…" ({km} = map radius).
+String openedFromLinkText() => tr(
+    'You opened this court from a link. It only appears on the map when you are within about $mapNearbyRadiusKm km.',
+    'Vous avez ouvert ce terrain depuis un lien. Il n’apparaît sur la carte que si vous êtes à moins d’environ $mapNearbyRadiusKm km.');
+
+/// Pending / rejected court (web CourtPage review note).
+class CourtReviewNote extends StatelessWidget {
+  final Court court;
+  const CourtReviewNote({super.key, required this.court});
+
+  @override
+  Widget build(BuildContext context) {
+    final pending = court.status == 'pending';
+    final reason = court.rejectionReason?.trim() ?? '';
+    final text = pending
+        ? tr('Waiting for review. Only you can see this court.', 'En attente de validation. Vous seul voyez ce terrain.')
+        : reason.isNotEmpty
+            ? tr('Rejected: $reason', 'Refusé : $reason')
+            : tr('Rejected', 'Refusé');
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Icon(pending ? Icons.hourglass_top : Icons.close, size: 20),
+            const SizedBox(width: 10),
+            Expanded(child: Text(text)),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _StatusCard extends StatelessWidget {
@@ -485,7 +520,11 @@ class _CourtActionsState extends State<CourtActions> {
 
 class CourtDetailsScreen extends StatefulWidget {
   final String courtId;
-  const CourtDetailsScreen({super.key, required this.courtId});
+
+  /// Opened from a shared link (web CourtPage): notes when the court is
+  /// outside the map radius, so the player knows why it isn't on their map.
+  final bool fromLink;
+  const CourtDetailsScreen({super.key, required this.courtId, this.fromLink = false});
   @override
   State<CourtDetailsScreen> createState() => _CourtDetailsScreenState();
 }
@@ -910,20 +949,15 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen>
                     ),
                     const SizedBox(height: 12),
                   ],
-                  if (c.status == 'pending')
+                  if (c.status == 'pending' || c.status == 'rejected') CourtReviewNote(court: c),
+                  if (widget.fromLink && c.status == 'approved' && beyondMapRadius(c.distanceM))
                     Card(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
                       child: Padding(
                         padding: const EdgeInsets.all(12),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.hourglass_top, size: 20),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                tr('Waiting for review. Only you can see this court.', 'En attente de validation. Vous seul voyez ce terrain.'),
-                              ),
-                            ),
-                          ],
+                        child: Text(
+                          openedFromLinkText(),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                         ),
                       ),
                     ),

@@ -13,6 +13,7 @@ import '../core/models.dart';
 import '../core/my_sport.dart';
 import '../core/progress_models.dart';
 import '../ui/screen_guide.dart';
+import '../ui/share_image.dart' show shareOriginOfContext;
 import '../ui/widgets.dart';
 import '../ui/app_icons.dart';
 import 'court_move.dart';
@@ -223,19 +224,23 @@ class _ChallengeCardState extends State<ChallengeCard> {
     }
   }
 
-  Future<void> _share(Challenge c) async {
+  /// Web ShareChallengeButton: system share sheet, else copies text + link.
+  Future<void> _share(Challenge c, [Rect? origin]) async {
     final a = '@${c.challenger.username}';
     final b = c.opponent != null ? '@${c.opponent!.username}' : tr('Open', 'Ouvert');
     final format = formatById(c.format)?.name ?? c.format;
     final url = '$webAppUrl/challenges/${Uri.encodeComponent(c.id)}';
+    final title = tr('Challenge: $a vs $b', 'Défi : $a contre $b');
     final text = tr('$a vs $b · $format at ${c.court.name}, ${_when(c.startTime)}. Who you got?',
         '$a contre $b · $format à ${c.court.name}, ${_when(c.startTime)}. Tu paries sur qui ?');
+    final copied = await shareLink(text: text, url: url, subject: title, origin: origin);
+    if (!copied) return;
     await Clipboard.setData(ClipboardData(text: '$text $url'));
     if (!mounted) return;
     showSnack(
         context,
-        c.isPublic
-            ? tr('Challenge link copied — paste it anywhere', 'Lien du défi copié — collez-le où vous voulez')
+        c.isPublic || c.isOpen
+            ? tr('Link copied', 'Lien copié')
             : tr('Link copied — it’s private, so only its players can open it.', 'Lien copié — le défi est privé, seuls ses joueurs peuvent l’ouvrir.'));
   }
 
@@ -342,11 +347,13 @@ class _ChallengeCardState extends State<ChallengeCard> {
                   child: Icon(c.isPublic ? Icons.public : Icons.lock_outline, size: 18, color: theme.colorScheme.onSurfaceVariant),
                 ),
               ),
-            IconButton(
-              onPressed: () => _share(c),
-              icon: const Icon(Icons.share_outlined, size: 20),
-              tooltip: tr('Share', 'Partager'),
-              visualDensity: VisualDensity.compact,
+            Builder(
+              builder: (btn) => IconButton(
+                onPressed: () => _share(c, shareOriginOfContext(btn)),
+                icon: const Icon(Icons.share_outlined, size: 20),
+                tooltip: tr('Share', 'Partager'),
+                visualDensity: VisualDensity.compact,
+              ),
             ),
           ]),
           const SizedBox(height: 12),

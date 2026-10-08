@@ -134,7 +134,7 @@ class LinkRouter {
       case GameLink(:final id):
         openGameOnNavigator(nav, nav.context.read<MapPause>(), id);
       case CourtLink(:final id):
-        nav.push(page(CourtDetailsScreen(courtId: id)));
+        nav.push(page(CourtDetailsScreen(courtId: id, fromLink: true)));
       case UserLink(:final id):
         nav.push(page(UserScreen(userId: id)));
     }

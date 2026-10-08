@@ -16,9 +16,10 @@ import '../core/player_avatar.dart';
 import '../core/notifications.dart';
 import '../ui/theme.dart';
 import '../ui/app_icons.dart';
-import '../core/avatar_presets.dart';
+import '../core/player_avatar_config.dart' show defaultPlayerConfig;
+import '../ui/player_portrait.dart';
 import 'avatar_builder_screen.dart';
-import 'auth_screens.dart' show showLoginSheet;
+import 'auth_screens.dart' show RegisterScreen, showLoginSheet;
 import 'friends_panel.dart';
 import 'password_card.dart';
 import 'recap_sheet.dart';
@@ -27,6 +28,77 @@ import 'sticker_sheet.dart';
 import '../ui/extra_sports_picker.dart';
 import '../ui/screen_guide.dart';
 import '../ui/widgets.dart';
+
+/// Opens the avatar studio for the signed-in player; refreshes /api/me on save.
+Future<void> openAvatarStudio(BuildContext context) async {
+  final auth = context.read<AuthState>();
+  final me = auth.user;
+  if (me == null) return;
+  final ok = await Navigator.of(context, rootNavigator: true).push<bool>(
+    MaterialPageRoute(
+      builder: (_) => AvatarBuilderScreen(initialUrl: me.avatarUrl, initialConfig: me.avatarConfig, seed: me.username),
+    ),
+  );
+  if (ok == true) await auth.refreshMe();
+}
+
+/// Web CreateAvatarCard: nudge for players without an avatar, previewing a
+/// player dressed for their sport.
+class CreateAvatarCard extends StatelessWidget {
+  final String? sport;
+  final VoidCallback onTap;
+  const CreateAvatarCard({super.key, this.sport, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: Palette.brand.withValues(alpha: 0.10),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: Palette.brand.withValues(alpha: 0.4)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(children: [
+            ClipOval(
+              child: SizedBox(
+                width: 64,
+                height: 64,
+                child: ColoredBox(
+                  color: scheme.surface,
+                  child: PlayerAvatarPortrait(avatar: defaultPlayerConfig(sport).toPlayerAvatar(), pixels: 128, spinner: false),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(tr('Create your avatar', 'Créer votre avatar'),
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Palette.brand)),
+                const SizedBox(height: 2),
+                Text(
+                  tr('Create a player avatar so friends recognize you on the map and in games.',
+                      'Créez un avatar pour que vos amis vous reconnaissent sur la carte et dans les matchs.'),
+                  style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+                ),
+                const SizedBox(height: 8),
+                FilledButton(
+                  onPressed: onTap,
+                  style: FilledButton.styleFrom(visualDensity: VisualDensity.compact),
+                  child: Text(tr('CREATE', 'CRÉER')),
+                ),
+              ]),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+}
 
 class _ProfileCard extends StatelessWidget {
   final PublicUser user;
@@ -90,7 +162,11 @@ class _Stat extends StatelessWidget {
 class ProfileScreen extends StatefulWidget {
   /// Scroll to the friends section (friend request notifications).
   final bool focusFriends;
-  const ProfileScreen({super.key, this.focusFriends = false});
+
+  /// Home shell's Profile tab: a new value scrolls to friends again (friend
+  /// request notification while the tab is already open).
+  final int friendsFocusRequest;
+  const ProfileScreen({super.key, this.focusFriends = false, this.friendsFocusRequest = 0});
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
@@ -126,6 +202,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     context.read<Api>().get('/api/sports').then((j) {
       if (mounted) setState(() => _sports = [for (final s in j) Sport.fromJson(s)]);
     }).catchError((_) {});
+  }
+
+  @override
+  void didUpdateWidget(ProfileScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.friendsFocusRequest != oldWidget.friendsFocusRequest) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToFriends());
+    }
   }
 
   @override
@@ -166,21 +250,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         },
         child: ListView(controller: _scroll, padding: floatingNavListPadding(context), children: [
           _ProfileCard(user: me, sports: _sports),
-          if (hasSavedAvatar(avatarUrl: me.avatarUrl, avatarConfig: me.avatarConfig)) ...[
-            const SizedBox(height: 12),
+          const SizedBox(height: 12),
+          // Web ProfilePage: "Edit avatar" once the player has one, else the
+          // "Create your avatar" card.
+          if (me.hasPlayerAvatar)
             OutlinedButton(
-              onPressed: () async {
-                final ok = await Navigator.push<bool>(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => AvatarBuilderScreen(initialUrl: me.avatarUrl, initialConfig: me.avatarConfig, seed: me.username),
-                  ),
-                );
-                if (ok == true && context.mounted) await auth.refreshMe();
-              },
-              child: Text(tr('EDIT PLAYER', 'MODIFIER L’AVATAR')),
-            ),
-          ],
+              onPressed: () => openAvatarStudio(context),
+              child: Text(tr('EDIT AVATAR', 'MODIFIER L’AVATAR')),
+            )
+          else
+            CreateAvatarCard(sport: sportSlugForUser(me, _sports), onTap: () => openAvatarStudio(context)),
           const SizedBox(height: 12),
           KeyedSubtree(key: _progressKey, child: const ProgressCard()),
           const SizedBox(height: 12),
@@ -441,9 +520,15 @@ class _UserScreenState extends State<UserScreen> {
         style: TextStyle(color: muted),
       ),
       const SizedBox(height: 24),
-      if (viewer == null)
-        FilledButton(onPressed: () => showLoginSheet(context), child: Text(tr('LOG IN', 'SE CONNECTER')))
-      else ...[
+      if (viewer == null) ...[
+        // Web PublicProfilePage: create account first, log in as the link below.
+        FilledButton(
+          onPressed: () => Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(builder: (_) => const RegisterScreen())),
+          child: Text(tr('CREATE ACCOUNT', 'CRÉER UN COMPTE')),
+        ),
+        const SizedBox(height: 4),
+        TextButton(onPressed: () => showLoginSheet(context), child: Text(tr('Log in', 'Se connecter'))),
+      ] else ...[
         if (viewer.username.toLowerCase() != handle.toLowerCase())
           TextButton(
             onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => UserScreen(userId: viewer.id))),

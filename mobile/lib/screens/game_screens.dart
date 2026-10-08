@@ -24,6 +24,7 @@ import '../ui/screen_guide.dart';
 import '../ui/share_image.dart';
 import '../ui/widgets.dart';
 import 'court_move.dart';
+import 'court_screens.dart' show AddCourtScreen, CourtDetailsScreen;
 import 'game_scoreboard.dart';
 import 'game_weather.dart';
 import 'profile_screen.dart';
@@ -243,11 +244,17 @@ class _GameScreenState extends State<GameScreen> {
                   ]),
                 ),
                 const SizedBox(height: 10),
-                Row(children: [
-                  SportIcon(g.sport.slug, size: 28, color: Theme.of(context).colorScheme.primary),
-                  const SizedBox(width: 10),
-                  Expanded(child: Text(g.courtName.toUpperCase(), style: Theme.of(context).textTheme.headlineMedium)),
-                ]),
+                // Web GamePage: the court name links to the court page.
+                InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CourtDetailsScreen(courtId: g.courtId))),
+                  child: Row(children: [
+                    SportIcon(g.sport.slug, size: 28, color: Theme.of(context).colorScheme.primary),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(g.courtName.toUpperCase(), style: Theme.of(context).textTheme.headlineMedium)),
+                    Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  ]),
+                ),
                 if (g.distanceM != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
@@ -535,6 +542,13 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
       _error = null;
     });
     try {
+      // "Right now" is a live game: like the web (isAtCourt + far modal), get a
+      // fresh fix and stop with "You're not at the court" before posting.
+      final court = _courts.where((c) => c.id == _courtId).firstOrNull;
+      if (_now && court != null) {
+        final ok = await prepareGameJoin(context, live: true, courtLat: court.latitude, courtLng: court.longitude);
+        if (ok == null || !mounted) return;
+      }
       final loc = context.read<LocationState>().position;
       final body = <String, dynamic>{
         'court_id': _courtId,
@@ -640,6 +654,15 @@ class _CreateGameScreenState extends State<CreateGameScreen> {
             _sportId = null;
             _placePhotos.clear();
           }),
+        ),
+        // Web CreateGamePage field hint → /courts/new (leaves this form).
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: TextButton(
+            style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 4), visualDensity: VisualDensity.compact),
+            onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AddCourtScreen())),
+            child: Text(tr('Court not listed? Add it →', 'Terrain absent de la liste ? Ajoute-le →')),
+          ),
         ),
         if (court != null) ...[
           const SizedBox(height: 16),

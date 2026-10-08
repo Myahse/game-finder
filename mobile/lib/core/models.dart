@@ -32,6 +32,9 @@ class PublicUser {
   final List<String> extraSportIds;
   /// Avatar made in the web studio (users.player_avatar), when it is the player's look.
   final PlayerAvatar? playerAvatar;
+  /// Made an avatar in the studio (web hasPlayerAvatar) — Profile shows
+  /// "Edit avatar" instead of the "Create your avatar" card.
+  final bool hasPlayerAvatar;
   final DateTime createdAt;
   final int gamesPlayed, gamesCreated;
 
@@ -43,6 +46,7 @@ class PublicUser {
         avatarUrl = j['avatar_url'],
         avatarConfig = j['avatar_config'] is Map ? Map<String, dynamic>.from(j['avatar_config'] as Map) : null,
         playerAvatar = PlayerAvatar.forUserJson(j),
+        hasPlayerAvatar = PlayerAvatar.hasForUserJson(j),
         preferredSportId = j['preferred_sport_id'],
         extraSportIds = [for (final id in (j['extra_sport_ids'] as List? ?? const [])) if (id is String) id],
         skillLevel = j['skill_level'],
@@ -72,6 +76,8 @@ class Court {
   final String id, name;
   final double latitude, longitude;
   final String? address, description, openingHours, surface, status;
+  /// Admin's note when [status] is `rejected`.
+  final String? rejectionReason;
   final bool? lighting;
   final List<String> photos;
   final List<Sport> sports;
@@ -91,6 +97,7 @@ class Court {
         openingHours = j['opening_hours'],
         surface = j['surface'],
         status = j['status'],
+        rejectionReason = j['rejection_reason'] as String?,
         lighting = j['lighting'],
         photos = List<String>.from(j['photos'] ?? const []),
         sports = [for (final s in (j['sports'] ?? const [])) Sport.fromJson(s)],
@@ -132,6 +139,8 @@ class Game {
   final Sport sport;
   final double? distanceM;
   final List<PublicUser> players;
+  /// Host (`creator` in the API's game JSON), when sent.
+  final PublicUser? creator;
 
   Game.fromJson(Map<String, dynamic> j)
       : id = j['id'],
@@ -153,7 +162,10 @@ class Game {
         courtLng = _num(j['court']['longitude'])!,
         sport = Sport.fromJson(j['sport']),
         distanceM = _num(j['distance_m']),
-        players = [for (final p in (j['players'] ?? const [])) PublicUser.fromJson(p)];
+        players = [for (final p in (j['players'] ?? const [])) PublicUser.fromJson(p)],
+        creator = j['creator'] is Map && (j['creator'] as Map)['id'] is String
+            ? PublicUser.fromJson(Map<String, dynamic>.from(j['creator'] as Map))
+            : null;
 
   bool get isLive => status == 'active';
   bool get isOpen => status == 'active' || status == 'scheduled';

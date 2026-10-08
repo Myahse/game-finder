@@ -6,3 +6,6 @@ const listNearbyRadiusKm = 25;
 
 /// Scheduled games on Play — next 7 days (API default is only 3 hours).
 const playUpcomingHours = 168;
+
+/// Farther than [mapNearbyRadiusKm] — not shown on the home map.
+bool beyondMapRadius(double? distanceM) => distanceM != null && distanceM > mapNearbyRadiusKm * 1000;

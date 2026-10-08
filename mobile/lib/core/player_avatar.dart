@@ -63,6 +63,11 @@ class PlayerAvatar {
 
   /// Like the web's playerAvatarForUser: the public config, else the own config
   /// when the profile picture is the player avatar.
+  /// The web's hasPlayerAvatar: a saved studio avatar, or the profile picture
+  /// set to the player avatar.
+  static bool hasForUserJson(Map<String, dynamic> j) =>
+      fromJson(j['player_avatar']) != null || fromJson(j['player_avatar_public']) != null || j['avatar_url'] == 'avatar:player';
+
   static PlayerAvatar? forUserJson(Map<String, dynamic> j) =>
       fromJson(j['player_avatar_public']) ?? (j['avatar_url'] == 'avatar:player' ? fromJson(j['player_avatar']) : null);
 }

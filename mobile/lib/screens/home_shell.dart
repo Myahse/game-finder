@@ -8,6 +8,7 @@ import '../core/auth.dart';
 import '../core/notification_links.dart';
 import '../core/notifications.dart';
 import '../core/presence.dart';
+import '../core/prompt_dismiss.dart';
 import '../core/map_pause.dart';
 import '../core/progress_models.dart';
 import '../core/realtime.dart';
@@ -40,8 +41,14 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   int _tab = 0;
   bool _alertOpen = false;
   Timer? _changesTimer;
+  Timer? _avatarPromptTimer;
+  /// Once per app run, like the web's per-session prompt cycle.
+  static bool _avatarPromptShown = false;
   int _unread = 0;
   bool _promptOpen = false;
+  /// Bumped to ask the Profile tab to scroll to friends.
+  int _friendsFocus = 0;
+  bool _focusFriendsOnMount = false;
   final List<StreamSubscription> _subs = [];
   final _playNavKey = GlobalKey(debugLabel: 'nav-play');
   // Kept so dispose() doesn't look up an ancestor of a deactivated element.
@@ -55,6 +62,10 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     });
     if (widget.welcomeAvatar) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _openWelcomeAvatar());
+    } else {
+      // Web EngagementPrompts: a gentle "create your avatar" a moment after
+      // launch (not right after the welcome avatar step).
+      _avatarPromptTimer = Timer(const Duration(milliseconds: 1200), _maybeAvatarPrompt);
     }
     _presence = context.read<PresenceState>()..addListener(_onPresence);
     final rt = context.read<Realtime>();
@@ -75,7 +86,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     final notifications = context.read<Notifications>();
     _subs.add(notifications.responses.listen((r) {
       // Plain taps on a push/local notification open the related screen.
-      if (r.actionId == null && mounted) openNotificationTarget(context, targetFromPayload(r.payload));
+      if (r.actionId == null && mounted) openNotificationTarget(context, targetFromPayload(r.payload), openProfileTab: _openProfileTab);
     }));
     // Remote pushes tapped while the app was in the background / closed.
     _subs.add(notifications.pushTaps.listen(_openPush));
@@ -104,6 +115,19 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       ),
     ));
     if (saved == true && mounted) await auth.refreshMe();
+  }
+
+  Future<void> _maybeAvatarPrompt() async {
+    if (!mounted || _avatarPromptShown) return;
+    final me = context.read<AuthState>().user;
+    if (me == null || me.hasPlayerAvatar) return;
+    if (await promptDismissed(PromptKeys.avatar) || !mounted || _avatarPromptShown) return;
+    // Not over another screen or sheet (game, court alert, still-playing…).
+    if (_promptOpen || _alertOpen || ModalRoute.of(context)?.isCurrent == false) return;
+    _avatarPromptShown = true;
+    final create = await showAvatarPrompt(context);
+    await dismissPromptLater(PromptKeys.avatar);
+    if (create == true && mounted) await openAvatarStudio(context);
   }
 
   @override
@@ -141,7 +165,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   }
 
   void _openPush(Map<String, dynamic> data) {
-    if (mounted) openNotificationTarget(context, notificationTarget(data['type'] as String?, data));
+    if (mounted) openNotificationTarget(context, notificationTarget(data['type'] as String?, data), openProfileTab: _openProfileTab);
   }
 
   SnackBarAction? _linkAction(String? type, Map<String, dynamic> data) {
@@ -149,8 +173,24 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     if (target == null) return null;
     return SnackBarAction(
       label: tr('OPEN', 'OUVRIR'),
-      onPressed: () => openNotificationTarget(context, target),
+      onPressed: () => openNotificationTarget(context, target, openProfileTab: _openProfileTab),
     );
+  }
+
+  /// Profile tab (friend requests scroll to friends) — closes screens pushed
+  /// over the shell rather than stacking a second profile on top.
+  void _openProfileTab({bool focusFriends = false}) {
+    if (!mounted) return;
+    Navigator.of(context).popUntil((r) => r.isFirst);
+    setState(() {
+      _tab = 4;
+      if (focusFriends) {
+        _friendsFocus++;
+        _focusFriendsOnMount = true;
+      }
+    });
+    // One-shot: a later visit to the tab opens at the top.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _focusFriendsOnMount = false);
   }
 
   Future<void> _loadUnread() async {
@@ -164,6 +204,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _changesTimer?.cancel();
+    _avatarPromptTimer?.cancel();
     _presence.removeListener(_onPresence);
     for (final s in _subs) {
       s.cancel();
@@ -210,13 +251,20 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         if (_tab == 2)
           MyGamesScreen(key: const ValueKey('home-games'), tabActive: true, onOpenPlayTab: () => setState(() => _tab = 1)),
         if (_tab == 3) NotificationsScreen(key: const ValueKey('home-alerts'), onChanged: _loadUnread),
-        if (_tab == 4) const ProfileScreen(key: ValueKey('home-profile')),
+        if (_tab == 4) ProfileScreen(
+            key: const ValueKey('home-profile'),
+            focusFriends: _focusFriendsOnMount,
+            friendsFocusRequest: _friendsFocus,
+          ),
       ],
     );
 
     return Scaffold(
       extendBody: true,
-      body: ExcludeSemantics(excluding: mapPaused, child: body),
+      body: HomeTabScope(
+        openProfile: _openProfileTab,
+        child: ExcludeSemantics(excluding: mapPaused, child: body),
+      ),
       bottomNavigationBar: _FloatingNavBar(
         selectedIndex: _tab,
         unread: _unread,
@@ -331,6 +379,29 @@ class _FloatingNavBar extends StatelessWidget {
     );
   }
 }
+
+/// Web avatar prompt (EngagementPrompts): Create / Later. Returns true for Create.
+Future<bool?> showAvatarPrompt(BuildContext context) => showModalBottomSheet<bool>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Text(tr('Create your avatar', 'Créer votre avatar'), style: Theme.of(ctx).textTheme.titleLarge),
+            const SizedBox(height: 6),
+            Text(
+              tr('Create a player avatar so friends recognize you on the map and in games.',
+                  'Créez un avatar pour que vos amis vous reconnaissent sur la carte et dans les matchs.'),
+              style: TextStyle(color: Theme.of(ctx).colorScheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('CREATE', 'CRÉER'))),
+            const SizedBox(height: 4),
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('Later', 'Plus tard'))),
+          ]),
+        ),
+      ),
+    );
 
 class _StillPlayingSheet extends StatefulWidget {
   final PresenceState presence;

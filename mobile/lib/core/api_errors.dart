@@ -83,7 +83,9 @@ const Map<String, _Pair> _codes = {
   'too_many_photos': ('Up to 6 photos.', 'Jusqu’à 6 photos.'),
   'report_not_found': ('Report not found.', 'Signalement introuvable.'),
   'invalid_type': ('Choose what\'s wrong.', 'Choisissez ce qui ne va pas.'),
-  'too_far_from_court': ('You need to be at the court to check in.', 'Vous devez être sur le terrain pour faire un check-in.'),
+  // Check-in, joining and creating a live game all send this: the web's
+  // generic "not at the court" wording (errors.ts toast title), not check-in only.
+  'too_far_from_court': ('You\'re not at the court.', 'Vous n’êtes pas sur le terrain.'),
   'location_required': ('Turn on location to check in.', 'Activez la localisation pour faire un check-in.'),
   'no_active_presence': ('You\'re not checked in anywhere.', 'Vous n’avez fait de check-in nulle part.'),
   'notify_jump_too_far': ('Move your alert area gradually or check in at a court first.', 'Déplacez votre zone d’alerte progressivement ou faites d’abord un check-in sur un terrain.'),
