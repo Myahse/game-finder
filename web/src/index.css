@@ -804,3 +804,160 @@ body {
   background: radial-gradient(circle at var(--ftg-gx, 50%) var(--ftg-gy, 30%), rgba(255, 255, 255, 0.28), transparent 45%);
   mix-blend-mode: soft-light;
 }
+
+/* Live player card (PlayerCardLive): an intro that plays on mount (≤ ~1.6s, delays set
+   inline per element), then quiet idle loops. SVG pieces that scale/rotate use their own
+   box (transform-box: fill-box). */
+@keyframes ftg-card-rise {
+  from { opacity: 0; transform: translateY(8px); }
+}
+.ftg-card-rise {
+  animation: ftg-card-rise 0.42s var(--ftg-ease-out) both;
+}
+.ftg-card-fade {
+  animation: ftg-fade-in 0.5s ease-out both;
+}
+/* Court lines draw in (pathLength=1), then breathe. */
+.ftg-card-line {
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: 1;
+  animation:
+    ftg-card-draw 0.9s var(--ftg-ease-out) forwards,
+    ftg-card-breathe 4.6s ease-in-out infinite;
+}
+@keyframes ftg-card-draw {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes ftg-card-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+/* The giant jersey number strokes in, then drifts. */
+.ftg-card-jersey {
+  stroke-dasharray: 1400;
+  stroke-dashoffset: 1400;
+  animation: ftg-card-draw 1.3s ease-out 0.15s forwards;
+}
+.ftg-card-drift {
+  animation: ftg-card-drift 9s ease-in-out 1.4s infinite alternate;
+}
+@keyframes ftg-card-drift {
+  from { transform: translate(0, 0); }
+  to { transform: translate(-7px, 5px); }
+}
+.ftg-card-pop {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ftg-card-pop 0.36s var(--ftg-ease-spring);
+}
+@keyframes ftg-card-pop {
+  40% { transform: scale(1.16); }
+}
+/* Name band slides in at its skew. */
+.ftg-card-band {
+  animation: ftg-card-band 0.5s var(--ftg-ease-out) both;
+}
+@keyframes ftg-card-band {
+  from { transform: translateX(-380px); }
+}
+/* Logo pins drop in with a bounce. */
+.ftg-card-drop {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: ftg-card-drop 0.55s var(--ftg-ease-out) both;
+}
+@keyframes ftg-card-drop {
+  0% { opacity: 0; transform: translateY(-36px); }
+  35% { opacity: 1; transform: translateY(0) scale(1.12, 0.88); }
+  60% { transform: translateY(-7px) scale(0.96, 1.04); }
+  80% { transform: translateY(0) scale(1.03, 0.97); }
+  100% { transform: none; }
+}
+/* Serial types in (steps set inline to its length). */
+.ftg-card-type {
+  animation: ftg-card-type 0.42s both;
+}
+@keyframes ftg-card-type {
+  from { clip-path: inset(-30% 100% -30% 0); }
+  to { clip-path: inset(-30% 0 -30% 0); }
+}
+/* Poster: letters slide up into place, stickers slap on, the pin cut-out scales in. */
+.ftg-card-letter {
+  transform-box: fill-box;
+  animation: ftg-card-letter 0.42s var(--ftg-ease-spring) both;
+}
+@keyframes ftg-card-letter {
+  from { opacity: 0; transform: translateY(46px); }
+  40% { opacity: 1; }
+}
+.ftg-card-slap {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ftg-card-slap 0.4s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
+@keyframes ftg-card-slap {
+  from { opacity: 0; transform: scale(1.9) rotate(-14deg); }
+  45% { opacity: 1; }
+}
+.ftg-card-pinin {
+  animation: ftg-card-pinin 0.6s var(--ftg-ease-spring) both;
+}
+@keyframes ftg-card-pinin {
+  from { opacity: 0; transform: scale(0.35); }
+  40% { opacity: 1; }
+}
+/* Panels / footers slide up from below. */
+.ftg-card-up {
+  animation: ftg-card-up 0.55s var(--ftg-ease-out) both;
+}
+@keyframes ftg-card-up {
+  from { opacity: 0; transform: translateY(70px); }
+}
+/* Scoreboard: each count step flips in like a scoreboard digit; the colon blinks. */
+.ftg-card-tick {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: ftg-card-tick 0.14s ease-out;
+}
+@keyframes ftg-card-tick {
+  from { transform: scaleY(0.25); opacity: 0.5; }
+}
+.ftg-card-blink {
+  animation: ftg-card-blink 2s steps(1, end) 1.6s infinite;
+}
+@keyframes ftg-card-blink {
+  50% { opacity: 0.35; }
+}
+/* Pass: the stub tears in, its dashed line runs across. */
+.ftg-card-stub {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+  animation: ftg-card-stub 0.6s var(--ftg-ease-spring) both;
+}
+@keyframes ftg-card-stub {
+  from { opacity: 0; transform: translateY(26px) rotate(2.5deg); }
+  40% { opacity: 1; }
+}
+.ftg-card-tear {
+  transform-box: fill-box;
+  transform-origin: 0 50%;
+  animation: ftg-card-tear 0.45s var(--ftg-ease-out) both;
+}
+@keyframes ftg-card-tear {
+  from { transform: scaleX(0); }
+}
+/* Idle: a glint runs along the tier frame now and then. */
+.ftg-card-glint {
+  stroke-dasharray: 0.07 0.93;
+  stroke-dashoffset: 0;
+  opacity: 0;
+  mix-blend-mode: overlay;
+  animation: ftg-card-glint 5s linear 1.6s infinite;
+}
+@keyframes ftg-card-glint {
+  0% { stroke-dashoffset: 0; opacity: 0; }
+  6% { opacity: 0.9; }
+  56% { opacity: 0.9; }
+  62% { stroke-dashoffset: -1; opacity: 0; }
+  100% { stroke-dashoffset: -1; opacity: 0; }
+}

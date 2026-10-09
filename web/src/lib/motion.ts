@@ -21,34 +21,35 @@ export function countUpAt(from: number, to: number, elapsed: number, duration: n
 }
 
 /**
- * Animates a headline number to `value`: from 0 when it first appears, then from the
- * previous value whenever it changes. Re-renders with the same value do nothing.
- * Reduced motion → the value as-is.
+ * Animates a headline number to `value`: from `from` (0) when it first appears, then from the
+ * previous value whenever it changes. Re-renders with the same value do nothing. `delay` (ms)
+ * holds the starting value before each count. Reduced motion → the value as-is.
  */
-export function useCountUp(value: number, duration = 450): number {
-  const [shown, setShown] = useState(0)
-  const current = useRef(0)
+export function useCountUp(value: number, duration = 450, from = 0, delay = 0): number {
+  const [shown, setShown] = useState(from)
+  const current = useRef(from)
   const reduced = prefersReducedMotion()
 
   useEffect(() => {
-    const from = current.current
-    if (reduced || from === value) {
+    const start = current.current
+    if (reduced || start === value) {
       current.current = value
       if (reduced) return
       const id = requestAnimationFrame(() => setShown(value))
       return () => cancelAnimationFrame(id)
     }
     let raf = 0
-    const t0 = performance.now()
+    let t0 = -1
     const tick = (now: number) => {
-      const v = countUpAt(from, value, now - t0, duration)
+      if (t0 < 0) t0 = now + delay
+      const v = now < t0 ? start : countUpAt(start, value, now - t0, duration)
       current.current = v
       setShown(v)
       if (v !== value) raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [value, duration, reduced])
+  }, [value, duration, delay, reduced])
 
   return reduced ? value : shown
 }

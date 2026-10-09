@@ -4,20 +4,15 @@ import { avataaarsSvg } from '../avatar/render/avataaars'
 import { kitOf } from '../avatar/render/kit'
 import type { en as cardMessages } from '../i18n/screens/card'
 import { formatEloDelta, formatSerial, tierColor, type CardStyle, type PlayerCard } from './playerCard'
+import { BOARD_PIN, CROWN, DH, DOMAIN, DW, INK, MUTED, PASS_PIN, PIN, POSTER_PIN, base, display, fillLabel, fitSize, interBase, recordLayout, sans } from './playerCardLayout'
 
 /*
  * Player cards, drawn from the approved 405×720 designs (Trading card, Street poster,
  * Scoreboard, Court pass) at ×(1080/405) so the export is a 1080×1920 story image.
  * All coordinates below are in design pixels; y values passed to `text` are baselines.
  */
-const DW = 405
-const DH = 720
 export const CARD_W = 1080
 export const CARD_H = 1920
-
-const INK = '#12151a'
-const MUTED = '#c9ced6'
-const DOMAIN = 'outforground.com'
 
 export type PlayerCardImageInput = {
   card: PlayerCard
@@ -37,14 +32,6 @@ type Art = { img: HTMLImageElement; photo: boolean } | null
 type Ctx = CanvasRenderingContext2D
 type TextOpts = { align?: CanvasTextAlign; spacing?: number; maxW?: number; stroke?: number }
 
-const display = (px: number, w = 900) => `${w} ${px}px "Barlow Condensed", "Arial Narrow", sans-serif`
-const sans = (px: number, w = 800) => `${w} ${px}px Inter, system-ui, sans-serif`
-
-/** Baseline of a line box at `top` (font ascent/descent as in Barlow: 1.0 / 0.2). */
-const base = (top: number, px: number, lh: number) => top + px * (lh / 2 + 0.4)
-/** Same for Inter at its normal line height. */
-const interBase = (top: number, px: number) => top + px * 0.969
-
 function loadImage(src: string, cors = false): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image()
@@ -63,8 +50,7 @@ function setSpacing(ctx: Ctx, px: number) {
 
 /** Font size (≤ `px`) at which `s` fits `maxW`; below `min`, `text`'s maxW squeezes it. */
 function fit(ctx: Ctx, s: string, font: (px: number) => string, px: number, maxW: number, min = 8, spacing = 0) {
-  while (px > min && measure(ctx, s, font(px), spacing) > maxW) px -= 1
-  return px
+  return fitSize((p) => measure(ctx, s, font(p), spacing), px, maxW, min)
 }
 
 function measure(ctx: Ctx, s: string, font: string, spacing = 0) {
@@ -109,8 +95,6 @@ function path(d: string, x: number, y: number, sx: number, sy = sx) {
   return p
 }
 
-const PIN = 'M32 4c-11.6 0-21 9.4-21 21 0 15.8 21 35 21 35s21-19.2 21-35c0-11.6-9.4-21-21-21z'
-const CROWN = 'M3 8l4 4 5-7 5 7 4-4-2 11H5z'
 
 /** The location pin of the logo (64×70 artwork) at width `w`. */
 function logoPin(ctx: Ctx, cx: number, top: number, w: number, frame: string, hole: string) {
@@ -173,7 +157,7 @@ function brand(ctx: Ctx, x: number, y: number, px: number, weight: number) {
 
 type Ready = PlayerCardImageInput & { frame: string; tier: string; sport: string; serial: string; number: string | null; art: Art; icon: HTMLImageElement | null }
 
-const fill = (s: string, vars: Record<string, string | number>) => s.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''))
+const fill = fillLabel
 
 // ---------------------------------------------------------------------------
 // 1 · Trading card
@@ -331,7 +315,7 @@ function drawPoster(ctx: Ctx, c: Ready) {
 
   // Portrait in the pin
   ctx.save()
-  const pin = path('M140 0C63 0 0 61 0 137c0 100 140 193 140 193s140-93 140-193C280 61 217 0 140 0z', 62, 262, 1)
+  const pin = path(POSTER_PIN, 62, 262, 1)
   ctx.fillStyle = INK
   ctx.fill(pin)
   ctx.clip(pin)
@@ -408,7 +392,7 @@ function drawScoreboard(ctx: Ctx, c: Ready) {
   ctx.fill()
   ctx.clip()
   jersey(ctx, c.number, 385, base(44, 140, 0.8), 140, frame, 0.3)
-  const pin = path('M32 2C15.4 2 2 15.2 2 31.5 2 52 32 70 32 70s30-18 30-38.5C62 15.2 48.6 2 32 2z', 42, 76, 78 / 64, 88 / 72)
+  const pin = path(BOARD_PIN, 42, 76, 78 / 64, 88 / 72)
   ctx.fillStyle = frame
   ctx.fill(pin)
   ctx.save()
@@ -458,10 +442,7 @@ function drawScoreboard(ctx: Ctx, c: Ready) {
   const w1 = Math.max(measure(ctx, wins, display(96)), measure(ctx, L.winsLabel, sans(11), 2))
   const w2 = Math.max(measure(ctx, losses, display(96)), measure(ctx, L.lossesLabel, sans(11), 2))
   const wc = measure(ctx, ':', display(44))
-  const free = Math.max(0, 329 - w1 - w2 - wc)
-  const x1 = 38 + free / 6
-  const xc = x1 + w1 + free / 3
-  const x2 = xc + wc + free / 3
+  const { x1, xc, x2 } = recordLayout(w1, w2, wc)
   text(ctx, wins, x1 + w1 / 2, 303.3, display(96), frame, { align: 'center' })
   text(ctx, L.winsLabel, x1 + w1 / 2, 321.2, sans(11), '#ffffff', { align: 'center', spacing: 2 })
   text(ctx, ':', xc, 289.15, display(44), '#4a525e')
@@ -547,7 +528,7 @@ async function drawPass(ctx: Ctx, c: Ready) {
   ctx.restore()
 
   // Portrait pin + identity
-  const pin = path('M54 0C24 0 0 24 0 53c0 39 54 75 54 75s54-36 54-75C108 24 84 0 54 0z', 22, 24, 1)
+  const pin = path(PASS_PIN, 22, 24, 1)
   ctx.fillStyle = INK
   ctx.fill(pin)
   ctx.save()

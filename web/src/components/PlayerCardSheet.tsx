@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { Download, IdCard, Share2, X } from 'lucide-react'
 import { playerAvatarForUser } from '../avatar/resolve'
 import { useLocale } from '../i18n/LocaleProvider'
@@ -8,6 +8,7 @@ import { CARD_STYLES, cardNameLines, usePlayerCard, type CardStyle } from '../li
 import { renderPlayerCard } from '../lib/playerCardImage'
 import { profileShareUrl } from '../lib/profileShare'
 import { SportIcon } from './icons'
+import { PlayerCardLive } from './PlayerCardLive'
 import { Button, Chip, Spinner } from './ui'
 import { useSheetExit } from '../lib/motion'
 import { celebrate } from '../lib/celebrate'
@@ -62,12 +63,15 @@ function PlayerCardSheet({ userId, legalName, initialSport, onClose: dismiss }: 
   const slug = card?.sport?.slug ?? null
   const key = card ? `${card.user.id}:${slug}:${style}:${card.rating}:${card.elo}` : ''
 
+  const avatar = useMemo(() => (card ? playerAvatarForUser(card.user) : null), [card])
+  const photo = card && !avatar && isUploadedAvatar(card.user.avatar_url) ? resolveMediaUrl(card.user.avatar_url!) : null
+  const names = card ? cardNameLines(card.user, legalName) : []
+
+  // The PNG (for Download / Share) is drawn in the background; the preview is the live card.
   useEffect(() => {
     if (!card) return
     let src = ''
     let cancelled = false
-    const avatar = playerAvatarForUser(card.user)
-    const photo = !avatar && isUploadedAvatar(card.user.avatar_url) ? resolveMediaUrl(card.user.avatar_url!) : null
     renderPlayerCard({
       card,
       style,
@@ -88,7 +92,7 @@ function PlayerCardSheet({ userId, legalName, initialSport, onClose: dismiss }: 
       cancelled = true
       if (src) URL.revokeObjectURL(src)
     }
-  }, [card, style, key, legalName, t.card])
+  }, [card, style, key, legalName, t.card, avatar, photo])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
@@ -179,15 +183,15 @@ function PlayerCardSheet({ userId, legalName, initialSport, onClose: dismiss }: 
               onPointerCancel={untilt}
               onPointerUp={untilt}
             >
-              {ready ? (
-                <div key={ready.key} className="ftg-card-flip absolute inset-0 overflow-hidden rounded-2xl bg-[#0b0d10] shadow-2xl">
-                  <img src={ready.src} alt={t.card.preview} className="h-full w-full object-cover" draggable={false} />
-                  <div className="ftg-card-shine absolute inset-0" data-tier={card?.tier} aria-hidden />
+              {card && !isError ? (
+                <div key={`${style}:${slug}`} className="ftg-card-flip absolute inset-0 overflow-hidden rounded-2xl bg-[#0b0d10] shadow-2xl">
+                  <PlayerCardLive card={card} style={style} names={names} avatar={avatar} photoUrl={photo} profileUrl={url} labels={t.card} />
+                  <div className="ftg-card-shine absolute inset-0" data-tier={card.tier} aria-hidden />
                   <div className="ftg-card-glow absolute inset-0" aria-hidden />
                 </div>
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center overflow-hidden rounded-2xl bg-[#0b0d10]">
-                  {failed || isError ? <p className="p-4 text-center text-sm text-white/80">{t.card.failed}</p> : <Spinner className="text-brand" />}
+                  {isError ? <p className="p-4 text-center text-sm text-white/80">{t.card.failed}</p> : <Spinner className="text-brand" />}
                 </div>
               )}
             </div>
@@ -219,7 +223,7 @@ function PlayerCardSheet({ userId, legalName, initialSport, onClose: dismiss }: 
           </Button>
         </div>
         <p aria-live="polite" className="mt-2 min-h-5 break-all text-center text-sm font-semibold text-ink-2">
-          {note}
+          {failed ? t.card.failed : note}
         </p>
       </div>
     </div>
