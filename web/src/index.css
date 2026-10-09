@@ -712,6 +712,25 @@ body {
   animation: ftg-av-live-closed 4.6s step-end infinite;
   animation-delay: var(--ftg-av-delay, 0ms);
 }
+.ftg-av-live .ftg-av-mouth {
+  animation: ftg-av-live-mouth 9s step-end infinite;
+  animation-delay: calc(var(--ftg-av-delay, 0ms) * 2);
+}
+.ftg-av-live .ftg-av-mouth-alt {
+  animation: ftg-av-live-mouth-alt 9s step-end infinite;
+  animation-delay: calc(var(--ftg-av-delay, 0ms) * 2);
+}
+/* A grin: the usual mouth swaps for the bigger smile for ~1.3s every 9s. */
+@keyframes ftg-av-live-mouth {
+  0%, 100% { opacity: 1; }
+  60% { opacity: 0; }
+  75% { opacity: 1; }
+}
+@keyframes ftg-av-live-mouth-alt {
+  0%, 100% { opacity: 0; }
+  60% { opacity: 1; }
+  75% { opacity: 0; }
+}
 /* A blink = the open eyes hidden for ~0.15s while the closed copy shows. */
 @keyframes ftg-av-live-open {
   0%, 100% { opacity: 1; }
@@ -724,7 +743,7 @@ body {
   97% { opacity: 0; }
 }
 
-.ftg-av-live:active > svg {
+.ftg-av-live[data-hop] > svg {
   animation: ftg-av-hop 0.5s var(--ftg-ease-spring);
 }
 @media (hover: hover) {

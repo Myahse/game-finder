@@ -150,6 +150,21 @@ function closedEyes(): string {
   return closedEyesMarkup
 }
 
+const MOUTH_TAG = '<g transform="translate(78 134)">'
+type Mouth = NonNullable<Opts['mouth']>[number]
+const altMouths = new Map<Mouth, string>()
+
+/** The grin a mouth breaks into (a big smile; a big smile softens to a smile). */
+function altMouth(mouth: Mouth): string {
+  const alt: Mouth = mouth === 'smile' ? 'twinkle' : 'smile'
+  let markup = altMouths.get(alt)
+  if (markup === undefined) {
+    markup = innerOfGroup(createAvatar(avataaars, { mouth: [alt] }).toString(), MOUTH_TAG)
+    altMouths.set(alt, markup)
+  }
+  return markup
+}
+
 /** The markup inside the first `<g …>` that starts with [openTag], nested groups included. */
 export function innerOfGroup(svg: string, openTag: string): string {
   const start = svg.indexOf(openTag)
@@ -172,6 +187,7 @@ export function avataaarsSvg(c: PlayerAvatarConfig, expression: Expression = {})
   const hat = c.headwear ? HEADWEAR[c.headwear] : undefined
   const beard = BEARDS[c.facialHair]
   const glasses = c.eyewear ? EYEWEAR[c.eyewear] : undefined
+  const mouth = expression.mouth ?? MOUTHS[c.mouth] ?? 'smile'
   const svg = createAvatar(avataaars, {
     top: [hat ?? HAIR[c.hair] ?? 'shortFlat'],
     topProbability: 100,
@@ -180,7 +196,7 @@ export function avataaarsSvg(c: PlayerAvatarConfig, expression: Expression = {})
     skinColor: [hex(skin)],
     eyes: [expression.eyes ?? EYES[c.eyes] ?? 'default'],
     eyebrows: [expression.eyebrows ?? BROWS[c.eyebrows] ?? 'defaultNatural'],
-    mouth: [expression.mouth ?? MOUTHS[c.mouth] ?? 'smile'],
+    mouth: [mouth],
     facialHair: beard ? [beard] : undefined,
     facialHairProbability: beard ? 100 : 0,
     facialHairColor: [hex(hair)],
@@ -195,6 +211,8 @@ export function avataaarsSvg(c: PlayerAvatarConfig, expression: Expression = {})
     // nothing moves). Avataaars always draws the eyes at this offset; outside the app's
     // CSS (canvas, stickers) the copy stays invisible.
     .replace(EYES_TAG, `<g class="ftg-av-eyes-closed" opacity="0" ${EYES_TAG.slice(3)}${closedEyes()}</g><g class="ftg-av-eyes" ${EYES_TAG.slice(3)}`)
+    // …and now and then break into a bigger smile the same way.
+    .replace(MOUTH_TAG, `<g class="ftg-av-mouth-alt" opacity="0" ${MOUTH_TAG.slice(3)}${altMouth(mouth)}</g><g class="ftg-av-mouth" ${MOUTH_TAG.slice(3)}`)
 
   if (!NUMBERED.has(c.top) || !kit.number) return svg
   // Jersey number on the chest (ids/colours are ours, never user text, so this is safe markup).

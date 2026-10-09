@@ -18,3 +18,14 @@ describe('avataaarsSvg blink', () => {
     expect(innerOfGroup(svg, '<g class="ftg-av-eyes-closed" opacity="0" transform="translate(76 90)">').length).toBeGreaterThan(20)
   })
 })
+
+describe('avataaarsSvg grin', () => {
+  it('adds a hidden bigger smile next to the usual mouth', () => {
+    const svg = avataaarsSvg(defaultConfig())
+    const alt = '<g class="ftg-av-mouth-alt" opacity="0" transform="translate(78 134)">'
+    expect(svg).toContain(alt)
+    expect(svg).toContain('<g class="ftg-av-mouth" transform="translate(78 134)">')
+    expect(innerOfGroup(svg, alt).length).toBeGreaterThan(20)
+  })
+})
+

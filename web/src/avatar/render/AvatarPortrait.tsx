@@ -1,4 +1,4 @@
-import { useMemo, type CSSProperties } from 'react'
+import { useMemo, type CSSProperties, type PointerEvent } from 'react'
 import type { PlayerAvatarConfig } from '../schema'
 import { avataaarsSvg } from './avataaars'
 import { idleDelay } from '../../lib/motion'
@@ -19,9 +19,18 @@ export function AvatarPortrait({ config, className = '', live = true }: { config
       aria-label={currentT().avatarLabels.portrait}
       className={`[&>svg]:block [&>svg]:h-full [&>svg]:w-full ${live ? 'ftg-av-live' : ''} ${className}`}
       style={live ? ({ '--ftg-av-delay': `${delay}ms` } as CSSProperties) : undefined}
+      onPointerDown={live ? hop : undefined}
       // Markup comes from the bundled Avataaars art and our own option ids — no user-supplied strings.
       dangerouslySetInnerHTML={{ __html: svg }}
     />
   )
 }
 
+/** Hop on tap or click (phones don't apply :active to a plain picture). */
+function hop(e: PointerEvent<HTMLDivElement>) {
+  const el = e.currentTarget
+  el.removeAttribute('data-hop')
+  void el.offsetWidth // restart the animation on quick repeat taps
+  el.setAttribute('data-hop', '')
+  window.setTimeout(() => el.removeAttribute('data-hop'), 550)
+}
