@@ -2,7 +2,7 @@
 #Requires -RunAsAdministrator
 $ErrorActionPreference = 'Stop'
 
-$name = 'Find the Game API (8080)'
+$name = 'Out For Ground API (8080)'
 $existing = Get-NetFirewallRule -DisplayName $name -ErrorAction SilentlyContinue
 if ($existing) {
   Write-Host "Firewall rule already exists: $name"

@@ -158,7 +158,7 @@ void main() {
       expect(courtShareUrl('abc 1'), '$webAppUrl/courts/abc%201');
       expect(gameShareUrlFromToken(' tok '), '$webAppUrl/g/tok');
       expect(gameShareText('Terrain IUGB', 'Pickup'), 'Terrain IUGB · Pickup');
-      expect(findTheGameTitle('Terrain IUGB'), 'Terrain IUGB · Find the Game');
+      expect(findTheGameTitle('Terrain IUGB'), 'Terrain IUGB · Out For Ground');
       expect(shareMessage('Terrain IUGB', 'https://x/courts/1'), 'Terrain IUGB\nhttps://x/courts/1');
       expect(shareMessage(' ', 'https://x'), 'https://x');
     });

@@ -64,11 +64,11 @@ class _ShareProfileSheetState extends State<_ShareProfileSheet> {
   Future<void> _share() async {
     setState(() => _busy = true);
     // Many apps drop the link when a file is attached, so it also rides in the text.
-    final text = '${tr('Play with me on Find the Game:', 'Viens jouer avec moi sur Find the Game :')} $_url';
+    final text = '${tr('Play with me on Out For Ground:', 'Viens jouer avec moi sur Out For Ground :')} $_url';
     try {
       final png = await captureBoundaryPng(_boundary, settle: const Duration(milliseconds: 150));
       await sharePngs(
-        [if (png != null) (bytes: png, name: 'find-the-game-${widget.me.username}.png')],
+        [if (png != null) (bytes: png, name: 'out-for-ground-${widget.me.username}.png')],
         title: tr('Share your profile', 'Partager votre profil'),
         text: text,
         origin: shareOriginOf(_shareButton),
@@ -184,8 +184,8 @@ class ProfileShareCard extends StatelessWidget {
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                 const Text.rich(
                   TextSpan(children: [
-                    TextSpan(text: 'FIND THE ', style: TextStyle(color: white)),
-                    TextSpan(text: 'GAME', style: TextStyle(color: _accent)),
+                    TextSpan(text: 'OUT FOR ', style: TextStyle(color: white)),
+                    TextSpan(text: 'GROUND', style: TextStyle(color: _accent)),
                   ]),
                   style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900, letterSpacing: -0.3),
                 ),

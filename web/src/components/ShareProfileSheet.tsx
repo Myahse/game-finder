@@ -53,7 +53,7 @@ function ShareProfileSheet({ me, onClose }: { me: Me; onClose: () => void }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const fileName = `find-the-game-${me.username}.png`
+  const fileName = `out-for-ground-${me.username}.png`
   const text = `${t.share.text} ${url}`
 
   const share = async () => {

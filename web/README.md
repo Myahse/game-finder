@@ -1,4 +1,4 @@
-# Find the Game — web
+# Out For Ground — web
 
 React + TypeScript + Vite web app and admin dashboard. See the [root README](../README.md).
 

@@ -48,7 +48,7 @@ type Config struct {
 	FirebaseProjectID string
 	FirebaseJWKSURL   string // tests only
 	ResendAPIKey      string
-	EmailFrom         string // e.g. "Find the Game <onboarding@resend.dev>"
+	EmailFrom         string // e.g. "Out For Ground <onboarding@resend.dev>"
 	WebAppURL         string // verify links, no trailing slash
 }
 
@@ -65,7 +65,7 @@ func Load() (Config, error) {
 		RefreshTokenTTL: duration("REFRESH_TOKEN_TTL", 30*24*time.Hour),
 		CORSOrigins: list(
 			"CORS_ORIGINS",
-			"http://localhost:5173,http://localhost:9099,https://game-finder-swart.vercel.app",
+			"http://localhost:5173,http://localhost:9099,https://www.outforground.com,https://outforground.com,https://game-finder-swart.vercel.app",
 		),
 		AdminEmails:           list("ADMIN_EMAILS", ""),
 		PasswordRegistration:  env("PASSWORD_REGISTRATION", "true") == "true",

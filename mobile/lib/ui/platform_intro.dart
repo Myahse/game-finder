@@ -60,7 +60,7 @@ class GuestIntroSheet extends StatelessWidget {
         Text(tr('WELCOME', 'BIENVENUE'),
             style: const TextStyle(color: Palette.brand, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.6)),
         const SizedBox(height: 4),
-        Text(tr('FIND THE GAME', 'TROUVEZ LE MATCH'), style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900)),
+        Text('OUT FOR GROUND', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
         Text(
           tr('Courts, players and live games near you — basketball, football, volleyball, tennis and more, on one map.',

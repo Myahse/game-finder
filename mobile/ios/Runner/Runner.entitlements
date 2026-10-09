@@ -7,8 +7,8 @@
 	<key>com.apple.developer.associated-domains</key>
 	<array>
 		<string>applinks:game-finder-swart.vercel.app</string>
-		<string>applinks:out4ground.com</string>
-		<string>applinks:www.out4ground.com</string>
+		<string>applinks:outforground.com</string>
+		<string>applinks:www.outforground.com</string>
 	</array>
 	<key>com.apple.developer.applesignin</key>
 	<array>

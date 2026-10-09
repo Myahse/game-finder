@@ -382,7 +382,7 @@ void main() {
       await lock.lockOnStartIfNeeded(signedIn: true);
       bio.result = false;
       await tester.pumpWidget(gate(FakeApi({}), lock));
-      expect(find.text('FIND THE GAME IS LOCKED'), findsOneWidget);
+      expect(find.text('OUT FOR GROUND IS LOCKED'), findsOneWidget);
       expect(find.text('HOME'), findsNothing);
       await tester.pump(const Duration(milliseconds: 450));
       await tester.pumpAndSettle();
@@ -396,7 +396,7 @@ void main() {
       expect(bio.prompts, 2);
       expect(lock.locked, isFalse);
       expect(find.text('HOME'), findsOneWidget);
-      expect(find.text('FIND THE GAME IS LOCKED'), findsNothing);
+      expect(find.text('OUT FOR GROUND IS LOCKED'), findsNothing);
     });
 
     testWidgets('coming back after a while covers the open screens', (tester) async {
@@ -411,12 +411,12 @@ void main() {
       await lock.onResumed(signedIn: true);
       await tester.pump();
       await tester.pump();
-      expect(find.text('FIND THE GAME IS LOCKED'), findsOneWidget);
+      expect(find.text('OUT FOR GROUND IS LOCKED'), findsOneWidget);
       await tester.pump(const Duration(milliseconds: 450));
       await tester.pumpAndSettle();
       expect(bio.prompts, 1);
       expect(lock.locked, isFalse);
-      expect(find.text('FIND THE GAME IS LOCKED'), findsNothing);
+      expect(find.text('OUT FOR GROUND IS LOCKED'), findsNothing);
       expect(find.text('HOME'), findsOneWidget);
     });
 

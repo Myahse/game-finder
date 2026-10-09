@@ -109,7 +109,7 @@ class FriendsPanelState extends State<FriendsPanel> {
     try {
       url = await createFriendInviteUrl(context.read<Api>());
       await SharePlus.instance.share(ShareParams(
-        text: '${tr('Play with me on Find the Game:', 'Viens jouer avec moi sur Find the Game :')} $url',
+        text: '${tr('Play with me on Out For Ground:', 'Viens jouer avec moi sur Out For Ground :')} $url',
         subject: tr('Friend invite', 'Invitation d’ami'),
         sharePositionOrigin: shareOriginOf(_inviteButton),
       ));

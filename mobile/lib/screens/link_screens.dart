@@ -191,7 +191,7 @@ class _GameLinkScreenState extends State<GameLinkScreen> {
             LinkInvalidView(
               title: tr('This game link isn’t valid anymore.', 'Ce lien de match n’est plus valide.'),
               hint: tr('It may have ended or been cancelled.', 'Le match est peut-être terminé ou a été annulé.'),
-              actionLabel: ready ? tr('Back to map', 'Retour à la carte') : tr('Open Find the Game', 'Ouvrir Find the Game'),
+              actionLabel: ready ? tr('Back to map', 'Retour à la carte') : tr('Open Out For Ground', 'Ouvrir Out For Ground'),
               onAction: () => popToAppRoot(context),
             )
           else
@@ -389,7 +389,7 @@ class _FriendInviteScreenState extends State<FriendInviteScreen> {
       const SizedBox(height: 12),
       Text('@${inviter.username}', textAlign: TextAlign.center, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
       const SizedBox(height: 4),
-      Text(tr('wants to be friends on Find the Game.', 'veut devenir votre ami sur Find the Game.'), textAlign: TextAlign.center, style: TextStyle(color: muted)),
+      Text(tr('wants to be friends on Out For Ground.', 'veut devenir votre ami sur Out For Ground.'), textAlign: TextAlign.center, style: TextStyle(color: muted)),
       const SizedBox(height: 24),
       if (me != null && me.id == inviter.id)
         Text(tr('This is your own invite link — share it with someone else.', 'C’est votre propre lien d’invitation — partagez-le avec quelqu’un d’autre.'),

@@ -81,7 +81,7 @@ export function AppShell() {
         <div className="display hidden items-center gap-1.5 px-3 pb-6 pt-2 text-3xl font-extrabold md:flex">
           <BaseSportIcon className="size-6 text-brand" />
           <span>
-            Find the <span className="text-brand">Game</span>
+            Out For <span className="text-brand">Ground</span>
           </span>
         </div>
         {tabs.map((tab) => (

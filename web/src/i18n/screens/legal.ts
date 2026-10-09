@@ -12,9 +12,9 @@ export const en = {
   privacyLink: 'Privacy',
   terms: [
     {
-      title: 'What Find the Game is',
+      title: 'What Out For Ground is',
       body:
-        'Find the Game helps people discover outdoor courts, join pickup games, and get alerts when games start nearby. You must be 13 or older to use the service.',
+        'Out For Ground helps people discover outdoor courts, join pickup games, and get alerts when games start nearby. You must be 13 or older to use the service.',
     },
     {
       title: 'Your account',
@@ -86,9 +86,9 @@ export const fr: typeof en = {
   privacyLink: 'Confidentialité',
   terms: [
     {
-      title: 'Ce qu’est Find the Game',
+      title: 'Ce qu’est Out For Ground',
       body:
-        'Find the Game aide les gens à découvrir des terrains en plein air, à rejoindre des matchs improvisés et à recevoir des alertes quand des matchs commencent à proximité. Vous devez avoir 13 ans ou plus pour utiliser le service.',
+        'Out For Ground aide les gens à découvrir des terrains en plein air, à rejoindre des matchs improvisés et à recevoir des alertes quand des matchs commencent à proximité. Vous devez avoir 13 ans ou plus pour utiliser le service.',
     },
     {
       title: 'Votre compte',

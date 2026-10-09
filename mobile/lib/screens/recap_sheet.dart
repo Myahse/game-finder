@@ -109,7 +109,7 @@ class _RecapSheetState extends State<RecapSheet> {
     _load(next);
   }
 
-  String get _fileName => 'find-the-game-${widget.me.username}-$_month.png';
+  String get _fileName => 'out-for-ground-${widget.me.username}-$_month.png';
 
   Future<void> _share({required bool withText}) async {
     if (_busy) return;
@@ -120,7 +120,7 @@ class _RecapSheetState extends State<RecapSheet> {
       await sharePngs(
         [(bytes: png, name: _fileName)],
         title: withText ? tr('Your month', 'Votre mois') : null,
-        text: withText ? '${tr('My month on Find the Game:', 'Mon mois sur Find the Game :')} ${monthLabel(_month)}' : null,
+        text: withText ? '${tr('My month on Out For Ground:', 'Mon mois sur Out For Ground :')} ${monthLabel(_month)}' : null,
         origin: shareOriginOf(withText ? _shareButton : _saveButton),
       );
     } catch (_) {
@@ -302,8 +302,8 @@ class RecapStory extends StatelessWidget {
               top: 32,
               child: Text.rich(
                 TextSpan(children: [
-                  const TextSpan(text: 'FIND THE '),
-                  TextSpan(text: 'GAME', style: TextStyle(color: accent)),
+                  const TextSpan(text: 'OUT FOR '),
+                  TextSpan(text: 'GROUND', style: TextStyle(color: accent)),
                 ]),
                 style: display(19),
               ),
@@ -395,7 +395,7 @@ class RecapStory extends StatelessWidget {
               right: 20,
               bottom: 22,
               child: Text(
-                tr('My month on Find the Game', 'Mon mois sur Find the Game'),
+                tr('My month on Out For Ground', 'Mon mois sur Out For Ground'),
                 textAlign: TextAlign.center,
                 style: sans(11.5, color: white.withValues(alpha: 0.85)),
               ),

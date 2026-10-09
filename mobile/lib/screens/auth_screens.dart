@@ -131,8 +131,8 @@ class _Wordmark extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text.rich(
         TextSpan(children: [
-          const TextSpan(text: 'FIND THE\n', style: TextStyle(color: Colors.white)),
-          const TextSpan(text: 'GAME', style: TextStyle(color: Palette.brand)),
+          const TextSpan(text: 'OUT FOR\n', style: TextStyle(color: Colors.white)),
+          const TextSpan(text: 'GROUND', style: TextStyle(color: Palette.brand)),
         ]),
         style: TextStyle(fontSize: size, fontWeight: FontWeight.w900, height: 0.95, letterSpacing: -1),
       );
@@ -309,7 +309,7 @@ class _LoginSheetState extends State<_LoginSheet> {
       if (!mounted || _busy) return;
     }
     if (_quick == null) return;
-    final ok = await BiometricAuth.authenticate(reason: tr('Log in to Find the Game', 'Connectez-vous à Find the Game'));
+    final ok = await BiometricAuth.authenticate(reason: tr('Log in to Out For Ground', 'Connectez-vous à Out For Ground'));
     if (!mounted || !ok) return;
     final stored = await BiometricAuth.storedCredentials();
     if (!mounted) return;

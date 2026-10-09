@@ -29,7 +29,7 @@ Write-Host "Mapbox from assets/.env (synced from repo .env)"
 Write-Host "Test from phone Chrome: $api/api/sports"
 Write-Host ""
 Write-Host "If the phone cannot connect, allow inbound TCP 8080 (run as Admin once):"
-Write-Host "  New-NetFirewallRule -DisplayName 'Find the Game API' -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8080"
+Write-Host "  New-NetFirewallRule -DisplayName 'Out For Ground API' -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8080"
 Write-Host ""
 Write-Host "Starting flutter run..."
 

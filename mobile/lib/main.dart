@@ -50,7 +50,7 @@ Future<void> main() async {
   await ensureFirebaseApp();
   initMapboxAccessToken();
   if (kDebugMode) {
-    debugPrint('Find the Game API_URL=$apiUrl mapbox=${mapboxAccessToken.isNotEmpty}');
+    debugPrint('Out For Ground API_URL=$apiUrl mapbox=${mapboxAccessToken.isNotEmpty}');
   }
   final api = Api();
   await api.load();
@@ -83,7 +83,7 @@ class FindTheGameApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Find the Game',
+      title: 'Out For Ground',
       navigatorKey: LinkRouter.instance.navigatorKey,
       debugShowCheckedModeBanner: false,
       theme: buildTheme(Brightness.light),

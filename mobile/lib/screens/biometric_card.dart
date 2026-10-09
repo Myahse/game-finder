@@ -94,10 +94,10 @@ class _BiometricCardState extends State<BiometricCard> {
       context,
       title: tr('Fingerprint / Face ID on', 'Empreinte / Face ID activée'),
       message: saved
-          ? tr('Find the Game asks for your fingerprint or Face ID when it opens, and you can log in with a scan instead of your password.',
-              'Find the Game demande votre empreinte ou Face ID à l’ouverture, et vous pouvez vous connecter d’un scan au lieu du mot de passe.')
-          : tr('Find the Game asks for your fingerprint or Face ID when it opens.',
-              'Find the Game demande votre empreinte ou Face ID à l’ouverture.'),
+          ? tr('Out For Ground asks for your fingerprint or Face ID when it opens, and you can log in with a scan instead of your password.',
+              'Out For Ground demande votre empreinte ou Face ID à l’ouverture, et vous pouvez vous connecter d’un scan au lieu du mot de passe.')
+          : tr('Out For Ground asks for your fingerprint or Face ID when it opens.',
+              'Out For Ground demande votre empreinte ou Face ID à l’ouverture.'),
     );
   }
 

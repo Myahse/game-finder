@@ -69,8 +69,8 @@ class _PushSetupCardState extends State<PushSetupCard> with WidgetsBindingObserv
       PushStatus.off => tr('Get challenges, invites and reminders even when the app is closed.',
           'Recevez défis, invitations et rappels même quand l’app est fermée.'),
       PushStatus.blocked => tr(
-          'Blocked in your phone settings. Open Settings → Find the Game → Notifications, allow them, then come back.',
-          'Bloquées dans les réglages du téléphone. Ouvrez Réglages → Find the Game → Notifications, autorisez-les, puis revenez.'),
+          'Blocked in your phone settings. Open Settings → Out For Ground → Notifications, allow them, then come back.',
+          'Bloquées dans les réglages du téléphone. Ouvrez Réglages → Out For Ground → Notifications, autorisez-les, puis revenez.'),
       PushStatus.unsupported => tr('This device can’t receive notifications.', 'Cet appareil ne peut pas recevoir de notifications.'),
     };
     return Card(

@@ -15,7 +15,7 @@
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
 
     <application
-        android:label="Find the Game"
+        android:label="Out For Ground"
         android:networkSecurityConfig="@xml/network_security_config"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
@@ -48,8 +48,8 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="https"/>
                 <data android:host="game-finder-swart.vercel.app"/>
-                <data android:host="out4ground.com"/>
-                <data android:host="www.out4ground.com"/>
+                <data android:host="outforground.com"/>
+                <data android:host="www.outforground.com"/>
                 <data android:pathPrefix="/g/"/>
                 <data android:pathPrefix="/friend/"/>
                 <data android:pathPrefix="/u/"/>

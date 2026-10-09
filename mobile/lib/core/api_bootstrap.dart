@@ -109,7 +109,7 @@ Future<bool> _tryUrl(String url, SharedPreferences prefs) async {
   setApiUrl(url);
   await prefs.setString(_prefsApiUrl, url);
   apiReachable = true;
-  if (kDebugMode) debugPrint('Find the Game API reachable at $url');
+  if (kDebugMode) debugPrint('Out For Ground API reachable at $url');
   return true;
 }
 
@@ -134,7 +134,7 @@ Future<bool> ensureApiReachable({Duration budget = const Duration(seconds: 25)})
   }
 
   if (kDebugMode) {
-    debugPrint('Find the Game API not reachable (tried $apiUrl). '
+    debugPrint('Out For Ground API not reachable (tried $apiUrl). '
         'On PC: docker compose up -d db api, allow port 8080 in firewall, use run-device.ps1');
   }
   return false;

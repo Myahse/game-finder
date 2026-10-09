@@ -73,11 +73,11 @@ class _ResultSheetState extends State<_ResultSheet> {
     final url = _url;
     if (url == null) return;
     setState(() => _busy = true);
-    final text = '${tr('Game result on Find the Game:', 'Résultat du match sur Find the Game :')} $url';
+    final text = '${tr('Game result on Out For Ground:', 'Résultat du match sur Out For Ground :')} $url';
     try {
       final png = await captureBoundaryPng(_boundary);
       await sharePngs(
-        [if (png != null) (bytes: png, name: 'find-the-game-result-${widget.game.id.substring(0, 8)}.png')],
+        [if (png != null) (bytes: png, name: 'out-for-ground-result-${widget.game.id.substring(0, 8)}.png')],
         title: tr('Game result', 'Résultat du match'),
         text: text,
         origin: shareOriginOf(_shareButton),
@@ -200,8 +200,8 @@ class GameResultCard extends StatelessWidget {
                 Row(children: [
                   const Text.rich(
                     TextSpan(children: [
-                      TextSpan(text: 'FIND THE ', style: TextStyle(color: white)),
-                      TextSpan(text: 'GAME', style: TextStyle(color: _accent)),
+                      TextSpan(text: 'OUT FOR ', style: TextStyle(color: white)),
+                      TextSpan(text: 'GROUND', style: TextStyle(color: _accent)),
                     ]),
                     style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, letterSpacing: -0.3),
                   ),

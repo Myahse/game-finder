@@ -12,8 +12,8 @@ const appLinkScheme = 'findthegame';
 /// in assets/.env.
 const defaultAppLinkHosts = [
   'game-finder-swart.vercel.app',
-  'out4ground.com',
-  'www.out4ground.com',
+  'outforground.com',
+  'www.outforground.com',
 ];
 
 /// Hosts accepted by [parseAppLink]: the share-link origin, the defaults and

@@ -215,8 +215,8 @@ void main() {
         expect(tester.takeException(), isNull);
       }
       expect(find.text('@a_very_long_username_here'), findsOneWidget);
-      expect(find.text('MY MONTH ON FIND THE GAME'), findsNothing);
-      expect(find.text('My month on Find the Game'), findsOneWidget);
+      expect(find.text('MY MONTH ON OUT FOR GROUND'), findsNothing);
+      expect(find.text('My month on Out For Ground'), findsOneWidget);
     });
   });
 

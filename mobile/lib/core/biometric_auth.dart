@@ -115,7 +115,7 @@ class BiometricAuth {
     }
   }
 
-  static String unlockReason() => tr('Unlock Find the Game', 'Déverrouillez Find the Game');
+  static String unlockReason() => tr('Unlock Out For Ground', 'Déverrouillez Out For Ground');
 
   // --- Remembered login (email/username + password accounts only) ---
 

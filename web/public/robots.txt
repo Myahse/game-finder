@@ -1,4 +1,4 @@
-# Find the Game — https://game-finder-swart.vercel.app
+# Out For Ground — https://www.outforground.com
 # Public pages may be indexed; signed-in screens, private links and the API may not.
 User-agent: *
 Allow: /$

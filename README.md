@@ -1,4 +1,4 @@
-# Find the Game
+# Out For Ground
 
 > Don't search for a court. **Find the game.**
 

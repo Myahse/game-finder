@@ -38,10 +38,10 @@ class LegalTextScreen extends StatelessWidget {
 /// Mirrors web/src/i18n/screens/legal.ts section titles and bodies (EN/FR).
 List<(String, String)> get termsSections => [
       (
-        tr('What Find the Game is', 'Ce qu’est Find the Game'),
+        tr('What Out For Ground is', 'Ce qu’est Out For Ground'),
         tr(
-          'Find the Game helps people discover outdoor courts, join pickup games, and get alerts when games start nearby. You must be 13 or older to use the service.',
-          'Find the Game aide les gens à découvrir des terrains en plein air, à rejoindre des matchs improvisés et à recevoir des alertes quand des matchs commencent à proximité. Vous devez avoir 13 ans ou plus pour utiliser le service.',
+          'Out For Ground helps people discover outdoor courts, join pickup games, and get alerts when games start nearby. You must be 13 or older to use the service.',
+          'Out For Ground aide les gens à découvrir des terrains en plein air, à rejoindre des matchs improvisés et à recevoir des alertes quand des matchs commencent à proximité. Vous devez avoir 13 ans ou plus pour utiliser le service.',
         ),
       ),
       (

@@ -83,10 +83,10 @@ export function MapPage() {
       {/* Filters */}
       <div className="absolute inset-x-0 top-0 z-10 bg-gradient-to-b from-bg/95 to-transparent px-4 pb-6 pt-3">
         <div className="flex items-center justify-between gap-2">
-          <p className="display text-3xl font-extrabold md:hidden">
+          <p className="display min-w-0 truncate text-[clamp(1.25rem,6.5vw,1.875rem)] font-extrabold md:hidden">
             {t.courts.map.titleStart} <span className="text-brand">{t.courts.map.titleEnd}</span>
           </p>
-          <span className="display inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-live px-3 py-1 text-base font-bold text-white shadow">
+          <span className="display inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-live px-3 py-1 text-sm font-bold text-white shadow min-[400px]:text-base">
             <LiveText>{t.courts.map.live.replace('{n}', String(liveCount))}</LiveText>
           </span>
         </div>

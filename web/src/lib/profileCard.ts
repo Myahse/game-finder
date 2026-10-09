@@ -81,10 +81,10 @@ export async function renderProfileCard(input: ProfileCardInput): Promise<Blob> 
   ctx.fillStyle = '#ffffff'
   ctx.textBaseline = 'alphabetic'
   ctx.font = display(64)
-  ctx.fillText('FIND THE', 80, 140)
-  const w = ctx.measureText('FIND THE ').width
+  ctx.fillText('OUT FOR', 80, 140)
+  const w = ctx.measureText('OUT FOR ').width
   ctx.fillStyle = accent
-  ctx.fillText('GAME', 80 + w, 140)
+  ctx.fillText('GROUND', 80 + w, 140)
 
   // Avatar disc
   const cx = W / 2

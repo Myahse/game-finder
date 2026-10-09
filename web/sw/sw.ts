@@ -29,10 +29,10 @@ self.addEventListener('push', (event) => {
   try {
     payload = (event.data?.json() ?? {}) as FcmPayload
   } catch {
-    payload = { notification: { title: 'Find the Game', body: event.data?.text() ?? '' } }
+    payload = { notification: { title: 'Out For Ground', body: event.data?.text() ?? '' } }
   }
   const data = payload.data ?? {}
-  const title = payload.notification?.title || data.title || 'Find the Game'
+  const title = payload.notification?.title || data.title || 'Out For Ground'
   const body = payload.notification?.body || data.body || ''
   event.waitUntil(
     (async () => {

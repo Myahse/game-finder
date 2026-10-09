@@ -90,7 +90,7 @@ class Notifications {
     FirebaseMessaging.onMessage.listen((m) {
       final n = m.notification;
       // The whole data map (with `type`) so a tap opens the right screen.
-      if (n != null) show(n.title ?? 'Find the Game', n.body ?? '', payload: pushPayload(m.data));
+      if (n != null) show(n.title ?? 'Out For Ground', n.body ?? '', payload: pushPayload(m.data));
     });
     FirebaseMessaging.onMessageOpenedApp.listen((m) => _pushTaps.add(Map<String, dynamic>.from(m.data)));
     try {

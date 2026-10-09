@@ -127,7 +127,7 @@ export function OnboardingPage() {
         <div className="mb-8 flex items-center justify-between">
           <span className="display inline-flex items-center gap-1.5 text-xl font-extrabold">
             <BaseSportIcon className="sport-tint size-5 text-brand" />
-            Find the <span className="sport-tint text-brand">Game</span>
+            Out For <span className="sport-tint text-brand">Ground</span>
           </span>
           <button
             type="button"

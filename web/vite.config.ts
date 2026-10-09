@@ -26,8 +26,8 @@ export default defineConfig({
       },
       manifest: {
         id: '/',
-        name: 'Find the Game',
-        short_name: 'Find Game',
+        name: 'Out For Ground',
+        short_name: 'OutForGround',
         description: "Don't search for a court. Find the game.",
         theme_color: '#ff5a1f',
         background_color: '#12151a',

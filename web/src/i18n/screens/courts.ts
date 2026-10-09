@@ -67,8 +67,8 @@ export const en = {
     submit: 'Submit court',
   },
   map: {
-    titleStart: 'Find the',
-    titleEnd: 'Game',
+    titleStart: 'Out For',
+    titleEnd: 'Ground',
     live: '{n} live',
     all: 'All',
     addCourt: 'Add court',
@@ -172,7 +172,7 @@ export const en = {
     close: 'Close',
   },
   share: {
-    title: '{name} · Find the Game',
+    title: '{name} · Out For Ground',
     copied: 'Link copied!',
     button: 'Share court',
   },
@@ -247,8 +247,8 @@ export const fr: typeof en = {
     submit: 'Proposer le terrain',
   },
   map: {
-    titleStart: 'Find the',
-    titleEnd: 'Game',
+    titleStart: 'Out For',
+    titleEnd: 'Ground',
     live: '{n} en direct',
     all: 'Tous',
     addCourt: 'Ajouter un terrain',
@@ -352,7 +352,7 @@ export const fr: typeof en = {
     close: 'Fermer',
   },
   share: {
-    title: '{name} · Find the Game',
+    title: '{name} · Out For Ground',
     copied: 'Lien copié !',
     button: 'Partager le terrain',
   },

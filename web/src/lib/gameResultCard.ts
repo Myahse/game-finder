@@ -102,9 +102,9 @@ export async function renderResultCard(input: ResultCardInput): Promise<Blob> {
   ctx.textAlign = 'start'
   ctx.font = display(52)
   ctx.fillStyle = '#ffffff'
-  ctx.fillText('FIND THE', 70, 110)
+  ctx.fillText('OUT FOR', 70, 110)
   ctx.fillStyle = accent
-  ctx.fillText('GAME', 70 + ctx.measureText('FIND THE ').width, 110)
+  ctx.fillText('GROUND', 70 + ctx.measureText('OUT FOR ').width, 110)
   ctx.textAlign = 'end'
   ctx.fillStyle = 'rgba(255,255,255,0.75)'
   ctx.font = sans(30, 700)

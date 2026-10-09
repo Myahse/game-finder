@@ -4,7 +4,7 @@ library;
 const legalLastUpdated = 'October 2025';
 
 const termsSummary =
-    'By creating an account you agree to use Find the Game responsibly: real identity, no harassment, '
+    'By creating an account you agree to use Out For Ground responsibly: real identity, no harassment, '
     'community courts and games at your own risk, and we may moderate content or suspend accounts that harm others.';
 
 const privacySummary =

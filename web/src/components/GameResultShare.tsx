@@ -86,7 +86,7 @@ function ResultSheet({ game, sb, onClose }: { game: Game; sb: Scoreboard; onClos
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const fileName = `find-the-game-result-${game.id.slice(0, 8)}.png`
+  const fileName = `out-for-ground-result-${game.id.slice(0, 8)}.png`
 
   const save = () => {
     if (!card) return

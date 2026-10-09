@@ -12,17 +12,17 @@
 		<string>fr</string>
 	</array>
 	<key>CFBundleDisplayName</key>
-	<string>Find the Game</string>
+	<string>Out For Ground</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Find the Game uses your location to show courts and live games near you and to check you in at a court. Other players never see your exact position.</string>
+	<string>Out For Ground uses your location to show courts and live games near you and to check you in at a court. Other players never see your exact position.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Choose a profile photo or photos of a court you are adding.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Take a photo of a court you are adding.</string>
 	<key>NSFaceIDUsageDescription</key>
-	<string>Use Face ID to unlock Find the Game and log in quickly.</string>
+	<string>Use Face ID to unlock Out For Ground and log in quickly.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>In development builds, Find the Game looks for the server on your local Wi-Fi network.</string>
+	<string>In development builds, Out For Ground looks for the server on your local Wi-Fi network.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

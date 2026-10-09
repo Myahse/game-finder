@@ -118,7 +118,7 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
   }
 }
 
-/// "Find the Game is locked": fingerprint / Face ID, or log out and use the
+/// "Out For Ground is locked": fingerprint / Face ID, or log out and use the
 /// password. Prompts once on its own, like the login quick unlock.
 class AppLockScreen extends StatefulWidget {
   final AppLock lock;
@@ -189,7 +189,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  tr('FIND THE GAME IS LOCKED', 'FIND THE GAME EST VERROUILLÉ'),
+                  tr('OUT FOR GROUND IS LOCKED', 'OUT FOR GROUND EST VERROUILLÉ'),
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.3),
                 ),

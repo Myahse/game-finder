@@ -74,7 +74,7 @@ function RecapSheet({ me, onClose }: { me: Me; onClose: () => void }) {
   }, [onClose])
 
   const ready = story && story.month === month ? story : null
-  const fileName = `find-the-game-${me.username}-${month}.png`
+  const fileName = `out-for-ground-${me.username}-${month}.png`
 
   const share = async () => {
     if (!ready) return

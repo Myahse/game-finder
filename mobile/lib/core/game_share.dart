@@ -6,7 +6,7 @@ import 'api.dart';
 import 'format.dart';
 import 'models.dart';
 
-const _defaultWebApp = 'https://game-finder-swart.vercel.app';
+const _defaultWebApp = 'https://www.outforground.com';
 
 String get webAppUrl {
   final raw = dotenv.isInitialized ? dotenv.env['WEB_APP_URL']?.trim() : null;
@@ -27,10 +27,10 @@ Future<String> createGameShareUrl(Api api, String gameId) async {
 /// (same format as the web's courtShareUrl).
 String courtShareUrl(String courtId) => '$webAppUrl/courts/${Uri.encodeComponent(courtId)}';
 
-/// Web: `${court} · ${type}` for a game; the share title adds " · Find the Game".
+/// Web: `${court} · ${type}` for a game; the share title adds " · Out For Ground".
 String gameShareText(String courtName, String typeLabel) => '$courtName · $typeLabel';
 
-String findTheGameTitle(String name) => '$name · Find the Game';
+String findTheGameTitle(String name) => '$name · Out For Ground';
 
 /// What goes in the share sheet: the text, then the link on its own line.
 String shareMessage(String text, String url) => text.trim().isEmpty ? url : '$text\n$url';

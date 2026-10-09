@@ -122,9 +122,9 @@ export async function renderRecapStory(input: RecapStoryInput): Promise<Blob> {
   ctx.textAlign = 'start'
   ctx.font = display(56)
   ctx.fillStyle = '#ffffff'
-  ctx.fillText('FIND THE', 80, 150)
+  ctx.fillText('OUT FOR', 80, 150)
   ctx.fillStyle = accent
-  ctx.fillText('GAME', 80 + ctx.measureText('FIND THE ').width, 150)
+  ctx.fillText('GROUND', 80 + ctx.measureText('OUT FOR ').width, 150)
   ctx.fillStyle = '#ffffff'
   fitFont(ctx, input.monthLabel.toUpperCase(), display, 150, W - 160)
   ctx.fillText(input.monthLabel.toUpperCase(), 80, 300)

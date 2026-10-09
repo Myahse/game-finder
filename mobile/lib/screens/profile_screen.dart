@@ -517,7 +517,7 @@ class _UserScreenState extends State<UserScreen> {
       Text(
         handle.isEmpty
             ? tr('This profile link is invalid.', 'Ce lien de profil est invalide.')
-            : tr('There is no account @$handle on Find the Game yet.', 'Il n’y a pas encore de compte @$handle sur Find the Game.'),
+            : tr('There is no account @$handle on Out For Ground yet.', 'Il n’y a pas encore de compte @$handle sur Out For Ground.'),
         textAlign: TextAlign.center,
         style: TextStyle(color: muted),
       ),

@@ -450,21 +450,35 @@ class _MapScreenState extends State<MapScreen> {
 
             Row(children: [
 
-              Text.rich(
+              // Shrinks on narrow phones so the live pill keeps its room.
 
-                TextSpan(children: [
+              Expanded(
 
-                  TextSpan(text: 'FIND THE ', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+                child: FittedBox(
 
-                  const TextSpan(text: 'GAME', style: TextStyle(color: Palette.brand)),
+                  fit: BoxFit.scaleDown,
 
-                ]),
+                  alignment: Alignment.centerLeft,
 
-                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+                  child: Text.rich(
+
+                    TextSpan(children: [
+
+                      TextSpan(text: 'OUT FOR ', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+
+                      const TextSpan(text: 'GROUND', style: TextStyle(color: Palette.brand)),
+
+                    ]),
+
+                    style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+
+                  ),
+
+                ),
 
               ),
 
-              const Spacer(),
+              const SizedBox(width: 8),
 
               Container(
 

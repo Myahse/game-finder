@@ -30,9 +30,9 @@ func (r *Resend) SendVerification(ctx context.Context, to, verifyURL string) err
 	payload := map[string]any{
 		"from":    r.from,
 		"to":      []string{to},
-		"subject": "Verify your Find the Game email",
+		"subject": "Verify your Out For Ground email",
 		"html": fmt.Sprintf(
-			`<p>Confirm your email to use Find the Game.</p><p><a href="%s">Verify email</a></p><p>This link expires in 48 hours.</p>`,
+			`<p>Confirm your email to use Out For Ground.</p><p><a href="%s">Verify email</a></p><p>This link expires in 48 hours.</p>`,
 			verifyURL,
 		),
 	}

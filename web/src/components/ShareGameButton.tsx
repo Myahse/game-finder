@@ -20,7 +20,7 @@ export function ShareGameButton({ gameId, title, variant = 'secondary', classNam
   const share = useMutation({
     mutationFn: async () => {
       const url = await createGameShareUrl(gameId)
-      const shareTitle = `${title} · Find the Game`
+      const shareTitle = `${title} · Out For Ground`
       if (typeof navigator.share === 'function') {
         try {
           await navigator.share({ title: shareTitle, text: title, url })

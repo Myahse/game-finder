@@ -68,7 +68,7 @@ Widget host(FakeApi api, Widget child, {LocationState? location}) => MultiProvid
       child: MaterialApp(home: child),
     );
 
-const _hosts = ['ftg.test', 'out4ground.com', 'www.out4ground.com'];
+const _hosts = ['ftg.test', 'outforground.com', 'www.outforground.com'];
 DeepLink p(String url) => parseAppLink(Uri.parse(url), hosts: _hosts);
 
 void main() {
@@ -81,8 +81,8 @@ void main() {
   group('parseAppLink', () {
     test('every web path maps to its screen', () {
       expect(p('https://ftg.test/g/abc123'), const GameShareLink('abc123'));
-      expect(p('https://out4ground.com/friend/tok9'), const FriendInviteLink('tok9'));
-      expect(p('https://www.out4ground.com/u/ana'), const UsernameLink('ana'));
+      expect(p('https://outforground.com/friend/tok9'), const FriendInviteLink('tok9'));
+      expect(p('https://www.outforground.com/u/ana'), const UsernameLink('ana'));
       expect(p('https://ftg.test/u/@ana'), const UsernameLink('ana'));
       expect(p('https://ftg.test/challenges/c1'), const ChallengeLink('c1'));
       expect(p('https://ftg.test/challenges'), const ChallengesLink());
@@ -127,11 +127,11 @@ void main() {
       }
     });
 
-    test('hosts: web app host from config plus out4ground', () {
+    test('hosts: web app host from config plus outforground', () {
       final hosts = appLinkHosts;
-      expect(hosts, containsAll(['ftg.test', 'out4ground.com', 'www.out4ground.com']));
+      expect(hosts, containsAll(['ftg.test', 'outforground.com', 'www.outforground.com']));
       expect(parseAppLink(Uri.parse('https://ftg.test/g/x')), const GameShareLink('x'));
-      expect(parseAppLink(Uri.parse('https://OUT4GROUND.com/g/x')), const GameShareLink('x'));
+      expect(parseAppLink(Uri.parse('https://OUTFORGROUND.com/g/x')), const GameShareLink('x'));
     });
   });
 
@@ -260,7 +260,7 @@ void main() {
       await tester.pumpWidget(host(api, const GameLinkScreen(token: 'old')));
       await tester.pumpAndSettle();
       expect(find.text('This game link isn’t valid anymore.'), findsOneWidget);
-      expect(find.text('OPEN FIND THE GAME'), findsOneWidget);
+      expect(find.text('OPEN OUT FOR GROUND'), findsOneWidget);
     });
 
     testWidgets('signed out: preview, then sign in / create account', (tester) async {

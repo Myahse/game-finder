@@ -1,4 +1,4 @@
-# Find the Game — mobile
+# Out For Ground — mobile
 
 Flutter app for Android and iOS. See the [root README](../README.md).
 
