@@ -10,7 +10,17 @@ const apiKey = env('VITE_FIREBASE_API_KEY')
 const projectId = env('VITE_FIREBASE_PROJECT_ID')
 const appId = env('VITE_FIREBASE_APP_ID')
 const messagingSenderId = env('VITE_FIREBASE_MESSAGING_SENDER_ID')
-const authDomain = env('VITE_FIREBASE_AUTH_DOMAIN') || (projectId ? `${projectId}.firebaseapp.com` : '')
+/**
+ * Sites that serve Firebase's sign-in pages themselves (vercel.json proxies
+ * /__/auth/ to Firebase, and Google allows their /__/auth/handler). Signing in
+ * through our own domain shows it in the Google window and avoids Safari's
+ * blocked third-party storage.
+ */
+const OWN_AUTH_HOSTS = new Set(['www.outforground.com'])
+const ownHost = typeof window === 'undefined' ? '' : window.location.hostname
+const authDomain = OWN_AUTH_HOSTS.has(ownHost)
+  ? ownHost
+  : env('VITE_FIREBASE_AUTH_DOMAIN') || (projectId ? `${projectId}.firebaseapp.com` : '')
 
 export const firebaseAuthEnabled =
   apiKey !== '' && projectId !== '' && appId !== '' && messagingSenderId !== '' && authDomain !== ''
