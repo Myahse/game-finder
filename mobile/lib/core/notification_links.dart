@@ -1,7 +1,8 @@
 import 'dart:convert';
 
 /// Where tapping a notification goes (web lib/notificationLinks.ts).
-enum NotificationDest { profileFriends, profile, challenges, court, game, user }
+/// [card]: the signed-in player's card sheet, for the sport slug in the id.
+enum NotificationDest { profileFriends, profile, challenges, court, game, user, card }
 
 class NotificationTarget {
   final NotificationDest dest;
@@ -29,6 +30,8 @@ NotificationTarget? notificationTarget(String? type, Map<String, dynamic> data) 
   if (data['kind'] == 'court_change' && gameId == null && _str(data['challenge_id']) != null) {
     return const NotificationTarget(NotificationDest.challenges);
   }
+  // Card tier up (kind card_tier): open the player's own card for that sport.
+  if (data['kind'] == 'card_tier') return NotificationTarget(NotificationDest.card, _str(data['sport']));
   if (type == 'achievement' && data['kind'] == 'king' && courtId != null) return NotificationTarget(NotificationDest.court, courtId);
   if (type == 'achievement') return const NotificationTarget(NotificationDest.profile);
   if (gameId != null) return NotificationTarget(NotificationDest.game, gameId);

@@ -153,6 +153,7 @@ class PresenceLiveText extends StatelessWidget {
 /// as game_activity with kind court_change).
 IconData notificationIconData(String type, {Map<String, dynamic> data = const {}}) {
   if (data['kind'] == 'court_change') return Icons.place;
+  if (data['kind'] == 'card_tier') return Icons.style_outlined;
   switch (type) {
     case 'game_reminder':
       return Icons.schedule;

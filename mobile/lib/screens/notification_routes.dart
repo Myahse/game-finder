@@ -4,6 +4,7 @@ import '../core/notification_links.dart';
 import 'challenges_screen.dart';
 import 'court_screens.dart';
 import 'game_screens.dart';
+import 'player_card_sheet.dart';
 import 'profile_screen.dart';
 
 /// Lets screens under the home shell switch to its Profile tab instead of
@@ -50,6 +51,8 @@ bool openNotificationTarget(
       openGameScreen(context, target.id!);
     case NotificationDest.user:
       nav.push(MaterialPageRoute(builder: (_) => UserScreen(userId: target.id!)));
+    case NotificationDest.card:
+      showPlayerCardSheet(context, userId: 'me', sport: target.id, own: true);
   }
   return true;
 }

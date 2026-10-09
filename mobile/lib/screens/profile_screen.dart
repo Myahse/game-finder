@@ -23,6 +23,7 @@ import 'biometric_card.dart';
 import 'auth_screens.dart' show RegisterScreen, showLoginSheet;
 import 'friends_panel.dart';
 import 'password_card.dart';
+import 'player_card_sheet.dart';
 import 'recap_sheet.dart';
 import 'share_profile_sheet.dart';
 import 'sticker_sheet.dart';
@@ -261,6 +262,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             )
           else
             CreateAvatarCard(sport: sportSlugForUser(me, _sports), onTap: () => openAvatarStudio(context)),
+          const SizedBox(height: 12),
+          const PlayerCardButton(userId: 'me', own: true),
           const SizedBox(height: 12),
           KeyedSubtree(key: _progressKey, child: const ProgressCard()),
           const SizedBox(height: 12),
@@ -563,6 +566,8 @@ class _UserScreenState extends State<UserScreen> {
                     PlayerChallengeBlock(player: user),
                   ],
                   if (viewer != null) ...[
+                    const SizedBox(height: 12),
+                    PlayerCardButton(userId: user.id, own: viewer.id == user.id),
                     const SizedBox(height: 12),
                     ProgressCard(userId: user.id),
                   ],
