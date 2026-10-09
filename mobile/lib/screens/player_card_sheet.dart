@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../core/api.dart';
+import '../core/auth.dart' show AuthState;
 import '../core/friends.dart' show profileShareUrl;
 import '../core/l10n.dart';
 import '../core/models.dart' show Sport;
@@ -77,6 +78,14 @@ class _PlayerCardSheetState extends State<PlayerCardSheet> {
     _load(_sport);
   }
 
+  bool _viewerIsAdmin() {
+    try {
+      return context.read<AuthState>().user?.isAdmin ?? false;
+    } on ProviderNotFoundException {
+      return false;
+    }
+  }
+
   Future<void> _load(String sport) async {
     if (_cards.containsKey(sport)) {
       _prepare(sport);
@@ -84,7 +93,8 @@ class _PlayerCardSheetState extends State<PlayerCardSheet> {
     }
     if (_failed) setState(() => _failed = false);
     try {
-      final card = await fetchPlayerCard(context.read<Api>(), widget.userId, sport: sport.isEmpty ? null : sport);
+      final legalName = widget.own || widget.userId == 'me' || _viewerIsAdmin();
+      final card = await fetchPlayerCard(context.read<Api>(), widget.userId, sport: sport.isEmpty ? null : sport, legalName: legalName);
       if (!mounted) return;
       setState(() {
         _cards[sport] = card;

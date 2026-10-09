@@ -112,9 +112,11 @@ void main() {
 
   group('parsing', () {
     test('reads the API card', () {
-      final c = PlayerCard.fromJson(cardJson());
+      final c = PlayerCard.fromJson(cardJson(), legalName: true);
       expect(c.user.username, 'ama.k');
       expect(c.displayName, 'Ama Kouamé');
+      // Other players' cards show the @username, like the rest of the app.
+      expect(PlayerCard.fromJson(cardJson()).displayName, 'ama.k');
       expect(c.serial, 42);
       expect(c.serialLabel, 'N° 0042');
       expect(c.sport!.slug, 'basketball');
@@ -246,7 +248,7 @@ void main() {
     });
 
     testWidgets('shows the design copy and data', (tester) async {
-      final card = PlayerCard.fromJson(cardJson());
+      final card = PlayerCard.fromJson(cardJson(), legalName: true);
       Future<void> pump(CardStyle style) => tester.pumpWidget(
         MaterialApp(
           home: Center(

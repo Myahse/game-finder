@@ -134,9 +134,11 @@ export interface AppNotification {
     presence_id?: string
     user_id?: string
     friend_request_id?: string
-    kind?: 'badge' | 'streak' | 'king' | 'challenge' | 'court_change'
+    kind?: 'badge' | 'streak' | 'king' | 'challenge' | 'court_change' | 'card_tier'
     challenge_id?: string
     badge_id?: string
+    tier?: string
+    sport?: string
   }
   read: boolean
   created_at: string

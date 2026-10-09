@@ -182,6 +182,7 @@ func (s *Server) Routes() http.Handler {
 			r.Get("/me/recap", s.getMyRecap)
 			r.Get("/me/progress", s.getMyProgress)
 			r.Get("/users/{id}/progress", s.getUserProgress)
+			r.Get("/users/{id}/card", s.getUserCard)
 			r.Get("/kings", s.getKings)
 			r.Get("/users/{id}/head-to-head", s.headToHead)
 			r.Get("/challenges", s.listChallenges)

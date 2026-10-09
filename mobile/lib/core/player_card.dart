@@ -115,6 +115,10 @@ class PlayerCard {
   final double pointsPerGame;
   final CardCourt? homeCourt, kingOf;
 
+  /// Show the first and last name (own card, admins); members see @username,
+  /// as everywhere else in the app.
+  final bool legalName;
+
   const PlayerCard({
     required this.user,
     this.serial = 0,
@@ -141,9 +145,10 @@ class PlayerCard {
     this.pointsPerGame = 0,
     this.homeCourt,
     this.kingOf,
+    this.legalName = false,
   });
 
-  factory PlayerCard.fromJson(Map<String, dynamic> j) {
+  factory PlayerCard.fromJson(Map<String, dynamic> j, {bool legalName = false}) {
     final rawUser = j['user'] is Map ? Map<String, dynamic>.from(j['user'] as Map) : <String, dynamic>{};
     final user = PublicUser.fromJson({...rawUser, 'id': rawUser['id'] is String ? rawUser['id'] : ''});
     final sport = _sport(j['sport']);
@@ -180,14 +185,15 @@ class PlayerCard {
       pointsPerGame: _double(j['points_per_game']),
       homeCourt: CardCourt.fromJson(j['home_court']),
       kingOf: CardCourt.fromJson(j['king_of']),
+      legalName: legalName,
     );
   }
 
   /// "N° 0042" (4 digits, more when needed); "N° —" when unknown.
   String get serialLabel => serial > 0 ? 'N° ${serial.toString().padLeft(4, '0')}' : 'N° —';
 
-  /// First and last name, else @username.
-  String get displayName => user.fullName.isNotEmpty ? user.fullName : user.username;
+  /// First and last name when [legalName] allows it, else @username.
+  String get displayName => legalName && user.fullName.isNotEmpty ? user.fullName : user.username;
 
   /// Sport name for the card ("—" when there is none).
   String get sportName => sport?.name ?? '—';
@@ -197,11 +203,11 @@ class PlayerCard {
 }
 
 /// GET /api/users/{id}/card ({id} may be "me"); [sport] is a sport slug.
-Future<PlayerCard> fetchPlayerCard(Api api, String userId, {String? sport}) async {
+Future<PlayerCard> fetchPlayerCard(Api api, String userId, {String? sport, bool legalName = false}) async {
   final q = sport == null || sport.isEmpty ? '' : '?sport=${Uri.encodeQueryComponent(sport)}';
   final j = await api.get('/api/users/${Uri.encodeComponent(userId)}/card$q');
   if (j is! Map) throw ApiException(500, 'invalid_response', genericCardError);
-  return PlayerCard.fromJson(Map<String, dynamic>.from(j));
+  return PlayerCard.fromJson(Map<String, dynamic>.from(j), legalName: legalName);
 }
 
 String get genericCardError => tr('Could not load the card.', 'Impossible de charger la carte.');

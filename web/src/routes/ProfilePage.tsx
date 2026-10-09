@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api, errorMessage, uploadImage } from '../lib/api'
 import { useAuth } from '../lib/auth'
@@ -14,6 +14,7 @@ import { ProfileFriendActions } from '../components/ProfileFriendActions'
 import { playerDisplayLabel, playerFullName, playerUsernameLabel } from '../lib/format'
 import { hasPlayerAvatar, playerAvatarForUser } from '../avatar/resolve'
 import { ShareProfileButton } from '../components/ShareProfileSheet'
+import { PlayerCardButton } from '../components/PlayerCardSheet'
 import { StickerButton } from '../components/StickerSheet'
 import { RecapButton } from '../components/RecapSheet'
 import { MyProgressCard, UserProgressCard } from '../components/ProgressCard'
@@ -116,6 +117,7 @@ export function PlayerProfileView({
           <>
             <ProfileCard user={profile} viewerIsAdmin={viewerIsAdmin} />
             <ProfileFriendActions user={profile} viewerIsAdmin={viewerIsAdmin} />
+            {signedIn && <PlayerCardButton userId={profile.id} mine={viewer?.id === profile.id} legalName={viewerIsAdmin} />}
             {signedIn && viewer?.id !== profile.id && <PlayerChallengeBlock player={profile} />}
             {signedIn && <UserProgressCard userId={profile.id} avatar={playerAvatarForUser(profile)} />}
           </>
@@ -132,6 +134,8 @@ export function ProfilePage() {
   const { user, logout, updateUser } = useAuth()
   const { data: me } = useQuery({ queryKey: ['me'], queryFn: () => api<Me>('/api/me') })
   const [editing, setEditing] = useState(false)
+  // ?card=<sport> (tier-up notification) opens the player card.
+  const cardSport = useSearchParams()[0].get('card')
   if (!user) return null
   const current = me ?? user
   const viewerIsAdmin = user.role === 'admin'
@@ -160,6 +164,7 @@ export function ProfilePage() {
         ) : (
           <>
             <ProfileCard user={current} viewerIsAdmin={viewerIsAdmin} />
+            <PlayerCardButton key={cardSport ?? ''} userId="me" mine initialOpen={cardSport !== null} initialSport={cardSport || null} />
             {canEditPlayerAvatar ? (
               <Link
                 to="/profile/avatar"

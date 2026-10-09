@@ -28,6 +28,7 @@ export function NotificationsPage() {
     else if (n.type === 'friend_request') navigate('/profile')
     else if (n.type === 'challenge') navigate('/challenges')
     else if (n.type === 'achievement' && n.data.kind === 'king' && n.data.court_id) navigate(`/courts/${n.data.court_id}`)
+    else if (n.type === 'achievement' && n.data.kind === 'card_tier') navigate(`/profile?card=${n.data.sport ?? ''}`)
     else if (n.type === 'achievement') navigate('/profile')
     else if (n.data.game_id) navigate(`/games/${n.data.game_id}`)
     else if (n.data.court_id) navigate(`/?court=${n.data.court_id}`)

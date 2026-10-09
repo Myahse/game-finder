@@ -95,6 +95,23 @@ func (s *Server) getUserProgress(w http.ResponseWriter, r *http.Request) {
 	writeRaw(w, http.StatusOK, b)
 }
 
+// getUserCard is a player's card for one sport (?sport=slug, else their main
+// sport). {id} may be "me".
+func (s *Server) getUserCard(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id == "me" {
+		id = uid(r)
+	}
+	b, err := s.db.JSON(r.Context(), uid(r), `
+		select player_card(u.id, $2) from users u where u.id = $1 and u.suspended_at is null`,
+		id, r.URL.Query().Get("sport"))
+	if err != nil {
+		writeDBError(w, r, err)
+		return
+	}
+	writeRaw(w, http.StatusOK, b)
+}
+
 // getKings lists this week's Kings of the Court.
 func (s *Server) getKings(w http.ResponseWriter, r *http.Request) {
 	b, err := s.db.JSON(r.Context(), uid(r), `select current_kings()`)
