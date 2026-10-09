@@ -96,3 +96,10 @@ export function useSheetExit(onClose: () => void, ms = 200) {
   }, [ms])
   return { closing, close }
 }
+
+/** A stable offset (0–3.9s) per look, so a list of avatars doesn't blink in unison. */
+export function idleDelay(key: string): number {
+  let h = 0
+  for (let i = 0; i < key.length; i += 7) h = (h * 31 + key.charCodeAt(i)) >>> 0
+  return (h % 40) * 100
+}

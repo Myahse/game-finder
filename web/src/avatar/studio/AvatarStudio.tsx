@@ -152,7 +152,7 @@ export function AvatarStudio({
           <div className="relative aspect-square max-h-[42vh] w-full overflow-hidden rounded-3xl border border-line lg:max-h-none" style={{ background: kitTint(config) }}>
             {/* Re-mount on every change so the player "pops" with the new look; idle bob after. */}
             <div key={JSON.stringify(config)} className="ftg-av-pop absolute inset-x-[8%] bottom-0 top-[6%]">
-              <AvatarPortrait config={config} className="ftg-av-breathe h-full w-full" />
+              <AvatarPortrait config={config} live={false} className="ftg-av-breathe h-full w-full" />
             </div>
             <div className="absolute right-3 top-3 flex gap-2">
               <IconButton label={L.randomize} onClick={() => setConfig((c) => randomizeAvatar(c))}>

@@ -163,7 +163,10 @@ export function avataaarsSvg(c: PlayerAvatarConfig, expression: Expression = {})
     accessoriesColor: ['262e33'],
     clothing: [CLOTHING[c.top] ?? 'shirtCrewNeck'],
     clothesColor: [hex(kit.main)],
-  }).toString()
+  })
+    .toString()
+    // Tag the eyes so live portraits can blink (Avataaars always draws them at this offset).
+    .replace('<g transform="translate(76 90)">', '<g class="ftg-av-eyes" transform="translate(76 90)">')
 
   if (!NUMBERED.has(c.top) || !kit.number) return svg
   // Jersey number on the chest (ids/colours are ours, never user text, so this is safe markup).

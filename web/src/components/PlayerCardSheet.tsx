@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { Download, IdCard, Share2, X } from 'lucide-react'
 import { playerAvatarForUser } from '../avatar/resolve'
 import { useLocale } from '../i18n/LocaleProvider'
@@ -96,6 +96,25 @@ function PlayerCardSheet({ userId, legalName, initialSport, onClose: dismiss }: 
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
+  // Tilt toward the pointer / finger (up to ~10°) and move the glow with it.
+  const tiltRef = useRef<HTMLDivElement>(null)
+  const tilt = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const el = tiltRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const x = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width))
+    const y = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height))
+    el.style.setProperty('--ftg-ry', `${((x - 0.5) * 20).toFixed(1)}deg`)
+    el.style.setProperty('--ftg-rx', `${((0.5 - y) * 16).toFixed(1)}deg`)
+    el.style.setProperty('--ftg-gx', `${Math.round(x * 100)}%`)
+    el.style.setProperty('--ftg-gy', `${Math.round(y * 100)}%`)
+  }
+  const untilt = () => {
+    const el = tiltRef.current
+    if (!el) return
+    for (const v of ['--ftg-rx', '--ftg-ry', '--ftg-gx', '--ftg-gy']) el.style.removeProperty(v)
+  }
+
   const ready = image && image.key === key ? image : null
   const failed = !!key && failedKey === key
   const fileName = card ? `out-for-ground-card-${card.user.username}-${style}.png` : 'out-for-ground-card.png'
@@ -150,14 +169,29 @@ function PlayerCardSheet({ userId, legalName, initialSport, onClose: dismiss }: 
         <span ref={iconRef} className="hidden" aria-hidden>
           {slug && <SportIcon slug={slug} />}
         </span>
-        <div className="mx-auto flex aspect-[9/16] w-full max-w-[15rem] items-center justify-center overflow-hidden rounded-2xl bg-[#0b0d10]">
-          {ready ? (
-            <img src={ready.src} alt={t.card.preview} className="h-full w-full object-cover" />
-          ) : failed || isError ? (
-            <p className="p-4 text-center text-sm text-white/80">{t.card.failed}</p>
-          ) : (
-            <Spinner className="text-brand" />
-          )}
+        <div className="ftg-card-stage mx-auto w-full max-w-[15rem] py-2">
+          <div className="ftg-card-float">
+            <div
+              ref={tiltRef}
+              className="ftg-card-3d relative aspect-[9/16] w-full touch-pan-y"
+              onPointerMove={tilt}
+              onPointerLeave={untilt}
+              onPointerCancel={untilt}
+              onPointerUp={untilt}
+            >
+              {ready ? (
+                <div key={ready.key} className="ftg-card-flip absolute inset-0 overflow-hidden rounded-2xl bg-[#0b0d10] shadow-2xl">
+                  <img src={ready.src} alt={t.card.preview} className="h-full w-full object-cover" draggable={false} />
+                  <div className="ftg-card-shine absolute inset-0" data-tier={card?.tier} aria-hidden />
+                  <div className="ftg-card-glow absolute inset-0" aria-hidden />
+                </div>
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center overflow-hidden rounded-2xl bg-[#0b0d10]">
+                  {failed || isError ? <p className="p-4 text-center text-sm text-white/80">{t.card.failed}</p> : <Spinner className="text-brand" />}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
         <div role="group" aria-label={t.card.styleLabel} className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1">
           {CARD_STYLES.map((s) => (

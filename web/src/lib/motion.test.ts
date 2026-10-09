@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { countUpAt, easeOutCubic, prefersReducedMotion } from './motion'
+import { countUpAt, easeOutCubic, idleDelay, prefersReducedMotion } from './motion'
 import { burstOrigin, confettiPieces } from './celebrate'
 
 describe('easeOutCubic', () => {
@@ -65,5 +65,17 @@ describe('burstOrigin', () => {
   })
   it('passes points through', () => {
     expect(burstOrigin({ x: 3, y: 4 })).toEqual({ x: 3, y: 4 })
+  })
+})
+
+describe('idleDelay', () => {
+  it('is stable per key and spread over 0–3.9s', () => {
+    expect(idleDelay('<svg a>')).toBe(idleDelay('<svg a>'))
+    const delays = new Set(['a', 'bb', 'ccc', 'dddd', 'eeeee', 'ffffff', 'ggggggg', 'hhhhhhhh'].map((k) => idleDelay(k.repeat(9))))
+    expect(delays.size).toBeGreaterThan(1)
+    for (const d of delays) {
+      expect(d).toBeGreaterThanOrEqual(0)
+      expect(d).toBeLessThan(4000)
+    }
   })
 })
