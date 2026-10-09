@@ -49,7 +49,7 @@ export function GameCard({
   return (
     <Link
       to={`/games/${game.id}`}
-      className={`flex items-stretch rounded-2xl border shadow-md transition ${
+      className={`ftg-lift flex items-stretch rounded-2xl border shadow-md ${
         mapLayout ? 'flex-row gap-2 p-2' : 'gap-3 p-3'
       } ${
         upcoming

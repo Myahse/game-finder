@@ -4,6 +4,7 @@ import type { PlayerAvatarConfig } from '../avatar/schema'
 import { useLocale } from '../i18n/LocaleProvider'
 import { renderSticker, stickerSet } from '../lib/stickers'
 import { Button, Spinner } from './ui'
+import { useSheetExit } from '../lib/motion'
 
 type Rendered = { id: string; caption: string; blob: Blob; src: string }
 
@@ -30,7 +31,8 @@ function download(blob: Blob, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
-function StickerSheet({ avatar, onClose }: { avatar: PlayerAvatarConfig; onClose: () => void }) {
+function StickerSheet({ avatar, onClose: dismiss }: { avatar: PlayerAvatarConfig; onClose: () => void }) {
+  const { closing, close: onClose } = useSheetExit(dismiss)
   const { t, locale } = useLocale()
   const [items, setItems] = useState<Rendered[] | null>(null)
   const [failed, setFailed] = useState(false)
@@ -72,8 +74,8 @@ function StickerSheet({ avatar, onClose }: { avatar: PlayerAvatarConfig; onClose
   }
 
   return (
-    <div className="ftg-safe-overlay fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={t.stickers.title} onClick={onClose}>
-      <div className="max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
+    <div className="ftg-safe-overlay ftg-backdrop fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4" data-closing={closing || undefined} role="dialog" aria-modal="true" aria-label={t.stickers.title} onClick={onClose}>
+      <div className="ftg-sheet max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-1 flex items-center justify-between">
           <h2 className="display text-2xl font-extrabold">{t.stickers.title}</h2>
           <button type="button" onClick={onClose} className="rounded-full p-1.5 text-ink-2 hover:bg-surface-2 hover:text-ink" aria-label={t.common.close}>

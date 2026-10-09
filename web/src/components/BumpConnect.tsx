@@ -7,6 +7,8 @@ import { playerUsernameLabel } from '../lib/format'
 import type { PublicUser } from '../lib/types'
 import { useLocale } from '../i18n/LocaleProvider'
 import { Avatar, Button } from './ui'
+import { useSheetExit } from '../lib/motion'
+import { celebrate } from '../lib/celebrate'
 
 /** Keep polling for this long — slightly longer than the server's 12 s match window. */
 const WAIT_MS = 15_000
@@ -48,7 +50,8 @@ export function BumpConnectButton() {
   )
 }
 
-function BumpConnectSheet({ onClose }: { onClose: () => void }) {
+function BumpConnectSheet({ onClose: dismiss }: { onClose: () => void }) {
+  const { closing, close: onClose } = useSheetExit(dismiss)
   const { t } = useLocale()
   const { user } = useAuth()
   const qc = useQueryClient()
@@ -87,6 +90,7 @@ function BumpConnectSheet({ onClose }: { onClose: () => void }) {
             void qc.invalidateQueries({ queryKey: ['friends'] })
             void qc.invalidateQueries({ queryKey: ['friend-requests'] })
             setPhase({ kind: 'matched', friend: r.friend, already: !!r.already_friends })
+            if (!r.already_friends) window.setTimeout(() => celebrate(), 120)
             return
           }
         } catch (e) {
@@ -118,12 +122,12 @@ function BumpConnectSheet({ onClose }: { onClose: () => void }) {
   }, [cancel])
 
   return (
-    <div className="ftg-safe-overlay ftg-safe-overlay-b fixed inset-0 z-50 flex items-center justify-center bg-bg/95 p-6 backdrop-blur" role="dialog" aria-modal="true" aria-label={t.bump.title}>
+    <div className="ftg-safe-overlay ftg-safe-overlay-b ftg-backdrop fixed inset-0 z-50 flex items-center justify-center bg-bg/95 p-6 backdrop-blur" data-closing={closing || undefined} role="dialog" aria-modal="true" aria-label={t.bump.title}>
       <button type="button" onClick={cancel} className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] rounded-full p-2 text-ink-2 hover:bg-surface-2 hover:text-ink" aria-label={t.common.close}>
         <X className="size-6" aria-hidden />
       </button>
 
-      <div className="flex w-full max-w-sm flex-col items-center text-center">
+      <div className="ftg-dialog flex w-full max-w-sm flex-col items-center text-center">
         {phase.kind === 'matched' ? (
           <>
             <div className="ftg-av-pop flex items-center">

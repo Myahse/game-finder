@@ -7,7 +7,7 @@ import { hasResult, TEAM_COLORS, useSaveScoreboard, useScoreboard, type Scoreboa
 import type { Game, PublicUser } from '../lib/types'
 import { ShareResultButton } from './GameResultShare'
 import { balancedTeams } from '../lib/progress'
-import { Avatar, Button, Card, ErrorText, Input, Spinner } from './ui'
+import { Avatar, Button, Card, CountUp, ErrorText, Input, Skeleton } from './ui'
 
 type Player = PublicUser & { joined_at?: string }
 
@@ -22,9 +22,10 @@ export function GameScoreboard({ game, canEdit }: { game: Game; canEdit: boolean
   if (game.status === 'cancelled') return null
   if (isLoading || !sb) {
     return (
-      <Card className="flex justify-center">
-        <Spinner className="text-brand" />
-      </Card>
+      <section role="status" aria-label={t.account.ui.loading}>
+        <Skeleton className="mb-2 h-7 w-40 rounded-lg" />
+        <Skeleton className="h-28" />
+      </section>
     )
   }
   if (editing) return <ScoreboardEditor sb={sb} game={game} players={players} started={started} onDone={() => setEditing(false)} />
@@ -83,7 +84,11 @@ function ScoreHeader({ sb, byId }: { sb: Scoreboard; byId: Map<string, Player> }
                 </span>
               )}
             </div>
-            {anyScore && <p className="display text-5xl font-extrabold leading-tight">{team.score}</p>}
+            {anyScore && (
+              <p className="display text-5xl font-extrabold leading-tight tabular-nums">
+                <CountUp value={team.score} />
+              </p>
+            )}
             <div className="mt-1 flex flex-wrap gap-1">
               {team.players.map((id) => {
                 const p = byId.get(id)

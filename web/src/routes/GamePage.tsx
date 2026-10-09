@@ -28,6 +28,8 @@ import { ScreenGuide } from '../components/ScreenGuide'
 import { AppAlert, Avatar, Button, Card, Empty, ErrorText, PageHeader } from '../components/ui'
 import { Loading } from './CourtPage'
 import { useLocale } from '../i18n/LocaleProvider'
+import { useListIntro } from '../lib/motion'
+import { burstOrigin, celebrate } from '../lib/celebrate'
 
 const statusLabel = {
   active: { cls: 'bg-live text-white', Icon: Flame },
@@ -50,6 +52,7 @@ export function GamePage() {
   const action = useGameAction()
   const [error, setError] = useState('')
   const [farModal, setFarModal] = useState(false)
+  const playersIntro = useListIntro(game?.players?.length ?? 0)
 
   if (isLoading) return <Loading />
   if (!game) return <Empty icon={<SearchX className="size-14" strokeWidth={1.5} />} title={tp.notFound} />
@@ -61,16 +64,18 @@ export function GamePage() {
   const pct = unlimited ? 0 : Math.min(100, (game.player_count / game.max_players) * 100)
   const { cls: statusCls, Icon: StatusIcon } = statusLabel[game.status]
   const statusText = t.games.status[game.status]
-  const run = (a: 'join' | 'leave' | 'cancel') => {
+  const run = (a: 'join' | 'leave' | 'cancel', from?: Element) => {
     setError('')
     if (a === 'cancel' && !confirm(tp.cancelConfirm)) return
     if (a === 'join' && game.status === 'active' && !isAtCourt(coords, game.court)) {
       setFarModal(true)
       return
     }
+    // Burst from where the Join button was (it turns into Leave once we're in).
+    const origin = from ? burstOrigin(from) : undefined
     action.mutate(
       { id: game.id, action: a, coords: a === 'join' ? coords : undefined },
-      { onError: (e) => setError(errorMessage(e)) },
+      { onError: (e) => setError(errorMessage(e)), onSuccess: () => a === 'join' && celebrate(origin) },
     )
   }
 
@@ -157,7 +162,7 @@ export function GamePage() {
                   {tp.leave}
                 </Button>
               ) : (
-                <Button variant="live" onClick={() => run('join')} loading={action.isPending} disabled={!gameHasOpenSpots(game)}>
+                <Button variant="live" onClick={(e) => run('join', e.currentTarget)} loading={action.isPending} disabled={!gameHasOpenSpots(game)}>
                   {gameHasOpenSpots(game) ? tp.join : tp.gameFull}
                 </Button>
               ))}
@@ -195,9 +200,9 @@ export function GamePage() {
 
         <section>
           <h2 className="display mb-2 text-2xl font-bold">{tp.players}</h2>
-          <div className="grid gap-2">
+          <div className={`grid gap-2 ${playersIntro}`}>
             {game.players?.map((p) => (
-              <Link key={p.id} to={`/users/${p.id}`} className="flex items-center gap-3 rounded-xl bg-surface p-2.5">
+              <Link key={p.id} to={`/users/${p.id}`} className="ftg-lift flex items-center gap-3 rounded-xl bg-surface p-2.5">
                 <Avatar user={p} size={36} />
                 <span className="flex-1 font-medium">{playerDisplayLabel(p, viewerIsAdmin)}</span>
                 {p.id === game.creator_id && <span className="text-xs font-semibold text-brand">{tp.host}</span>}

@@ -37,8 +37,8 @@ export function PresenceWatcher() {
     action.mutate(a, { onError: (e) => setError(errorMessage(e)), onSuccess: () => setError('') })
 
   return (
-    <div className="ftg-safe-overlay ftg-safe-overlay-b fixed inset-0 z-40 flex items-end justify-center bg-black/40 p-4 md:items-center" role="dialog" aria-modal="true" aria-labelledby="still-title">
-      <div className="w-full max-w-sm rounded-3xl bg-surface p-6 shadow-2xl">
+    <div className="ftg-safe-overlay ftg-safe-overlay-b ftg-backdrop fixed inset-0 z-40 flex items-end justify-center bg-black/40 p-4 md:items-center" role="dialog" aria-modal="true" aria-labelledby="still-title">
+      <div className="ftg-dialog w-full max-w-sm rounded-3xl bg-surface p-6 shadow-2xl">
         <BaseSportIcon className="size-12 text-brand" />
         <h2 id="still-title" className="display mt-2 text-4xl font-extrabold">
           {pr.title}

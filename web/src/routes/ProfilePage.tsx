@@ -24,7 +24,7 @@ import { AvatarPortrait } from '../avatar/render/AvatarPortrait'
 import { AVATAR_SPORTS, defaultConfig } from '../avatar/presets'
 import { useMySport } from '../lib/mySport'
 import { ScreenGuide } from '../components/ScreenGuide'
-import { Avatar, Button, Card, ErrorText, Field, Input, PageHeader, Select } from '../components/ui'
+import { Avatar, Button, Card, CountUp, ErrorText, Field, Input, PageHeader, Select } from '../components/ui'
 import { Loading } from './CourtPage'
 
 export function ProfileCard({ user, viewerIsAdmin = false }: { user: PublicUser; viewerIsAdmin?: boolean }) {
@@ -69,7 +69,9 @@ export function ProfileCard({ user, viewerIsAdmin = false }: { user: PublicUser;
 function Stat({ value, label }: { value: number; label: string }) {
   return (
     <div className="rounded-xl bg-surface-2 p-3">
-      <p className="display text-4xl font-extrabold text-brand">{value}</p>
+      <p className="display text-4xl font-extrabold tabular-nums text-brand">
+        <CountUp value={value} />
+      </p>
       <p className="text-xs font-semibold uppercase text-ink-2">{label}</p>
     </div>
   )

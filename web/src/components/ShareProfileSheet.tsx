@@ -7,6 +7,7 @@ import { profileShareUrl } from '../lib/profileShare'
 import { useMySport } from '../lib/mySport'
 import type { Me } from '../lib/types'
 import { Button, Spinner } from './ui'
+import { useSheetExit } from '../lib/motion'
 
 /** "Share my profile": an image card with avatar + QR code, shared together with the link. */
 export function ShareProfileButton({ me }: { me: Me }) {
@@ -22,7 +23,8 @@ export function ShareProfileButton({ me }: { me: Me }) {
   )
 }
 
-function ShareProfileSheet({ me, onClose }: { me: Me; onClose: () => void }) {
+function ShareProfileSheet({ me, onClose: dismiss }: { me: Me; onClose: () => void }) {
+  const { closing, close: onClose } = useSheetExit(dismiss)
   const { t } = useLocale()
   const sport = useMySport()
   const url = profileShareUrl(me.username)
@@ -92,8 +94,8 @@ function ShareProfileSheet({ me, onClose }: { me: Me; onClose: () => void }) {
   }
 
   return (
-    <div className="ftg-safe-overlay fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={t.share.title} onClick={onClose}>
-      <div className="w-full max-w-sm rounded-t-3xl bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
+    <div className="ftg-safe-overlay ftg-backdrop fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4" data-closing={closing || undefined} role="dialog" aria-modal="true" aria-label={t.share.title} onClick={onClose}>
+      <div className="ftg-sheet w-full max-w-sm rounded-t-3xl bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="display text-2xl font-extrabold">{t.share.title}</h2>
           <button type="button" onClick={onClose} className="rounded-full p-1.5 text-ink-2 hover:bg-surface-2 hover:text-ink" aria-label={t.common.close}>

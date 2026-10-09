@@ -11,6 +11,7 @@ import { useCourtsNearby } from '../lib/queries'
 import type { PublicUser } from '../lib/types'
 import { useAuth } from '../lib/auth'
 import { Avatar, Button, ErrorText, Input, Spinner } from './ui'
+import { useSheetExit } from '../lib/motion'
 
 /** Next whole hour, as a value for <input type="datetime-local">. */
 function nextHourLocal() {
@@ -34,7 +35,8 @@ export function ChallengeButton({ opponent, court, className = '', label }: { op
   )
 }
 
-export function ChallengeComposer({ opponent, court: fixedCourt, onClose }: { opponent?: PublicUser; court?: { id: string; name: string }; onClose: () => void }) {
+export function ChallengeComposer({ opponent, court: fixedCourt, onClose: dismiss }: { opponent?: PublicUser; court?: { id: string; name: string }; onClose: () => void }) {
+  const { closing, close: onClose } = useSheetExit(dismiss)
   const { t } = useLocale()
   const { user } = useAuth()
   const sports = useMySports()
@@ -98,8 +100,8 @@ export function ChallengeComposer({ opponent, court: fixedCourt, onClose }: { op
   }
 
   return (
-    <div className="ftg-safe-overlay fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={t.challenge.newTitle} onClick={onClose}>
-      <div className="max-h-[94dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
+    <div className="ftg-safe-overlay ftg-backdrop fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4" data-closing={closing || undefined} role="dialog" aria-modal="true" aria-label={t.challenge.newTitle} onClick={onClose}>
+      <div className="ftg-sheet max-h-[94dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="display text-2xl font-extrabold">{opponent ? t.challenge.newTitle : t.challenge.openTitle}</h2>
           <button type="button" onClick={onClose} className="rounded-full p-1.5 text-ink-2 hover:bg-surface-2 hover:text-ink" aria-label={t.common.close}>

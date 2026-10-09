@@ -8,6 +8,7 @@ import { MapBottomSheet } from './MapBottomSheet'
 import { BaseSportIcon } from './icons'
 import { ChevronRight, Plus } from 'lucide-react'
 import { useLocale } from '../i18n/LocaleProvider'
+import { useListIntro } from '../lib/motion'
 
 type Props = {
   games: Game[] | undefined
@@ -20,7 +21,7 @@ type Props = {
 function SkeletonCard({ className = '' }: { className?: string }) {
   return (
     <div
-      className={`h-[4.5rem] shrink-0 animate-pulse rounded-xl border border-line bg-surface-2/80 ${className}`}
+      className={`ftg-skeleton h-[4.5rem] shrink-0 rounded-xl border border-line ${className}`}
       aria-hidden
     />
   )
@@ -33,6 +34,7 @@ export function MapGamesRail({ games, isLoading, sport, viewerIsAdmin = false }:
 
   const sorted = sortPlayable(games ?? []).slice(0, 12)
   const showSkeletons = isLoading && sorted.length === 0
+  const intro = useListIntro(sorted.length, sport)
   const createHref = sport ? `/games/new?sport=${sport}` : '/games/new'
   const listHref = sport ? `/play?sport=${sport}` : '/play'
 
@@ -87,7 +89,7 @@ export function MapGamesRail({ games, isLoading, sport, viewerIsAdmin = false }:
             </Link>
           </div>
         ) : (
-          <div className="flex gap-2 md:gap-3">
+          <div className={`flex gap-2 md:gap-3 ${intro}`}>
             {sorted.map((g) => (
               <div
                 key={g.id}

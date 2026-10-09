@@ -9,6 +9,8 @@ import { renderPlayerCard } from '../lib/playerCardImage'
 import { profileShareUrl } from '../lib/profileShare'
 import { SportIcon } from './icons'
 import { Button, Chip, Spinner } from './ui'
+import { useSheetExit } from '../lib/motion'
+import { celebrate } from '../lib/celebrate'
 
 /** "My card" (own profile) / "View card" (another player's): opens the player card sheet. */
 export function PlayerCardButton({
@@ -27,6 +29,14 @@ export function PlayerCardButton({
 }) {
   const { t } = useLocale()
   const [open, setOpen] = useState(initialOpen)
+  // Opened from a tier-up notification (/profile?card=…): celebrate once the sheet is up.
+  const celebrated = useRef(false)
+  useEffect(() => {
+    if (!initialOpen || celebrated.current) return
+    celebrated.current = true
+    const id = window.setTimeout(() => celebrate(), 320)
+    return () => window.clearTimeout(id)
+  }, [initialOpen])
   return (
     <>
       <Button type="button" variant={mine ? 'primary' : 'secondary'} onClick={() => setOpen(true)}>
@@ -39,7 +49,8 @@ export function PlayerCardButton({
 
 type Rendered = { key: string; blob: Blob; src: string }
 
-function PlayerCardSheet({ userId, legalName, initialSport, onClose }: { userId: string; legalName: boolean; initialSport: string | null; onClose: () => void }) {
+function PlayerCardSheet({ userId, legalName, initialSport, onClose: dismiss }: { userId: string; legalName: boolean; initialSport: string | null; onClose: () => void }) {
+  const { closing, close: onClose } = useSheetExit(dismiss)
   const { t } = useLocale()
   const [style, setStyle] = useState<CardStyle>('card')
   const [sport, setSport] = useState<string | null>(initialSport)
@@ -128,8 +139,8 @@ function PlayerCardSheet({ userId, legalName, initialSport, onClose }: { userId:
   }
 
   return (
-    <div className="ftg-safe-overlay fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={t.card.title} onClick={onClose}>
-      <div className="max-h-full w-full max-w-sm overflow-y-auto rounded-t-3xl bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
+    <div className="ftg-safe-overlay ftg-backdrop fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4" data-closing={closing || undefined} role="dialog" aria-modal="true" aria-label={t.card.title} onClick={onClose}>
+      <div className="ftg-sheet max-h-full w-full max-w-sm overflow-y-auto rounded-t-3xl bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="display text-2xl font-extrabold">{t.card.title}</h2>
           <button type="button" onClick={onClose} className="rounded-full p-1.5 text-ink-2 hover:bg-surface-2 hover:text-ink" aria-label={t.common.close}>

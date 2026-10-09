@@ -7,13 +7,15 @@ import { OrDivider } from './GoogleSignInButton'
 import { SocialSignInButtons } from './SocialSignInButtons'
 import { Button, ErrorText, Field, Input, PasswordInput } from './ui'
 import { useLocale } from '../i18n/LocaleProvider'
+import { useSheetExit } from '../lib/motion'
 
 type Props = {
   open: boolean
   onClose: () => void
 }
 
-export function LoginBottomSheet({ open, onClose }: Props) {
+export function LoginBottomSheet({ open, onClose: dismiss }: Props) {
+  const { closing, close: onClose } = useSheetExit(dismiss)
   const { login } = useAuth()
   const { t } = useLocale()
   const l = t.account.login
@@ -75,14 +77,15 @@ export function LoginBottomSheet({ open, onClose }: Props) {
 
   return (
     <div
-      className="ftg-safe-overlay fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-0 sm:p-4 sm:items-center"
+      className="ftg-safe-overlay ftg-backdrop fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-0 sm:p-4 sm:items-center"
+      data-closing={closing || undefined}
       role="dialog"
       aria-modal="true"
       aria-labelledby="login-sheet-title"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md max-h-[min(90dvh,640px)] overflow-y-auto rounded-t-3xl border-t border-line bg-surface p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-2xl transition-[margin] duration-150 sm:max-h-none sm:rounded-3xl sm:border"
+        className="ftg-sheet w-full max-w-md max-h-[min(90dvh,640px)] overflow-y-auto rounded-t-3xl border-t border-line bg-surface p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-2xl transition-[margin] duration-150 sm:max-h-none sm:rounded-3xl sm:border"
         style={{ marginBottom: keyboardInset > 0 ? keyboardInset : undefined }}
         onClick={(e) => e.stopPropagation()}
       >

@@ -506,3 +506,247 @@ body {
 .ftg-safe-overlay-b {
   padding-bottom: max(1rem, env(safe-area-inset-bottom)) !important;
 }
+
+/* ── Motion ────────────────────────────────────────────────────────────────
+   Short (≤ ~450ms), eased, never blocks input. Everything here is switched off
+   under prefers-reduced-motion at the end of this section; JS-driven effects
+   check `prefersReducedMotion()` (lib/motion.ts). */
+:root {
+  --ftg-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ftg-ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+/* Lists: children rise in one after another, 40ms apart, capped at 300ms
+   (useListIntro adds the class for the first render only). */
+@keyframes ftg-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.ftg-stagger > :not(.ftg-game-enter) {
+  animation: ftg-rise 0.32s var(--ftg-ease-out) both;
+}
+.ftg-stagger > :nth-child(2) { animation-delay: 40ms; }
+.ftg-stagger > :nth-child(3) { animation-delay: 80ms; }
+.ftg-stagger > :nth-child(4) { animation-delay: 120ms; }
+.ftg-stagger > :nth-child(5) { animation-delay: 160ms; }
+.ftg-stagger > :nth-child(6) { animation-delay: 200ms; }
+.ftg-stagger > :nth-child(7) { animation-delay: 240ms; }
+.ftg-stagger > :nth-child(8) { animation-delay: 280ms; }
+.ftg-stagger > :nth-child(n + 9) { animation-delay: 300ms; }
+
+/* Press + hover feedback. Lift only on real pointers. */
+.ftg-press {
+  transition:
+    transform 0.16s var(--ftg-ease-out),
+    box-shadow 0.18s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    filter 0.15s ease,
+    opacity 0.15s ease;
+}
+.ftg-press:active:not(:disabled) {
+  transform: scale(0.97);
+  transition-duration: 0.08s;
+}
+.ftg-lift {
+  transition:
+    transform 0.18s var(--ftg-ease-out),
+    box-shadow 0.2s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+.ftg-lift:active {
+  transform: scale(0.98);
+  transition-duration: 0.08s;
+}
+@media (hover: hover) and (pointer: fine) {
+  .ftg-press.ftg-press-lift:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px -10px rgb(0 0 0 / 0.4);
+  }
+  .ftg-press.ftg-press-lift:hover:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  .ftg-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px -16px rgb(0 0 0 / 0.4);
+  }
+  .ftg-lift:hover:active {
+    transform: translateY(-1px) scale(0.98);
+  }
+}
+
+/* Bottom sheets + dialogs: overlay `ftg-backdrop` (+ `data-closing` while leaving),
+   panel `ftg-sheet` (slides up from the bottom; a centred card from `sm`) or `ftg-dialog`. */
+@keyframes ftg-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes ftg-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes ftg-sheet-up {
+  0% {
+    transform: translateY(100%);
+  }
+  68% {
+    transform: translateY(-5px);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes ftg-sheet-down {
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes ftg-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+}
+@keyframes ftg-dialog-out {
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+.ftg-backdrop {
+  animation: ftg-fade-in 0.2s ease-out both;
+}
+.ftg-backdrop[data-closing] {
+  animation: ftg-fade-out 0.2s ease-in both;
+  pointer-events: none;
+}
+.ftg-sheet {
+  animation: ftg-sheet-up 0.42s var(--ftg-ease-out) both;
+}
+.ftg-backdrop[data-closing] .ftg-sheet {
+  animation: ftg-sheet-down 0.2s cubic-bezier(0.4, 0, 1, 1) both;
+}
+.ftg-dialog {
+  animation: ftg-dialog-in 0.28s var(--ftg-ease-spring) both;
+}
+.ftg-backdrop[data-closing] .ftg-dialog {
+  animation: ftg-dialog-out 0.18s ease-in both;
+}
+@media (min-width: 640px) {
+  .ftg-sheet {
+    animation: ftg-dialog-in 0.28s var(--ftg-ease-spring) both;
+  }
+  .ftg-backdrop[data-closing] .ftg-sheet {
+    animation: ftg-dialog-out 0.18s ease-in both;
+  }
+}
+
+/* Loading placeholders */
+@keyframes ftg-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+.ftg-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+.ftg-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--surface) 65%, transparent), transparent);
+  animation: ftg-shimmer 1.3s ease-in-out infinite;
+}
+
+/* Map: live courts breathe (reuses ftg-pulse); a picked pin drops in. */
+.ftg-live-ring {
+  animation: ftg-pulse 1.8s ease-out infinite;
+}
+@keyframes ftg-pin-drop {
+  0% {
+    transform: translateY(-14px);
+  }
+  55% {
+    transform: translateY(0) scale(1.06, 0.94);
+  }
+  78% {
+    transform: translateY(-4px) scale(0.98, 1.02);
+  }
+  100% {
+    transform: none;
+  }
+}
+.ftg-pin-drop {
+  transform-origin: 50% 100%;
+  animation: ftg-pin-drop 0.42s var(--ftg-ease-out);
+}
+
+/* Celebration burst (lib/celebrate.ts appends a short-lived layer to <body>). */
+.ftg-confetti {
+  position: fixed;
+  z-index: 90;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.ftg-confetti > i {
+  position: absolute;
+  left: -4px;
+  top: -3px;
+  width: 8px;
+  height: 6px;
+  border-radius: 2px;
+  animation: ftg-confetti 0.7s cubic-bezier(0.15, 0.75, 0.35, 1) both;
+}
+@keyframes ftg-confetti {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(0.4);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--dx), var(--dy)) rotate(var(--r)) scale(1);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ftg-stagger > *,
+  .ftg-backdrop,
+  .ftg-backdrop[data-closing],
+  .ftg-sheet,
+  .ftg-dialog,
+  .ftg-backdrop[data-closing] .ftg-sheet,
+  .ftg-backdrop[data-closing] .ftg-dialog,
+  .ftg-skeleton::after,
+  .ftg-live-ring,
+  .ftg-pin-drop,
+  .ftg-confetti > i {
+    animation: none !important;
+  }
+  .ftg-confetti {
+    display: none;
+  }
+  .ftg-press,
+  .ftg-lift {
+    transition: none;
+  }
+  .ftg-press:active:not(:disabled),
+  .ftg-lift:active,
+  .ftg-press.ftg-press-lift:hover:not(:disabled),
+  .ftg-lift:hover,
+  .ftg-lift:hover:active {
+    transform: none;
+  }
+}

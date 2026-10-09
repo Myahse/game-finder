@@ -16,6 +16,7 @@ import { CourtChallenges } from '../components/CourtChallenges'
 import { DistanceText, Hourglass, Lightbulb, SearchX, SportName, X } from '../components/icons'
 import { Card, Empty, PageHeader, Spinner, StatusPill } from '../components/ui'
 import { useLocale } from '../i18n/LocaleProvider'
+import { useListIntro } from '../lib/motion'
 
 export function CourtPage() {
   const { id } = useParams()
@@ -23,6 +24,7 @@ export function CourtPage() {
   const { user } = useAuth()
   const { coords } = useLocation()
   const { data: court, isLoading } = useCourt(id, coords)
+  const intro = useListIntro(court?.games.length ?? 0)
   const canEditCourt =
     !!user && !!court && (court.created_by === user.id || user.role === 'admin')
 
@@ -93,7 +95,7 @@ export function CourtPage() {
         <section>
           <h2 className="display mb-2 text-2xl font-bold">{t.courts.games}</h2>
           {court.games.length ? (
-            <div className="grid gap-2">
+            <div className={`grid gap-2 ${intro}`}>
               {court.games.map((g) => (
                 <GameCard key={g.id} game={g} showCourt={false} />
               ))}

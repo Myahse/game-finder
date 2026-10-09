@@ -12,6 +12,7 @@ import type { PublicUser } from '../lib/types'
 import { VisibilityPicker } from './ChallengeComposer'
 import { MoveCourtButton } from './MoveCourtSheet'
 import { Avatar, Button, Card, ErrorText, Input } from './ui'
+import { burstOrigin, celebrate } from '../lib/celebrate'
 
 const STATUS_CLS: Record<string, string> = {
   pending: 'bg-amber-400/20 text-amber-700 dark:text-amber-300',
@@ -64,9 +65,13 @@ export function ChallengeCard({ c }: { c: Challenge }) {
   const start = new Date(c.start_time)
   const soon = start.getTime() <= Date.now() + 10 * 60_000
   const when = soon && c.status === 'pending' ? t.challenge.nowLabel : new Intl.DateTimeFormat(locale, { weekday: 'short', hour: '2-digit', minute: '2-digit' }).format(start)
-  const run = (action: 'accept' | 'decline' | 'cancel' | 'confirm' | 'dispute') => {
+  const run = (action: 'accept' | 'decline' | 'cancel' | 'confirm' | 'dispute', from?: Element) => {
     setError('')
-    act.mutate({ id: c.id, action }, { onError: (e) => setError(errorMessage(e)) })
+    const origin = from ? burstOrigin(from) : undefined
+    act.mutate(
+      { id: c.id, action },
+      { onError: (e) => setError(errorMessage(e)), onSuccess: () => action === 'confirm' && celebrate(origin) },
+    )
   }
   const reporter = c.reported_by === c.challenger.id ? c.challenger : c.opponent
   const winner = c.winner_id === c.challenger.id ? c.challenger : c.opponent
@@ -167,7 +172,15 @@ export function ChallengeCard({ c }: { c: Challenge }) {
           onSubmit={(winnerId, a, b) =>
             report.mutate(
               { id: c.id, winner_id: winnerId, score_challenger: a, score_opponent: b },
-              { onSuccess: () => setReporting(false), onError: (e) => setError(errorMessage(e)) },
+              {
+                onSuccess: () => {
+                  setReporting(false)
+                  // Reported a win for my side → small celebration (the confirm gets one too).
+                  const winnerSide = players.find((p) => p.user.id === winnerId)?.side ?? (winnerId === c.challenger.id ? 'challenger' : 'opponent')
+                  if (winnerId === me || (mySide && winnerSide === mySide)) celebrate()
+                },
+                onError: (e) => setError(errorMessage(e)),
+              },
             )
           }
         />
@@ -200,7 +213,7 @@ export function ChallengeCard({ c }: { c: Challenge }) {
           )}
           {c.status === 'reported' && myAccepted && reporterSide !== mySide && (
             <>
-              <Button type="button" variant="live" onClick={() => run('confirm')} loading={act.isPending}>
+              <Button type="button" variant="live" onClick={(e) => run('confirm', e.currentTarget)} loading={act.isPending}>
                 {t.challenge.confirm}
               </Button>
               <Button type="button" variant="danger" onClick={() => run('dispute')}>

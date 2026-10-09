@@ -7,7 +7,8 @@ import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { playerUsernameLabel } from '../lib/format'
 import type { PublicUser } from '../lib/types'
-import { Avatar, Card, Spinner } from './ui'
+import { Avatar, Card, SkeletonList } from './ui'
+import { useListIntro } from '../lib/motion'
 
 type Row = { rank: number; user: PublicUser; games: number; wins: number; points: number; mvps: number; score: number }
 type Leaderboard = { players: Row[]; me: Row | null }
@@ -24,6 +25,7 @@ export function CourtLeaderboard({ courtId }: { courtId: string }) {
     queryFn: () => api<Leaderboard>(`/api/courts/${courtId}/leaderboard?period=${period}`),
   })
   const rows = data?.players ?? []
+  const intro = useListIntro(rows.length, period)
   const meOutside = data?.me && !rows.some((r) => r.user.id === data.me!.user.id) ? data.me : null
 
   return (
@@ -49,8 +51,8 @@ export function CourtLeaderboard({ courtId }: { courtId: string }) {
       </div>
       <Card className="p-2">
         {isLoading ? (
-          <div className="flex justify-center p-4">
-            <Spinner className="text-brand" />
+          <div className="grid gap-1.5 p-1">
+            <SkeletonList rows={3} className="h-10 rounded-xl" />
           </div>
         ) : rows.length === 0 ? (
           <p className="p-2 text-ink-2">{t.leaderboard.empty}</p>
@@ -63,9 +65,11 @@ export function CourtLeaderboard({ courtId }: { courtId: string }) {
               <span>{t.leaderboard.wins}</span>
               <span>{t.leaderboard.points}</span>
             </div>
-            {rows.map((r) => (
-              <LeaderRow key={r.user.id} row={r} mine={r.user.id === user?.id} />
-            ))}
+            <div className={intro}>
+              {rows.map((r) => (
+                <LeaderRow key={r.user.id} row={r} mine={r.user.id === user?.id} />
+              ))}
+            </div>
             {meOutside && (
               <>
                 <div className="my-1 text-center text-ink-2">⋯</div>
@@ -86,7 +90,7 @@ function LeaderRow({ row, mine }: { row: Row; mine: boolean }) {
   return (
     <Link
       to={`/users/${row.user.id}`}
-      className={`grid grid-cols-[1.75rem_minmax(0,1fr)_repeat(3,2.4rem)] items-center gap-x-1 rounded-xl px-2 py-1.5 text-right tabular-nums ${mine ? 'bg-brand/10' : 'hover:bg-surface-2'}`}
+      className={`ftg-press grid grid-cols-[1.75rem_minmax(0,1fr)_repeat(3,2.4rem)] items-center gap-x-1 rounded-xl px-2 py-1.5 text-right tabular-nums ${mine ? 'bg-brand/10' : 'hover:bg-surface-2'}`}
     >
       <span
         className={`display flex size-7 items-center justify-center rounded-full text-base font-extrabold ${medal ? 'text-white' : 'text-ink-2'}`}

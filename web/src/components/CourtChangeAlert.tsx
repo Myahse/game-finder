@@ -27,12 +27,12 @@ export function CourtChangeAlert({ enabled }: { enabled: boolean }) {
 
   return (
     <div
-      className="ftg-safe-overlay ftg-safe-overlay-b fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
+      className="ftg-safe-overlay ftg-safe-overlay-b ftg-backdrop fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
       role="alertdialog"
       aria-modal="true"
       aria-labelledby="court-change-title"
     >
-      <div className="w-full max-w-sm overflow-hidden rounded-3xl bg-surface shadow-2xl">
+      <div className="ftg-dialog w-full max-w-sm overflow-hidden rounded-3xl bg-surface shadow-2xl">
         <div className={`px-5 py-4 text-white ${change.reason === 'rain' ? 'bg-gradient-to-br from-sky-500 to-sky-800' : 'bg-gradient-to-br from-brand to-[var(--sport-deep,#7a1f00)]'}`}>
           <p className="text-4xl" aria-hidden>{change.reason === 'rain' ? '🌧️' : '📍'}</p>
           <h2 id="court-change-title" className="display mt-1 text-3xl font-extrabold">

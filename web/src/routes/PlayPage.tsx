@@ -11,9 +11,9 @@ import { GameCard } from '../components/GameCard'
 import { MapPin } from 'lucide-react'
 import { BaseSportIcon, LiveText, SportName } from '../components/icons'
 import { ScreenGuide } from '../components/ScreenGuide'
-import { Chip, Empty, PageHeader } from '../components/ui'
-import { Loading } from './CourtPage'
+import { Chip, Empty, PageHeader, SkeletonList } from '../components/ui'
 import { useLocale } from '../i18n/LocaleProvider'
+import { useListIntro } from '../lib/motion'
 
 /** Live games nearby, closest → liveliest → most room. */
 export function PlayPage() {
@@ -42,6 +42,7 @@ export function PlayPage() {
   const sorted = sortPlayable((games ?? []).filter((g) => !selectedSport || g.sport_id === selectedSport.id))
   const live = sorted.filter((g) => g.status === 'active')
   const { soon, upcoming } = splitScheduledBySoon(sorted)
+  const intro = useListIntro(sorted.length, sport)
 
   return (
     <div className="pb-10">
@@ -92,7 +93,7 @@ export function PlayPage() {
         )}
 
         {isLoading ? (
-          <Loading />
+          <SkeletonList rows={4} />
         ) : sorted.length === 0 ? (
           <Empty
             icon={<BaseSportIcon className="size-14" />}
@@ -110,7 +111,7 @@ export function PlayPage() {
                 <h2 className="display mb-2 inline-flex items-center gap-2 text-2xl font-bold">
                   <LiveText>{t.courts.play.playingNow}</LiveText>
                 </h2>
-                <div className="grid gap-2">
+                <div className={`grid gap-2 ${intro}`}>
                   {live.map((g) => (
                     <div key={g.id} className={pulseIds.has(g.id) ? 'ftg-game-enter' : undefined}>
                       <GameCard game={g} />
@@ -122,7 +123,7 @@ export function PlayPage() {
             {soon.length > 0 && (
               <section className={live.length > 0 ? 'mt-6' : undefined}>
                 <h2 className="display mb-2 text-2xl font-bold">{t.courts.play.startingSoon}</h2>
-                <div className="grid gap-2">
+                <div className={`grid gap-2 ${intro}`}>
                   {soon.map((g) => (
                     <div key={g.id} className={pulseIds.has(g.id) ? 'ftg-game-enter' : undefined}>
                       <GameCard game={g} />
@@ -135,7 +136,7 @@ export function PlayPage() {
               <section className={live.length > 0 || soon.length > 0 ? 'mt-6' : undefined}>
                 <h2 className="display mb-2 text-2xl font-bold text-upcoming">{t.courts.play.upcoming}</h2>
                 <p className="mb-2 text-sm text-ink-2">{t.courts.play.upcomingHint}</p>
-                <div className="grid gap-2">
+                <div className={`grid gap-2 ${intro}`}>
                   {upcoming.map((g) => (
                     <div key={g.id} className={pulseIds.has(g.id) ? 'ftg-game-enter' : undefined}>
                       <GameCard game={g} scheduleAccent="upcoming" />

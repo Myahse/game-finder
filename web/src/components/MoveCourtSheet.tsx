@@ -9,6 +9,7 @@ import { useCourtsNearby } from '../lib/queries'
 import type { Court } from '../lib/types'
 import { useCourtsRain } from '../lib/weather'
 import { Button, ErrorText, Spinner } from './ui'
+import { useSheetExit } from '../lib/motion'
 
 type CurrentCourt = Pick<Court, 'id' | 'name' | 'latitude' | 'longitude'>
 
@@ -37,7 +38,8 @@ type SheetProps = {
   onClose: () => void
 }
 
-export function MoveCourtSheet({ kind, id, sportId, sportSlug, court, defaultReason, onClose }: SheetProps) {
+export function MoveCourtSheet({ kind, id, sportId, sportSlug, court, defaultReason, onClose: dismiss }: SheetProps) {
+  const { closing, close: onClose } = useSheetExit(dismiss)
   const { t } = useLocale()
   const tm = t.courtMove
   const move = useMoveCourt()
@@ -88,8 +90,8 @@ export function MoveCourtSheet({ kind, id, sportId, sportSlug, court, defaultRea
   }
 
   return (
-    <div className="ftg-safe-overlay fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={tm.title} onClick={onClose}>
-      <div className="max-h-[94dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
+    <div className="ftg-safe-overlay ftg-backdrop fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4" data-closing={closing || undefined} role="dialog" aria-modal="true" aria-label={tm.title} onClick={onClose}>
+      <div className="ftg-sheet max-h-[94dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="display text-2xl font-extrabold">{tm.title}</h2>
           <button type="button" onClick={onClose} className="rounded-full p-1.5 text-ink-2 hover:bg-surface-2 hover:text-ink" aria-label={t.common.close}>

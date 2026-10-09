@@ -10,15 +10,16 @@ import { resolveMediaUrl } from '../lib/mediaUrl'
 import { useKings } from '../lib/progress'
 import type { Activity, PublicUser } from '../lib/types'
 import { useLocale } from '../i18n/LocaleProvider'
+import { useCountUp, useSheetExit } from '../lib/motion'
 
 type Variant = 'primary' | 'live' | 'secondary' | 'ghost' | 'danger'
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-brand text-brand-ink hover:brightness-110',
-  live: 'bg-live text-white hover:brightness-110',
-  secondary: 'bg-surface-2 text-ink hover:bg-line',
+  primary: 'ftg-press-lift bg-brand text-brand-ink hover:brightness-110',
+  live: 'ftg-press-lift bg-live text-white hover:brightness-110',
+  secondary: 'ftg-press-lift bg-surface-2 text-ink hover:bg-line',
   ghost: 'text-ink-2 hover:text-ink hover:bg-surface-2',
-  danger: 'bg-danger/10 text-danger hover:bg-danger/20',
+  danger: 'ftg-press-lift bg-danger/10 text-danger hover:bg-danger/20',
 }
 
 export function Button({
@@ -32,7 +33,7 @@ export function Button({
     <button
       {...props}
       disabled={props.disabled || loading}
-      className={`display inline-flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-xl px-5 py-1.5 text-center leading-tight text-lg font-bold transition active:scale-[0.98] disabled:opacity-50 ${variants[variant]} ${className}`}
+      className={`display inline-flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-xl px-5 py-1.5 text-center leading-tight text-lg font-bold ftg-press disabled:opacity-50 ${variants[variant]} ${className}`}
     >
       {loading ? <Spinner /> : children}
     </button>
@@ -116,7 +117,7 @@ export function Chip({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sm font-semibold shadow-sm transition ${
+      className={`ftg-press inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sm font-semibold shadow-sm ${
         active ? 'border-ink bg-ink text-bg' : 'border-line bg-surface text-ink hover:border-ink-2'
       }`}
     >
@@ -241,6 +242,28 @@ export function Card({ children, className = '' }: { children: ReactNode; classN
   return <div className={`rounded-2xl border border-line bg-surface p-4 ${className}`}>{children}</div>
 }
 
+/** A headline number that counts up when it first appears and whenever it changes. */
+export function CountUp({ value }: { value: number }) {
+  return <>{useCountUp(value)}</>
+}
+
+/** Shimmering placeholder block. */
+export function Skeleton({ className = '' }: { className?: string }) {
+  return <div className={`ftg-skeleton rounded-2xl ${className}`} aria-hidden />
+}
+
+/** Stand-in for a list of cards while it loads. */
+export function SkeletonList({ rows = 3, className = 'h-[4.75rem]' }: { rows?: number; className?: string }) {
+  const { t } = useLocale()
+  return (
+    <div className="grid gap-2" role="status" aria-label={t.account.ui.loading}>
+      {Array.from({ length: rows }, (_, i) => (
+        <Skeleton key={i} className={className} />
+      ))}
+    </div>
+  )
+}
+
 export function AppAlert({
   open,
   title,
@@ -253,16 +276,22 @@ export function AppAlert({
   onClose: () => void
 }) {
   if (!open) return null
+  return <AppAlertDialog title={title} message={message} onClose={onClose} />
+}
+
+function AppAlertDialog({ title, message, onClose: dismiss }: { title: string; message: string; onClose: () => void }) {
+  const { closing, close: onClose } = useSheetExit(dismiss)
   return (
     <div
-      className="ftg-safe-overlay ftg-safe-overlay-b fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="ftg-safe-overlay ftg-safe-overlay-b ftg-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      data-closing={closing || undefined}
       role="alertdialog"
       aria-modal="true"
       aria-labelledby="app-alert-title"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-2xl border border-line bg-surface p-5 shadow-xl"
+        className="ftg-dialog w-full max-w-sm rounded-2xl border border-line bg-surface p-5 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="app-alert-title" className="display text-lg font-bold">{title}</h2>

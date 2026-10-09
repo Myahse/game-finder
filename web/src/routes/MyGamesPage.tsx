@@ -3,9 +3,9 @@ import { useLocation } from '../lib/location'
 import { useMyGames, useMyPresence } from '../lib/queries'
 import { GameCard } from '../components/GameCard'
 import { CalendarDays, Circle } from '../components/icons'
-import { Card, Empty, PageHeader } from '../components/ui'
-import { Loading } from './CourtPage'
+import { Card, Empty, PageHeader, SkeletonList } from '../components/ui'
 import { useLocale } from '../i18n/LocaleProvider'
+import { useListIntro } from '../lib/motion'
 
 export function MyGamesPage() {
   const { t, locale } = useLocale()
@@ -13,13 +13,14 @@ export function MyGamesPage() {
   const { coords } = useLocation()
   const { data, isLoading } = useMyGames(coords)
   const { data: presence } = useMyPresence()
+  const intro = useListIntro((data?.current.length ?? 0) + (data?.past.length ?? 0))
 
   return (
     <div className="pb-10">
       <PageHeader title={tm.title} />
       <div className="mx-auto grid max-w-2xl gap-6 p-4">
         {presence && (
-          <Link to={`/courts/${presence.court_id}`}>
+          <Link to={`/courts/${presence.court_id}`} className="ftg-lift block rounded-2xl">
             <Card className="border-live/40 bg-live/10">
               <p className="flex items-center gap-2 font-semibold text-live">
                 <Circle className="size-3 fill-live text-live" aria-hidden />
@@ -32,13 +33,13 @@ export function MyGamesPage() {
           </Link>
         )}
         {isLoading ? (
-          <Loading />
+          <SkeletonList rows={3} />
         ) : (
           <>
             <section>
               <h2 className="display mb-2 text-2xl font-bold">{tm.upcoming}</h2>
               {data?.current.length ? (
-                <div className="grid gap-2">
+                <div className={`grid gap-2 ${intro}`}>
                   {data.current.map((g) => (
                     <GameCard key={g.id} game={g} />
                   ))}
@@ -54,7 +55,7 @@ export function MyGamesPage() {
             {!!data?.past.length && (
               <section>
                 <h2 className="display mb-2 text-2xl font-bold text-ink-2">{tm.past}</h2>
-                <div className="grid gap-2 opacity-80">
+                <div className={`grid gap-2 opacity-80 ${intro}`}>
                   {data.past.map((g) => (
                     <GameCard key={g.id} game={g} />
                   ))}

@@ -5,7 +5,9 @@ import type { PlayerAvatarConfig } from '../avatar/schema'
 import { useLocale } from '../i18n/LocaleProvider'
 import { BADGE_ART, isNewBadge, levelTier, TIER_COLORS, useMyProgress, useUserProgress, type Badge, type Progress } from '../lib/progress'
 import { renderSticker } from '../lib/stickers'
-import { Button, Card, Spinner } from './ui'
+import { Button, Card, CountUp, Skeleton } from './ui'
+import { useSheetExit } from '../lib/motion'
+import { useCountUp } from '../lib/motion'
 
 const FALLBACK_ART = { emoji: '🏅', color: '#8a94a6' }
 
@@ -32,9 +34,23 @@ export function UserProgressCard({ userId, avatar }: { userId: string; avatar: P
 }
 
 function LoadingCard() {
+  const { t } = useLocale()
   return (
-    <Card className="flex justify-center">
-      <Spinner className="text-brand" />
+    <Card className="grid gap-4">
+      <span role="status" className="sr-only">
+        {t.account.ui.loading}
+      </span>
+      <div className="flex items-center gap-4">
+        <Skeleton className="size-20 shrink-0 rounded-full" />
+        <div className="grid flex-1 gap-2">
+          <Skeleton className="h-7 w-2/3 rounded-lg" />
+          <Skeleton className="h-3 w-full rounded-full" />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <Skeleton className="h-20 rounded-xl" />
+        <Skeleton className="h-20 rounded-xl" />
+      </div>
     </Card>
   )
 }
@@ -48,6 +64,9 @@ function ProgressView({ p, avatar, mine }: { p: Progress; avatar: PlayerAvatarCo
   const pct = Math.min(100, ((p.xp - p.level_xp) / span) * 100)
   const earned = p.badges.filter((b) => b.earned_at)
   const s = p.streak
+  const level = useCountUp(p.level)
+  const xp = useCountUp(p.xp)
+  const streak = useCountUp(s.current)
 
   return (
     <Card className="grid gap-4">
@@ -55,7 +74,7 @@ function ProgressView({ p, avatar, mine }: { p: Progress; avatar: PlayerAvatarCo
       <div className="flex items-center gap-4">
         <div className="relative flex size-20 shrink-0 items-center justify-center rounded-full" style={{ background: `conic-gradient(${color} ${pct}%, var(--surface-2) 0)` }}>
           <div className="flex size-16 flex-col items-center justify-center rounded-full bg-surface">
-            <span className="display text-3xl font-extrabold leading-none">{p.level}</span>
+            <span className="display text-3xl font-extrabold leading-none tabular-nums">{level}</span>
           </div>
         </div>
         <div className="min-w-0 flex-1">
@@ -63,7 +82,7 @@ function ProgressView({ p, avatar, mine }: { p: Progress; avatar: PlayerAvatarCo
             {t.progress.titles[tier]}
           </p>
           <p className="text-sm font-semibold">
-            {t.progress.level.replace('{n}', String(p.level))} · {t.progress.xp.replace('{n}', String(p.xp))}
+            {t.progress.level.replace('{n}', String(level))} · {t.progress.xp.replace('{n}', String(xp))}
           </p>
           <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface-2">
             <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: color }} />
@@ -86,7 +105,7 @@ function ProgressView({ p, avatar, mine }: { p: Progress; avatar: PlayerAvatarCo
           <p className="text-xs font-semibold text-ink-2">{t.progress.streak}</p>
           <p className="display flex items-center gap-1 text-2xl font-extrabold">
             <Flame className={`size-6 ${s.current > 0 ? 'text-orange-500' : 'text-ink-2'}`} aria-hidden fill={s.current > 0 ? 'currentColor' : 'none'} />
-            {s.current}
+            <span className="tabular-nums">{streak}</span>
           </p>
           <p className="text-xs text-ink-2">
             {s.current === 0 ? (mine ? t.progress.noStreak : t.progress.best.replace('{n}', String(s.best))) : s.active_this_week ? t.progress.streakSafe : mine ? t.progress.streakRisk : t.progress.best.replace('{n}', String(s.best))}
@@ -99,7 +118,9 @@ function ProgressView({ p, avatar, mine }: { p: Progress; avatar: PlayerAvatarCo
           ) : (
             p.ratings.slice(0, 3).map((r) => (
               <p key={r.sport.id} className="leading-tight">
-                <span className="display block text-2xl font-extrabold tabular-nums">{r.rating}</span>
+                <span className="display block text-2xl font-extrabold tabular-nums">
+                  <CountUp value={r.rating} />
+                </span>
                 <span className="block truncate text-xs text-ink-2">{r.sport.name}</span>
               </p>
             ))
@@ -149,7 +170,8 @@ function ProgressView({ p, avatar, mine }: { p: Progress; avatar: PlayerAvatarCo
   )
 }
 
-function BadgeSheet({ badge, avatar, canShare, onClose }: { badge: Badge; avatar: PlayerAvatarConfig | null; canShare: boolean; onClose: () => void }) {
+function BadgeSheet({ badge, avatar, canShare, onClose: dismiss }: { badge: Badge; avatar: PlayerAvatarConfig | null; canShare: boolean; onClose: () => void }) {
+  const { closing, close: onClose } = useSheetExit(dismiss)
   const { t, locale } = useLocale()
   const art = BADGE_ART[badge.id] ?? FALLBACK_ART
   const name = t.progress.names[badge.id] ?? badge.id
@@ -201,8 +223,8 @@ function BadgeSheet({ badge, avatar, canShare, onClose }: { badge: Badge; avatar
   }
 
   return (
-    <div className="ftg-safe-overlay fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={name} onClick={onClose}>
-      <div className="max-h-[92dvh] w-full max-w-sm overflow-y-auto rounded-t-3xl bg-surface p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-center shadow-2xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
+    <div className="ftg-safe-overlay ftg-backdrop fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4" data-closing={closing || undefined} role="dialog" aria-modal="true" aria-label={name} onClick={onClose}>
+      <div className="ftg-sheet max-h-[92dvh] w-full max-w-sm overflow-y-auto rounded-t-3xl bg-surface p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-center shadow-2xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-end">
           <button type="button" onClick={onClose} className="rounded-full p-1.5 text-ink-2 hover:bg-surface-2 hover:text-ink" aria-label={t.common.close}>
             <X className="size-5" aria-hidden />

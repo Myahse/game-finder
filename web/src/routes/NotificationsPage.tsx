@@ -6,9 +6,9 @@ import { timeAgo } from '../lib/format'
 import { qk, useNotifications } from '../lib/queries'
 import type { AppNotification } from '../lib/types'
 import { Bell, notificationIcons } from '../components/icons'
-import { Button, Empty, PageHeader } from '../components/ui'
-import { Loading } from './CourtPage'
+import { Button, Empty, PageHeader, SkeletonList } from '../components/ui'
 import { useLocale } from '../i18n/LocaleProvider'
+import { useListIntro } from '../lib/motion'
 
 export function NotificationsPage() {
   const { data, isLoading } = useNotifications()
@@ -16,6 +16,7 @@ export function NotificationsPage() {
   const navigate = useNavigate()
   const { t } = useLocale()
   const nt = t.account.notifications
+  const intro = useListIntro(data?.items.length ?? 0)
 
   const open = async (n: AppNotification) => {
     if (!n.read) {
@@ -55,13 +56,13 @@ export function NotificationsPage() {
       <div className="mx-auto max-w-2xl p-4">
         <PushSetupCard />
         {isLoading ? (
-          <Loading />
+          <SkeletonList rows={5} className="h-[5.25rem]" />
         ) : !data?.items.length ? (
           <Empty icon={<Bell className="size-14" strokeWidth={1.5} />} title={nt.emptyTitle}>
             {nt.emptyBody}
           </Empty>
         ) : (
-          <ul className="grid gap-2">
+          <ul className={`grid gap-2 ${intro}`}>
             {data.items.map((n) => {
               const Icon = notificationIcons[n.type]
               return (
@@ -69,7 +70,7 @@ export function NotificationsPage() {
                   <button
                     type="button"
                     onClick={() => open(n)}
-                    className={`flex w-full gap-3 rounded-2xl border p-3 text-left ${n.read ? 'border-line bg-surface' : 'border-brand/40 bg-brand/5'}`}
+                    className={`ftg-lift flex w-full gap-3 rounded-2xl border p-3 text-left ${n.read ? 'border-line bg-surface' : 'border-brand/40 bg-brand/5'}`}
                   >
                     <Icon className="size-7 shrink-0 text-brand" aria-hidden />
                     <span className="min-w-0 flex-1">

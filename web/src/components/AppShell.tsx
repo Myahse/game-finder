@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, type ReactNode } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, type ReactNode } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Bell, BaseSportIcon, CalendarDays, MapPin, User, Wrench } from './icons'
@@ -16,6 +16,7 @@ import { hasPlayerAvatar } from '../avatar/resolve'
 import { PresenceWatcher } from './PresenceWatcher'
 import type { RealtimeEvent } from '../lib/types'
 import { useLocale } from '../i18n/LocaleProvider'
+import { prefersReducedMotion } from '../lib/motion'
 type Tab = { to: string; labelKey: 'map' | 'play' | 'myGames' | 'alerts' | 'profile'; end?: boolean; navIcon: ReactNode }
 
 const tabs: Tab[] = [
@@ -71,6 +72,24 @@ export function AppShell() {
 
   useRealtime(sessionReady ? (user?.id ?? null) : null, onNotification)
   const { data: notes } = useNotifications(!!user && sessionReady, 15_000)
+
+  // Route change: the page fades + rises a few px. Animates <main> itself (no remount, same
+  // scroller, so scroll position handling is untouched); the full-bleed map is left alone.
+  const mainRef = useRef<HTMLElement>(null)
+  useLayoutEffect(() => {
+    const el = mainRef.current
+    if (!el || isMap || typeof el.animate !== 'function' || prefersReducedMotion()) return
+    // A sheet that opens with the page (e.g. /profile?card=…) must not ride a transformed parent.
+    if (el.querySelector('[aria-modal="true"]')) return
+    const anim = el.animate(
+      [
+        { opacity: 0, transform: 'translateY(6px)' },
+        { opacity: 1, transform: 'none' },
+      ],
+      { duration: 260, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+    )
+    return () => anim.cancel()
+  }, [pathname, isMap])
   usePolledNotificationToasts(notes?.items, !!user && sessionReady, t.common.open)
 
   return (
@@ -122,6 +141,7 @@ export function AppShell() {
       </nav>
 
       <main
+        ref={mainRef}
         className={`relative min-h-0 flex-1 overflow-y-auto md:pb-0 ${
           isMap ? 'pb-0' : 'pb-[calc(5rem+env(safe-area-inset-bottom))]'
         }`}

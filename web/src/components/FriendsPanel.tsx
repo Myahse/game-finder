@@ -9,6 +9,7 @@ import type { PublicUser } from '../lib/types'
 import { Avatar, Button, Card, ErrorText, Field, Input } from './ui'
 import { BumpConnectButton } from './BumpConnect'
 import { useLocale } from '../i18n/LocaleProvider'
+import { useListIntro } from '../lib/motion'
 
 export function FriendsPanel({ viewerIsAdmin = false }: { viewerIsAdmin?: boolean }) {
   const qc = useQueryClient()
@@ -57,6 +58,8 @@ export function FriendsPanel({ viewerIsAdmin = false }: { viewerIsAdmin?: boolea
 
   const incoming = requests?.incoming ?? []
   const outgoing = requests?.outgoing ?? []
+  const friendsIntro = useListIntro(friends?.length ?? 0)
+  const requestsIntro = useListIntro(incoming.length)
 
   return (
     <Card className="grid gap-4">
@@ -106,7 +109,7 @@ export function FriendsPanel({ viewerIsAdmin = false }: { viewerIsAdmin?: boolea
 
       {incoming.length > 0 && (
         <Field label={f.requestsForYou}>
-          <ul className="grid gap-2">
+          <ul className={`grid gap-2 ${requestsIntro}`}>
             {incoming.map((r) => (
               <li key={r.id} className="flex items-center justify-between gap-2 rounded-xl border border-line bg-surface-2 p-2">
                 <FriendLine user={r.user} viewerIsAdmin={viewerIsAdmin} />
@@ -134,7 +137,7 @@ export function FriendsPanel({ viewerIsAdmin = false }: { viewerIsAdmin?: boolea
         {!friends?.length ? (
           <p className="text-sm text-ink-2">{f.empty}</p>
         ) : (
-          <ul className="grid gap-2">
+          <ul className={`grid gap-2 ${friendsIntro}`}>
             {friends.map((f) => (
               <li key={f.id} className="rounded-xl border border-line bg-surface-2 p-2">
                 <FriendLine user={f} viewerIsAdmin={viewerIsAdmin} />

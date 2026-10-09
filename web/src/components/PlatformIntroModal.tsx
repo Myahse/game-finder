@@ -24,14 +24,14 @@ export function PlatformIntroModal({ open, onClose, variant = 'member' }: Props)
 
   return (
     <div
-      className="ftg-safe-overlay ftg-safe-overlay-b fixed inset-0 z-[60] flex items-end justify-center bg-black/50 p-4 backdrop-blur-md sm:items-center"
+      className="ftg-safe-overlay ftg-safe-overlay-b ftg-backdrop fixed inset-0 z-[60] flex items-end justify-center bg-black/50 p-4 backdrop-blur-md sm:items-center"
       role="dialog"
       aria-modal="true"
       aria-labelledby="platform-intro-title"
       onClick={variant === 'guest' ? onClose : undefined}
     >
       <div
-        className="w-full max-w-md max-h-[min(90dvh,640px)] overflow-y-auto rounded-2xl border border-line bg-surface p-5 shadow-xl"
+        className="ftg-dialog w-full max-w-md max-h-[min(90dvh,640px)] overflow-y-auto rounded-2xl border border-line bg-surface p-5 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <p className="text-xs font-semibold uppercase tracking-wide text-brand">{t.intro.eyebrow}</p>

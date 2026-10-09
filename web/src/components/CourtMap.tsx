@@ -400,7 +400,10 @@ export function CourtPin({
       }`}
       style={{ width: COURT_PIN_WIDTH, height: COURT_PIN_HEIGHT }}
     >
-      <div className="relative flex w-full flex-col items-center">
+      <div className={`relative flex w-full flex-col items-center ${selected ? 'ftg-pin-drop' : ''}`}>
+        {!preview && activity === 'active' && (
+          <span aria-hidden className="ftg-live-ring pointer-events-none absolute left-1/2 top-0 -ml-[23px] size-[46px] rounded-full bg-live" />
+        )}
         <span
           className={`relative size-[46px] overflow-hidden rounded-full border-[2.5px] border-white ${
             preview ? 'shadow-md' : ringShadow[activity]

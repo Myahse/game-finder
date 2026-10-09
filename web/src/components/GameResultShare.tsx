@@ -7,6 +7,7 @@ import { createGameShareUrl } from '../lib/gameShare'
 import { topPerformers, type Scoreboard } from '../lib/scoreboard'
 import type { Game } from '../lib/types'
 import { Button, Spinner } from './ui'
+import { useSheetExit } from '../lib/motion'
 
 /** "Share result": the scoreboard as an image card + link to the game. */
 export function ShareResultButton({ game, sb }: { game: Game; sb: Scoreboard }) {
@@ -34,7 +35,8 @@ async function resultUrl(game: Game) {
   return `${window.location.origin}/games/${game.id}`
 }
 
-function ResultSheet({ game, sb, onClose }: { game: Game; sb: Scoreboard; onClose: () => void }) {
+function ResultSheet({ game, sb, onClose: dismiss }: { game: Game; sb: Scoreboard; onClose: () => void }) {
+  const { closing, close: onClose } = useSheetExit(dismiss)
   const { t, locale } = useLocale()
   const [card, setCard] = useState<{ blob: Blob; src: string; url: string } | null>(null)
   const [failed, setFailed] = useState(false)
@@ -116,8 +118,8 @@ function ResultSheet({ game, sb, onClose }: { game: Game; sb: Scoreboard; onClos
   }
 
   return (
-    <div className="ftg-safe-overlay fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={t.scoreboard.resultTitle} onClick={onClose}>
-      <div className="w-full max-w-sm rounded-t-3xl bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
+    <div className="ftg-safe-overlay ftg-backdrop fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4" data-closing={closing || undefined} role="dialog" aria-modal="true" aria-label={t.scoreboard.resultTitle} onClick={onClose}>
+      <div className="ftg-sheet w-full max-w-sm rounded-t-3xl bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="display text-2xl font-extrabold">{t.scoreboard.resultTitle}</h2>
           <button type="button" onClick={onClose} className="rounded-full p-1.5 text-ink-2 hover:bg-surface-2 hover:text-ink" aria-label={t.common.close}>
