@@ -705,16 +705,25 @@ body {
   60% { transform: translateY(-0.6%) rotate(0.8deg); }
 }
 .ftg-av-live .ftg-av-eyes {
-  transform-box: fill-box;
-  transform-origin: center;
-  /* `scale`, not `transform`: the group keeps its own translate() attribute. */
-  animation: ftg-av-live-blink 4.6s infinite;
+  animation: ftg-av-live-open 4.6s step-end infinite;
   animation-delay: var(--ftg-av-delay, 0ms);
 }
-@keyframes ftg-av-live-blink {
-  0%, 93%, 100% { scale: 1 1; }
-  95.5% { scale: 1 0.08; }
+.ftg-av-live .ftg-av-eyes-closed {
+  animation: ftg-av-live-closed 4.6s step-end infinite;
+  animation-delay: var(--ftg-av-delay, 0ms);
 }
+/* A blink = the open eyes hidden for ~0.15s while the closed copy shows. */
+@keyframes ftg-av-live-open {
+  0%, 100% { opacity: 1; }
+  94% { opacity: 0; }
+  97% { opacity: 1; }
+}
+@keyframes ftg-av-live-closed {
+  0%, 100% { opacity: 0; }
+  94% { opacity: 1; }
+  97% { opacity: 0; }
+}
+
 .ftg-av-live:active > svg {
   animation: ftg-av-hop 0.5s var(--ftg-ease-spring);
 }

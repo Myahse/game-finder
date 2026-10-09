@@ -139,6 +139,32 @@ export type Expression = {
 }
 
 /** SVG markup for a player's portrait (head and shoulders, 280×280 viewBox, transparent background). */
+const EYES_TAG = '<g transform="translate(76 90)">'
+let closedEyesMarkup: string | null = null
+
+/** Inner markup of Avataaars' closed eyes (the same for every look), built once. */
+function closedEyes(): string {
+  if (closedEyesMarkup !== null) return closedEyesMarkup
+  const svg = createAvatar(avataaars, { eyes: ['closed'] }).toString()
+  closedEyesMarkup = innerOfGroup(svg, EYES_TAG)
+  return closedEyesMarkup
+}
+
+/** The markup inside the first `<g …>` that starts with [openTag], nested groups included. */
+export function innerOfGroup(svg: string, openTag: string): string {
+  const start = svg.indexOf(openTag)
+  if (start < 0) return ''
+  let depth = 1
+  let i = start + openTag.length
+  const re = /<g[\s>]|<\/g>/g
+  re.lastIndex = i
+  for (let m = re.exec(svg); m; m = re.exec(svg)) {
+    depth += m[0] === '</g>' ? -1 : 1
+    if (depth === 0) return svg.slice(i, m.index)
+  }
+  return ''
+}
+
 export function avataaarsSvg(c: PlayerAvatarConfig, expression: Expression = {}): string {
   const kit = kitOf(c)
   const hair = HAIR_COLORS[c.hairColor] ?? HAIR_COLORS.black
@@ -165,8 +191,10 @@ export function avataaarsSvg(c: PlayerAvatarConfig, expression: Expression = {})
     clothesColor: [hex(kit.main)],
   })
     .toString()
-    // Tag the eyes so live portraits can blink (Avataaars always draws them at this offset).
-    .replace('<g transform="translate(76 90)">', '<g class="ftg-av-eyes" transform="translate(76 90)">')
+    // Live portraits blink by swapping to a hidden closed-eyes copy (opacity only, so
+    // nothing moves). Avataaars always draws the eyes at this offset; outside the app's
+    // CSS (canvas, stickers) the copy stays invisible.
+    .replace(EYES_TAG, `<g class="ftg-av-eyes-closed" opacity="0" ${EYES_TAG.slice(3)}${closedEyes()}</g><g class="ftg-av-eyes" ${EYES_TAG.slice(3)}`)
 
   if (!NUMBERED.has(c.top) || !kit.number) return svg
   // Jersey number on the chest (ids/colours are ours, never user text, so this is safe markup).
