@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="Out For Ground"><rect width="1024" height="1024" rx="225.28" fill="#12151a"/><g transform="translate(194.56,194.55999999999997) scale(9.92)">
+<path d="M32 4c-11.6 0-21 9.4-21 21 0 15.8 21 35 21 35s21-19.2 21-35c0-11.6-9.4-21-21-21z" fill="#ff5a1f"/>
+<circle cx="32" cy="25" r="14" fill="#12151a" opacity="0.12"/>
+<g fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="32" cy="25" r="11"/><path d="M21 25h22M32 14v22"/><path d="M24 17.5c4 4 4 11 0 15M40 17.5c-4 4-4 11 0 15"/></g></g></svg>
