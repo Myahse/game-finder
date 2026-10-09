@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
-import { firebaseGoogleEnabled, firebaseGoogleIdToken } from '../lib/firebase'
+import { firebaseGoogleEnabled, firebaseGoogleIdToken, isInAppBrowser, prewarmFirebaseAuth, signInErrorText } from '../lib/firebase'
 import { appleSignInEnabled } from './AppleSignInButton'
 import { useLocale } from '../i18n/LocaleProvider'
 import { useTheme } from '../theme/ThemeProvider'
-import { ErrorText, Spinner } from './ui'
+import { Button, ErrorText, Spinner } from './ui'
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim() ?? ''
 const SCRIPT_SRC = 'https://accounts.google.com/gsi/client'
@@ -85,13 +85,18 @@ export function GoogleSignInButton({
     }
   }
 
+  const inApp = isInAppBrowser()
+  useEffect(() => {
+    if (useFirebase && !inApp) prewarmFirebaseAuth()
+  }, [inApp])
+
   const handler = useRef<(r: GsiCredential) => void>(() => {})
   useEffect(() => {
     handler.current = ({ credential }) => finish(credential, false)
   })
 
   useEffect(() => {
-    if (useFirebase || !CLIENT_ID) return
+    if (useFirebase || !CLIENT_ID || inApp) return
     let cancelled = false
     loadGsi()
       .then((g) => {
@@ -119,7 +124,7 @@ export function GoogleSignInButton({
     return () => {
       cancelled = true
     }
-  }, [dark, locale, t.welcome.googleFailed])
+  }, [dark, locale, t.welcome.googleFailed, inApp])
 
   if (!googleSignInEnabled) return null
 
@@ -137,6 +142,15 @@ export function GoogleSignInButton({
     </p>
   )
 
+  if (inApp) {
+    return (
+      <div className="grid gap-2">
+        <InAppBrowserNotice />
+        {terms}
+      </div>
+    )
+  }
+
   if (useFirebase) {
     return (
       <div className="grid gap-2">
@@ -147,7 +161,10 @@ export function GoogleSignInButton({
             if (!sessionReady) return
             void firebaseGoogleIdToken()
               .then((token) => finish(token, true))
-              .catch((e) => setError(errorMessage(e)))
+              .catch((e) => {
+                const text = signInErrorText(e)
+                if (text !== null) setError(text ?? errorMessage(e))
+              })
           }}
           className={
             dark
@@ -175,6 +192,41 @@ export function GoogleSignInButton({
       </div>
       <ErrorText>{error}</ErrorText>
       {terms}
+    </div>
+  )
+}
+
+/** Google refuses sign-in inside Instagram, Facebook, TikTok… browsers: send the player to a real one. */
+function InAppBrowserNotice() {
+  const { t } = useLocale()
+  const ts = t.errors.signIn
+  const [copied, setCopied] = useState(false)
+  const href = window.location.href
+  const android = /Android/i.test(navigator.userAgent)
+  const chromeIntent = `intent://${window.location.host}${window.location.pathname}${window.location.search}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(href)};end`
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(href)
+      setCopied(true)
+    } catch {
+      window.prompt(ts.copyLink, href)
+    }
+  }
+  return (
+    <div className="grid gap-2 rounded-2xl border border-line bg-surface-2 p-3 text-left" role="note">
+      <p className="font-bold text-ink">{ts.inAppTitle}</p>
+      <p className="text-sm text-ink-2">{ts.inAppBody}</p>
+      <div className="flex flex-wrap gap-2">
+        {android && (
+          <a href={chromeIntent} className="inline-flex min-h-11 items-center rounded-full bg-brand px-4 text-sm font-bold text-white">
+            {ts.openInChrome}
+          </a>
+        )}
+        <Button type="button" variant="secondary" className="min-h-11" onClick={() => void copy()}>
+          {ts.copyLink}
+        </Button>
+      </div>
+      {copied && <p className="text-sm font-semibold text-ink">{ts.copied}</p>}
     </div>
   )
 }

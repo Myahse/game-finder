@@ -6,6 +6,19 @@ export const en = {
   generic: 'Something went wrong.',
   network: "Can't reach the server. Check your connection.",
   invalidValue: 'Invalid value.',
+  // Google / Apple sign-in window (Firebase) problems, by Firebase error code.
+  signIn: {
+    popupBlocked: 'Your browser blocked the Google window. Tap the button again, or allow pop-ups for this site.',
+    unsupported: "This browser can't open Google sign-in. Open the site in Chrome or Safari and try again.",
+    unauthorizedDomain: "Google sign-in isn't set up for this address yet. Use www.outforground.com.",
+    tooManyRequests: 'Too many tries. Wait a minute and try again.',
+    failed: 'Google sign-in didn’t finish. Try again.',
+    inAppTitle: 'Open in your browser to use Google',
+    inAppBody: 'Google sign-in doesn’t work inside this app’s browser. Open the page in Chrome or Safari, or log in with your username and password.',
+    openInChrome: 'Open in Chrome',
+    copyLink: 'Copy link',
+    copied: 'Link copied — paste it in Chrome or Safari.',
+  },
   codes: {
     // Auth & session
     not_authenticated: 'Please sign in.',
@@ -228,6 +241,18 @@ export const fr: typeof en = {
   generic: 'Une erreur s’est produite.',
   network: 'Impossible de joindre le serveur. Vérifiez votre connexion.',
   invalidValue: 'Valeur invalide.',
+  signIn: {
+    popupBlocked: 'Votre navigateur a bloqué la fenêtre Google. Touchez à nouveau le bouton, ou autorisez les pop-ups pour ce site.',
+    unsupported: 'Ce navigateur ne peut pas ouvrir la connexion Google. Ouvrez le site dans Chrome ou Safari et réessayez.',
+    unauthorizedDomain: 'La connexion Google n’est pas encore configurée pour cette adresse. Utilisez www.outforground.com.',
+    tooManyRequests: 'Trop d’essais. Attendez une minute et réessayez.',
+    failed: 'La connexion Google n’a pas abouti. Réessayez.',
+    inAppTitle: 'Ouvrez dans votre navigateur pour utiliser Google',
+    inAppBody: 'La connexion Google ne fonctionne pas dans le navigateur de cette application. Ouvrez la page dans Chrome ou Safari, ou connectez-vous avec votre nom d’utilisateur et votre mot de passe.',
+    openInChrome: 'Ouvrir dans Chrome',
+    copyLink: 'Copier le lien',
+    copied: 'Lien copié — collez-le dans Chrome ou Safari.',
+  },
   codes: {
     // Auth & session
     not_authenticated: 'Veuillez vous connecter.',

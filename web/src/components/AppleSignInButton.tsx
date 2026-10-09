@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
-import { firebaseAppleIdToken, firebaseAuthEnabled, isAppleSignInEnabled } from '../lib/firebase'
+import { firebaseAppleIdToken, firebaseAuthEnabled, isAppleSignInEnabled, signInErrorText } from '../lib/firebase'
 import { useLocale } from '../i18n/LocaleProvider'
 import { ErrorText, Spinner } from './ui'
 
@@ -48,7 +48,10 @@ export function AppleSignInButton({
           void firebaseAppleIdToken()
             .then((token) => googleSignIn(token, true))
             .then(() => onSignedIn?.())
-            .catch((e) => setError(errorMessage(e)))
+            .catch((e) => {
+              const text = signInErrorText(e)
+              if (text !== null) setError(text ?? errorMessage(e))
+            })
             .finally(() => setBusy(false))
         }}
         className="flex min-h-11 w-full items-center justify-center gap-3 rounded-full bg-black px-4 text-[15px] font-semibold text-white disabled:opacity-50 dark:bg-white dark:text-black"
