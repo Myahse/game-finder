@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { api, errorMessage, uploadImage } from '../lib/api'
@@ -17,8 +17,8 @@ import { isAtCourt, notAtCourtMessage, notAtCourtTitle } from '../lib/courtProxi
 import { useLocation } from '../lib/location'
 import { LIST_NEARBY_RADIUS_KM } from '../lib/nearby'
 import { useAuth } from '../lib/auth'
-import { useMySport } from '../lib/mySport'
-import { useCourtsNearby, useSports } from '../lib/queries'
+import { useMySport, useMySports } from '../lib/mySport'
+import { useCourtsNearbySports, useSports } from '../lib/queries'
 import type { Game, GameType, SkillLevel } from '../lib/types'
 import { Clock, Flame, SportIcon, SportName } from '../components/icons'
 import { Plus } from 'lucide-react'
@@ -39,10 +39,14 @@ export function CreateGamePage() {
   const { t } = useLocale()
   const tc = t.games.create
   const mySport = useMySport()
+  const mySports = useMySports()
+  const isAdmin = user?.role === 'admin'
   const { center, coords } = useLocation()
   const { data: sports } = useSports()
-  const sportSlug = user?.role === 'admin' ? null : mySport?.slug ?? null
-  const { data: courts } = useCourtsNearby(center, sportSlug, LIST_NEARBY_RADIUS_KM)
+  // Courts for any of my sports (main + extras), nearest first. Admins see all.
+  const slugs = isAdmin ? [] : mySports.map((s) => s.slug)
+  const { data: merged, isLoading: courtsLoading, error: courtsError } = useCourtsNearbySports(center, slugs, LIST_NEARBY_RADIUS_KM)
+  const courts = useMemo(() => [...merged].sort((a, b) => (a.distance_m ?? Infinity) - (b.distance_m ?? Infinity)), [merged])
   const active = sports?.filter((s) => s.active) ?? []
 
   const [courtId, setCourtId] = useState(params.get('court') ?? '')
@@ -60,7 +64,32 @@ export function CreateGamePage() {
   const [uploading, setUploading] = useState(false)
   const [farModal, setFarModal] = useState(false)
 
-  const court = courts?.find((c) => c.id === courtId)
+  // Same sport filter as the map's top chips: ?sport= (from the map), else the
+  // sport of the court I came from, else my main sport. Courts follow it.
+  const allowed = isAdmin ? active : mySports.filter((s) => s.active)
+  const paramSport = params.get('sport')
+  const paramCourt = params.get('court')
+  useEffect(() => {
+    if (sportId || allowed.length === 0) return
+    const fromParam = allowed.find((s) => s.slug === paramSport)
+    if (fromParam) return setSportId(fromParam.id)
+    if (paramCourt) {
+      const pc = courts.find((c) => c.id === paramCourt)
+      if (!pc && courtsLoading) return
+      const offered = pc && allowed.find((s) => pc.sports.some((cs) => cs.id === s.id))
+      if (offered) return setSportId(offered.id)
+    }
+    setSportId((allowed.find((s) => s.id === mySport?.id) ?? allowed[0]).id)
+  }, [sportId, allowed, paramSport, paramCourt, courts, courtsLoading, mySport?.id])
+  const chosenSport = allowed.find((s) => s.id === sportId) ?? null
+  const sportCourts = chosenSport ? courts.filter((c) => c.sports.some((cs) => cs.id === chosenSport.id)) : courts
+  const pickSport = (id: string) => {
+    setSportId(id)
+    const c = courts.find((x) => x.id === courtId)
+    if (c && !c.sports.some((cs) => cs.id === id)) setCourtId('')
+  }
+
+  const court = sportCourts.find((c) => c.id === courtId)
   const existingPhotos = (court?.photos ?? []).filter((p) => p.trim().length > 0)
   const suggestPlacePhoto = !!courtId && existingPhotos.length === 0 && placePhotos.length === 0
 
@@ -68,14 +97,6 @@ export function CreateGamePage() {
     setPlacePhotos([])
   }, [courtId])
 
-  useEffect(() => {
-    if (mySport) setSportId(mySport.id)
-  }, [mySport?.id])
-
-  const courtSports = court ? active.filter((s) => court.sports.some((cs) => cs.id === s.id)) : active
-  const lockedSport = mySport && user?.role !== 'admin' ? mySport : null
-  const selectableSports = lockedSport ? courtSports.filter((s) => s.id === lockedSport.id) : courtSports
-  const chosenSport = selectableSports.find((s) => s.id === sportId) ?? selectableSports[0] ?? lockedSport
 
   const addPlacePhoto = async (files: FileList | null) => {
     if (!files?.length) return
@@ -158,17 +179,53 @@ export function CreateGamePage() {
       />
       <PageHeader title={tc.title} back={courtId ? `/?court=${courtId}` : '/'} />
       <form onSubmit={submit} className="mx-auto grid max-w-md gap-5 p-5">
+        <Field label={tc.sport}>
+          {allowed.length <= 1 ? (
+            <p className="flex items-center gap-2 rounded-xl border border-line bg-surface-2 px-4 py-2.5 font-semibold">
+              {chosenSport ? <SportName sport={chosenSport} /> : '—'}
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {allowed.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => pickSport(s.id)}
+                  aria-pressed={chosenSport?.id === s.id}
+                  className={`rounded-xl border-2 px-4 py-2.5 font-semibold ${chosenSport?.id === s.id ? 'border-brand bg-brand/10' : 'border-line bg-surface'}`}
+                >
+                  <SportName sport={s} />
+                </button>
+              ))}
+            </div>
+          )}
+        </Field>
+
         <Field label={tc.court} hint={<Link to="/courts/new" className="font-semibold text-brand">{tc.courtNotListed}</Link>}>
           <Select required value={courtId} onChange={(e) => setCourtId(e.target.value)}>
             <option value="" disabled>
               {tc.chooseCourt}
             </option>
-            {courts?.map((c) => (
+            {sportCourts.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name} {c.distance_m != null ? `· ${formatDistance(c.distance_m)}` : ''}
               </option>
             ))}
           </Select>
+          {courtsError ? (
+            <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-danger">
+              {tc.courtsLoadFailed} {errorMessage(courtsError)}
+              <button type="button" className="font-semibold text-brand" onClick={() => void qc.invalidateQueries({ queryKey: ['courts'] })}>
+                {tc.retry}
+              </button>
+            </p>
+          ) : (
+            !courtsLoading && sportCourts.length === 0 && (
+              <p className="mt-2 text-sm text-ink-2">
+                {(chosenSport ? tc.noCourtsForSport.replace('{sport}', chosenSport.name) : tc.noCourtsNearby).replace('{km}', String(LIST_NEARBY_RADIUS_KM))}
+              </p>
+            )
+          )}
         </Field>
 
         {courtId && (
@@ -202,27 +259,6 @@ export function CreateGamePage() {
           </Field>
         )}
 
-        <Field label={tc.sport}>
-          {lockedSport ? (
-            <p className="flex items-center gap-2 rounded-xl border border-line bg-surface-2 px-4 py-2.5 font-semibold">
-              <SportName sport={lockedSport} />
-            </p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {selectableSports.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => setSportId(s.id)}
-                  aria-pressed={chosenSport?.id === s.id}
-                  className={`rounded-xl border-2 px-4 py-2.5 font-semibold ${chosenSport?.id === s.id ? 'border-brand bg-brand/10' : 'border-line bg-surface'}`}
-                >
-                  <SportName sport={s} />
-                </button>
-              ))}
-            </div>
-          )}
-        </Field>
 
         <Field label={tc.startTime}>
           <div className="mb-2 grid grid-cols-2 gap-2">

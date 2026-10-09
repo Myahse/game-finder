@@ -20,14 +20,16 @@ export function PlayPage() {
   const [pulseIds, setPulseIds] = useState<Set<string>>(() => new Set())
   useEffect(() => subscribeLiveGamePulse(setPulseIds), [])
 
-  const [, setParams] = useSearchParams()
+  const [params, setParams] = useSearchParams()
   const { t } = useLocale()
   const { user } = useAuth()
-  const sport = useBrowseSportSlug()
+  const browseSport = useBrowseSportSlug()
   const mySports = useMySports()
   const isAdmin = user?.role === 'admin'
+  // Admins: URL filter or all sports. Members: tap one of their sports, or All (every sport of theirs).
+  const sport = isAdmin ? browseSport : (mySports.find((s) => s.slug === params.get('sport'))?.slug ?? null)
   const sportSlugs = useMemo(() => {
-    if (isAdmin) return sport ? [sport] : [null as string | null]
+    if (isAdmin || sport) return [sport]
     return mySports.map((s) => s.slug)
   }, [isAdmin, sport, mySports])
 
@@ -36,7 +38,8 @@ export function PlayPage() {
   const { data: games, isLoading, isError, error } = usePlayGamesNearby(center, sportSlugs)
   useQueryErrorToast(error)
 
-  const sorted = sortPlayable(games ?? [])
+  const selectedSport = sport ? (sports ?? []).find((s) => s.slug === sport) : undefined
+  const sorted = sortPlayable((games ?? []).filter((g) => !selectedSport || g.sport_id === selectedSport.id))
   const live = sorted.filter((g) => g.status === 'active')
   const { soon, upcoming } = splitScheduledBySoon(sorted)
 
@@ -59,11 +62,18 @@ export function PlayPage() {
                 ))}
             </>
           ) : (
-            mySports.map((s) => (
-              <Chip key={s.id} active>
-                <SportName sport={s} />
-              </Chip>
-            ))
+            mySports.length > 1 && (
+              <>
+                <Chip active={!sport} onClick={() => setParams({}, { replace: true })}>
+                  {t.courts.play.all}
+                </Chip>
+                {mySports.map((s) => (
+                  <Chip key={s.id} active={sport === s.slug} onClick={() => setParams({ sport: s.slug }, { replace: true })}>
+                    <SportName sport={s} />
+                  </Chip>
+                ))}
+              </>
+            )
           )}
         </div>
         {waitingGps && (
@@ -84,9 +94,12 @@ export function PlayPage() {
         {isLoading ? (
           <Loading />
         ) : sorted.length === 0 ? (
-          <Empty icon={<BaseSportIcon className="size-14" />} title={t.courts.play.emptyTitle}>
+          <Empty
+            icon={<BaseSportIcon className="size-14" />}
+            title={selectedSport ? t.courts.play.emptySportTitle.replace('{sport}', selectedSport.name) : t.courts.play.emptyTitle}
+          >
             {t.courts.play.emptyBody}{' '}
-            <Link to="/games/new" className="font-semibold text-brand">
+            <Link to={sport ? `/games/new?sport=${sport}` : '/games/new'} className="font-semibold text-brand">
               {t.courts.play.createGame}
             </Link>
           </Empty>

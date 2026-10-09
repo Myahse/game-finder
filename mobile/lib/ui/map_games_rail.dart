@@ -19,6 +19,7 @@ class MapGamesRail extends StatelessWidget {
     required this.onGameTap,
     this.onSeeAll,
     this.pulseGameIds = const {},
+    this.sportSlug,
   });
 
   final List<Game> games;
@@ -26,6 +27,8 @@ class MapGamesRail extends StatelessWidget {
   final ValueChanged<Game> onGameTap;
   final VoidCallback? onSeeAll;
   final Set<String> pulseGameIds;
+  /// The map's sport filter, so "create" starts on the same sport.
+  final String? sportSlug;
   /// Space under the card rail reserved for the floating bottom nav (sheet extends behind it).
   final double navOverlap;
 
@@ -75,7 +78,7 @@ class MapGamesRail extends StatelessWidget {
                 TextButton.icon(
                   onPressed: () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const CreateGameScreen()),
+                    MaterialPageRoute(builder: (_) => CreateGameScreen(sportSlug: sportSlug)),
                   ),
                   icon: const Icon(Icons.add, size: 18),
                   label: Text(tr('Create', 'Créer')),
@@ -106,7 +109,7 @@ class MapGamesRail extends StatelessWidget {
                             borderRadius: BorderRadius.circular(18),
                             onTap: () => Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const CreateGameScreen()),
+                              MaterialPageRoute(builder: (_) => CreateGameScreen(sportSlug: sportSlug)),
                             ),
                             child: Padding(
                               padding: const EdgeInsets.all(14),

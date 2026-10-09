@@ -59,7 +59,7 @@ export const en = {
     invite_not_found: 'This invite link is invalid or expired.',
     // Sports & profile
     sport_locked: "Your sport was set at signup and can't be changed.",
-    wrong_sport: 'You can only use your chosen sport.',
+    wrong_sport: 'That sport isn’t one of yours. Add it in your profile first.',
     sport_required: 'Choose at least one sport.',
     invalid_sport: 'Unknown sport.',
     too_many_sports: 'You can add up to 2 extra sports.',
@@ -283,7 +283,7 @@ export const fr: typeof en = {
     invite_not_found: 'Ce lien d’invitation est invalide ou a expiré.',
     // Sports & profile
     sport_locked: 'Votre sport a été choisi à l’inscription et ne peut pas être modifié.',
-    wrong_sport: 'Vous ne pouvez utiliser que le sport que vous avez choisi.',
+    wrong_sport: 'Ce sport ne fait pas partie des tiens. Ajoute-le d’abord dans ton profil.',
     sport_required: 'Choisissez au moins un sport.',
     invalid_sport: 'Sport inconnu.',
     too_many_sports: 'Vous pouvez ajouter jusqu’à 2 sports supplémentaires.',

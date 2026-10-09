@@ -118,8 +118,8 @@ class _PlayScreenState extends _LiveListState<PlayScreen> {
   /// Admin chip: null = All.
   String? _adminSport;
 
-  /// Member chips switched off (all of their sports are on by default).
-  Set<String> _sportsOff = const {};
+  /// Member chip: null = All (every sport of mine), else just that sport.
+  String? _memberSport;
 
   @override
   void initState() {
@@ -169,7 +169,7 @@ class _PlayScreenState extends _LiveListState<PlayScreen> {
       isAdmin: user?.isAdmin ?? false,
       adminSport: _adminSport,
       mySports: sportsForUser(user, _sports!),
-      off: _sportsOff,
+      off: {for (final s in sportsForUser(user, _sports!)) if (_memberSport != null && s.slug != _memberSport) s.slug},
     );
     // One request per sport, merged (web usePlayGamesNearby).
     final results = await Future.wait([
@@ -214,13 +214,17 @@ class _PlayScreenState extends _LiveListState<PlayScreen> {
                 if (_adminSport != s.slug) _setSports(() => _adminSport = s.slug);
               }),
           ]
-        : [
-            for (final s in mine)
-              chip(sportLabel(s), !_sportsOff.contains(s.slug), () {
-                final next = togglePlaySport(_sportsOff, s.slug, mine);
-                if (!identical(next, _sportsOff)) _setSports(() => _sportsOff = next);
-              }),
-          ];
+        : mine.length < 2
+            ? <Widget>[]
+            : [
+                chip(Text(tr('All', 'Tous'), style: const TextStyle(fontWeight: FontWeight.w700)), _memberSport == null, () {
+                  if (_memberSport != null) _setSports(() => _memberSport = null);
+                }),
+                for (final s in mine)
+                  chip(sportLabel(s), _memberSport == s.slug, () {
+                    if (_memberSport != s.slug) _setSports(() => _memberSport = s.slug);
+                  }),
+              ];
     if (chips.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -231,6 +235,9 @@ class _PlayScreenState extends _LiveListState<PlayScreen> {
   @override
   Widget build(BuildContext context) {
     final loc = context.watch<LocationState>();
+    final isAdmin = context.watch<AuthState>().user?.isAdmin ?? false;
+    final selectedSlug = isAdmin ? _adminSport : _memberSport;
+    final selected = (_sports ?? const <Sport>[]).where((s) => s.slug == selectedSlug).firstOrNull;
     final live = _games.where((g) => g.isLive).toList();
     final split = splitScheduledBySoon(_games);
     final soon = split.soon;
@@ -268,10 +275,12 @@ class _PlayScreenState extends _LiveListState<PlayScreen> {
           if (!loading && _games.isEmpty && error == null)
             EmptyState(
               icon: baseSportIconData(context),
-              title: tr('No games nearby yet', 'Aucun match à proximité pour l’instant'),
+              title: selected != null
+                  ? tr('No ${selected.name} game created yet', 'Aucun match de ${selected.name} créé pour le moment')
+                  : tr('No games nearby yet', 'Aucun match à proximité pour l’instant'),
               body: error != null ? tr('Pull down to try again.', 'Tirez vers le bas pour réessayer.') : tr('Be the first to start one.', 'Lancez le premier match.'),
               action: PrimaryButton(
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateGameScreen())).then((_) => reload()),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CreateGameScreen(sportSlug: selected?.slug))).then((_) => reload()),
                 child: Text(tr('CREATE A GAME', 'CRÉER UN MATCH')),
               ),
             ),
