@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-/** True when the user asked the OS for less motion. JS-driven effects must check this. */
+/**
+ * Motion is part of the app's feel, so it always plays, whatever the OS
+ * "reduce motion" setting says. Kept as a single switch for JS-driven effects.
+ */
 export function prefersReducedMotion(): boolean {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  return false
 }
 
 /** easeOutCubic on t ∈ [0, 1] (clamped). */

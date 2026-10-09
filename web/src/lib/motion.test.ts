@@ -32,7 +32,7 @@ describe('countUpAt', () => {
 })
 
 describe('prefersReducedMotion', () => {
-  it('is false without matchMedia (SSR / tests)', () => {
+  it('is always false: motion plays for everyone', () => {
     expect(prefersReducedMotion()).toBe(false)
   })
 })

@@ -1,11 +1,9 @@
+import { prefersReducedMotion } from '../lib/motion'
 import { useEffect, useState } from 'react'
 import { sportPhotos } from '../content/sportPhotos'
 
 const SLIDE_MS = 5500
 
-function prefersReducedMotion() {
-  return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-}
 
 /**
  * Full-bleed sport photos that crossfade one at a time behind the welcome screen.

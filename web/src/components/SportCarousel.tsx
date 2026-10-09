@@ -1,3 +1,4 @@
+import { prefersReducedMotion } from '../lib/motion'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Check } from 'lucide-react'
 import type { Sport } from '../lib/types'
@@ -8,9 +9,6 @@ const AUTO_MS = 3200
 /** After a swipe / tap, wait this long before auto-sliding again. */
 const RESUME_MS = 6000
 
-function prefersReducedMotion() {
-  return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-}
 
 /**
  * Auto-sliding sport cards. Tapping one makes it the base sport, which stops the slide on it.
