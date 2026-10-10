@@ -113,6 +113,7 @@ export const en = {
     bodyAfter: ' ends in {n} min.',
     stillHere: 'Yes, I’m still here',
     left: 'I left',
+    extended: '+{n} min',
   },
 }
 
@@ -230,5 +231,6 @@ export const fr: typeof en = {
     bodyAfter: ' se termine dans {n} min.',
     stillHere: 'Oui, je suis toujours là',
     left: 'Je suis parti',
+    extended: '+{n} min',
   },
 }

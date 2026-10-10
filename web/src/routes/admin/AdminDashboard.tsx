@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { Card } from '../../components/ui'
+import { StatTile } from '../../components/StatTile'
 import { Loading } from '../CourtPage'
 import { useLocale } from '../../i18n/LocaleProvider'
 
@@ -29,10 +30,10 @@ export function AdminDashboard() {
   if (isLoading || !data) return <Loading />
   const max = Math.max(1, ...data.most_active_courts.map((c) => c.visits))
 
-  const tiles: [string, number, string?][] = [
+  const tiles: [string, number, string?, boolean?][] = [
     [a.totalUsers, data.total_users],
     [a.activeUsers, data.active_users],
-    [a.playingNow, data.active_now],
+    [a.playingNow, data.active_now, undefined, true],
     [a.courts, data.courts],
     [a.games, data.games],
     [a.gamesToday, data.games_today],
@@ -44,13 +45,8 @@ export function AdminDashboard() {
   return (
     <div className="grid gap-4">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {tiles.map(([label, value, link]) => {
-          const body = (
-            <Card className={link && value ? 'border-brand/50' : ''}>
-              <p className="text-xs font-semibold uppercase text-ink-2">{label}</p>
-              <p className="display mt-1 text-5xl font-extrabold tabular-nums">{value}</p>
-            </Card>
-          )
+        {tiles.map(([label, value, link, live]) => {
+          const body = <StatTile label={label} value={value} highlight={!!link && !!value} live={live} liveLabel={a.live} />
           return link ? (
             <Link key={label} to={link}>
               {body}
@@ -64,12 +60,12 @@ export function AdminDashboard() {
         <h2 className="display mb-3 text-2xl font-bold">{a.mostActiveCourts}</h2>
         {data.most_active_courts.length === 0 && <p className="text-sm text-ink-2">{a.noActivity}</p>}
         <ol className="grid gap-2">
-          {data.most_active_courts.map((c) => (
+          {data.most_active_courts.map((c, i) => (
             <li key={c.id} className="grid grid-cols-[1fr_auto] items-center gap-3 text-sm">
               <div>
                 <p className="font-semibold">{c.name}</p>
                 <div className="mt-1 h-2 rounded-full bg-surface-2">
-                  <div className="h-2 rounded-full bg-brand" style={{ width: `${(c.visits / max) * 100}%` }} />
+                  <div className="ftg-hbar-grow h-2 rounded-full bg-brand" style={{ width: `${(c.visits / max) * 100}%`, ['--d' as string]: `${i * 90}ms` }} />
                 </div>
               </div>
               <span className="tabular-nums text-ink-2">{a.visits(c.visits)}</span>
