@@ -17,6 +17,7 @@ type Props = {
 export function ShareGameButton({ gameId, title, variant = 'secondary', className, compact }: Props) {
   const { t } = useLocale()
   const [copied, setCopied] = useState(false)
+  const [launches, setLaunches] = useState(0)
   const share = useMutation({
     mutationFn: async () => {
       const url = await createGameShareUrl(gameId)
@@ -45,12 +46,17 @@ export function ShareGameButton({ gameId, title, variant = 'secondary', classNam
     <Button
       type="button"
       variant={variant}
-      className={className}
+      className={`${copied ? 'ftg-copied' : ''} ${className ?? ''}`}
       loading={share.isPending}
-      onClick={() => share.mutate()}
+      onClick={() => {
+        setLaunches((n) => n + 1)
+        share.mutate()
+      }}
     >
-      <Share2 className="size-4 shrink-0" aria-hidden />
-      {label}
+      <Share2 key={launches} className={`size-4 shrink-0 ${launches ? 'ftg-share-launch' : ''}`} aria-hidden />
+      <span key={String(copied)} className={launches ? 'ftg-swap' : undefined}>
+        {label}
+      </span>
     </Button>
   )
 }

@@ -8,6 +8,19 @@ import type { Game } from '../lib/types'
 import { drierSlot, hoursFor, isRainy, useCourtWeather, weatherIcons, weatherKind, worstRain } from '../lib/weather'
 import { MoveCourtButton } from './MoveCourtSheet'
 import { Button, Card, ErrorText } from './ui'
+import { Odometer } from './Odometer'
+
+/** The forecast icon moves with the weather: the sun turns, clouds drift, rain falls. */
+const weatherMotion: Record<ReturnType<typeof weatherKind>, string> = {
+  clear: 'ftg-wx-sun',
+  partly: 'ftg-wx-cloud',
+  cloudy: 'ftg-wx-cloud',
+  fog: 'ftg-wx-cloud',
+  drizzle: 'ftg-wx-rain',
+  rain: 'ftg-wx-rain',
+  showers: 'ftg-wx-rain',
+  storm: 'ftg-wx-storm',
+}
 
 /** Forecast for the game window + a "rain check" when rain is likely. */
 export function GameWeather({ game, isHost }: { game: Game; isHost: boolean }) {
@@ -49,9 +62,18 @@ export function GameWeather({ game, isHost }: { game: Game; isHost: boolean }) {
     <Card className={rainy ? 'ring-2 ring-sky-500/50' : ''}>
       <h2 className="display text-xl font-bold text-ink-2">{t.weather.title}</h2>
       <div className="mt-2 flex items-center gap-4">
-        <Icon className={`size-14 shrink-0 ${rainy ? 'text-sky-500' : 'text-amber-500'}`} aria-hidden strokeWidth={1.6} />
+        <span className={`ftg-wx relative shrink-0 ${weatherMotion[kind]}`} aria-hidden>
+          <Icon className={`size-14 ${rainy ? 'text-sky-500' : 'text-amber-500'}`} strokeWidth={1.6} />
+          {(kind === 'drizzle' || kind === 'rain' || kind === 'showers' || kind === 'storm') && (
+            <>
+              <i /> <i /> <i />
+            </>
+          )}
+        </span>
         <div className="min-w-0 flex-1">
-          <p className="display text-4xl font-extrabold leading-none">{Math.round(main.temp)}°</p>
+          <p className="display text-4xl font-extrabold leading-none">
+            <Odometer value={Math.round(main.temp)} />°
+          </p>
           <p className="font-semibold">{t.weather.codes[kind]}</p>
         </div>
         <div className="grid gap-1 text-sm text-ink-2">

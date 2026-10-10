@@ -8,6 +8,7 @@ import { playerDisplayLabel } from '../lib/format'
 import type { PublicUser } from '../lib/types'
 import { Button, ErrorText } from './ui'
 import { useLocale } from '../i18n/LocaleProvider'
+import { buzz, sparkle } from '../lib/fx'
 
 type Relation = 'self' | 'guest' | 'friends' | 'incoming' | 'outgoing' | 'none'
 
@@ -44,9 +45,13 @@ export function ProfileFriendActions({ user, viewerIsAdmin = false }: { user: Pu
   })
 
   const respond = useMutation({
-    mutationFn: ({ id, accept }: { id: string; accept: boolean }) =>
+    mutationFn: ({ id, accept }: { id: string; accept: boolean; from?: Element }) =>
       api(`/api/me/friend-requests/${id}/${accept ? 'accept' : 'reject'}`, { method: 'POST' }),
-    onSuccess: () => {
+    onSuccess: (_, { accept, from }) => {
+      if (accept && from) {
+        sparkle(from, 22, ['#ef2b54', '#ff5a1f', '#f2b632', '#16a34a'])
+        buzz([12, 40, 20])
+      }
       setError('')
       qc.invalidateQueries({ queryKey: ['friend-requests'] })
       qc.invalidateQueries({ queryKey: ['friends'] })
@@ -68,7 +73,7 @@ export function ProfileFriendActions({ user, viewerIsAdmin = false }: { user: Pu
         <p className="text-center text-sm text-ink-2">{f.requestSent}</p>
       ) : relation === 'incoming' && incomingId ? (
         <div className="flex gap-2">
-          <Button type="button" className="flex-1" loading={respond.isPending} onClick={() => respond.mutate({ id: incomingId, accept: true })}>
+          <Button type="button" className="flex-1" loading={respond.isPending} onClick={(e) => respond.mutate({ from: e.currentTarget, id: incomingId, accept: true })}>
             {t.account.friendInvite.accept}
           </Button>
           <Button type="button" variant="ghost" className="flex-1" onClick={() => respond.mutate({ id: incomingId, accept: false })}>

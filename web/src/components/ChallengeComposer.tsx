@@ -12,6 +12,7 @@ import type { PublicUser } from '../lib/types'
 import { useAuth } from '../lib/auth'
 import { Avatar, Button, ErrorText, Input, Spinner } from './ui'
 import { useSheetExit } from '../lib/motion'
+import { slam } from '../lib/fx'
 
 /** Next whole hour, as a value for <input type="datetime-local">. */
 function nextHourLocal() {
@@ -92,6 +93,7 @@ export function ChallengeComposer({ opponent, court: fixedCourt, onClose: dismis
       {
         onSuccess: () => {
           toast.success(t.challenge.sent)
+          slam('VS')
           onClose()
         },
         onError: (e) => setError(errorMessage(e)),

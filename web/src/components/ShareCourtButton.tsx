@@ -15,6 +15,7 @@ type Props = {
 export function ShareCourtButton({ courtId, courtName, variant = 'secondary', className }: Props) {
   const { t } = useLocale()
   const [copied, setCopied] = useState(false)
+  const [launches, setLaunches] = useState(0)
   const share = useMutation({
     mutationFn: async () => {
       const url = courtShareUrl(courtId)
@@ -41,12 +42,17 @@ export function ShareCourtButton({ courtId, courtName, variant = 'secondary', cl
     <Button
       type="button"
       variant={variant}
-      className={className}
+      className={`${copied ? 'ftg-copied' : ''} ${className ?? ''}`}
       loading={share.isPending}
-      onClick={() => share.mutate()}
+      onClick={() => {
+        setLaunches((n) => n + 1)
+        share.mutate()
+      }}
     >
-      <Share2 className="size-4 shrink-0" aria-hidden />
-      {copied ? t.courts.share.copied : t.courts.share.button}
+      <Share2 key={launches} className={`size-4 shrink-0 ${launches ? 'ftg-share-launch' : ''}`} aria-hidden />
+      <span key={String(copied)} className={launches ? 'ftg-swap' : undefined}>
+        {copied ? t.courts.share.copied : t.courts.share.button}
+      </span>
     </Button>
   )
 }

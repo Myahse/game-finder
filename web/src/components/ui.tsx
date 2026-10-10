@@ -10,7 +10,8 @@ import { resolveMediaUrl } from '../lib/mediaUrl'
 import { useKings } from '../lib/progress'
 import type { Activity, PublicUser } from '../lib/types'
 import { useLocale } from '../i18n/LocaleProvider'
-import { useCountUp, useSheetExit } from '../lib/motion'
+import { useSheetExit } from '../lib/motion'
+import { Odometer } from './Odometer'
 
 type Variant = 'primary' | 'live' | 'secondary' | 'ghost' | 'danger'
 
@@ -118,7 +119,7 @@ export function Chip({
       onClick={onClick}
       aria-pressed={active}
       className={`ftg-press inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sm font-semibold shadow-sm ${
-        active ? 'border-ink bg-ink text-bg' : 'border-line bg-surface text-ink hover:border-ink-2'
+        active ? 'ftg-chip-on border-ink bg-ink text-bg' : 'border-line bg-surface text-ink hover:border-ink-2'
       }`}
     >
       {children}
@@ -242,9 +243,9 @@ export function Card({ children, className = '' }: { children: ReactNode; classN
   return <div className={`rounded-2xl border border-line bg-surface p-4 ${className}`}>{children}</div>
 }
 
-/** A headline number that counts up when it first appears and whenever it changes. */
+/** A headline number whose digits roll into place when it first appears and whenever it changes. */
 export function CountUp({ value }: { value: number }) {
-  return <>{useCountUp(value)}</>
+  return <Odometer value={value} />
 }
 
 /** Shimmering placeholder block. */

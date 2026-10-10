@@ -17,6 +17,7 @@ import { PresenceWatcher } from './PresenceWatcher'
 import type { RealtimeEvent } from '../lib/types'
 import { useLocale } from '../i18n/LocaleProvider'
 import { prefersReducedMotion } from '../lib/motion'
+import { Spring, buzz } from '../lib/fx'
 type Tab = { to: string; labelKey: 'map' | 'play' | 'myGames' | 'alerts' | 'profile'; end?: boolean; navIcon: ReactNode }
 
 const tabs: Tab[] = [
@@ -92,11 +93,67 @@ export function AppShell() {
   }, [pathname, isMap])
   usePolledNotificationToasts(notes?.items, !!user && sessionReady, t.common.open)
 
+  // Phone tab bar: an orange blob stretches like elastic toward the tab you open
+  // (the leading edge is quick, the trailing one lags behind, then both settle).
+  const navRef = useRef<HTMLElement>(null)
+  const blobRef = useRef<HTMLSpanElement>(null)
+  const blob = useRef<{ l: Spring; r: Spring } | null>(null)
+  useLayoutEffect(() => {
+    const nav = navRef.current
+    const el = blobRef.current
+    if (!nav || !el) return
+    const place = (instant: boolean) => {
+      const active = nav.querySelector<HTMLElement>('a[aria-current="page"]')
+      if (!active || getComputedStyle(el).display === 'none') {
+        el.style.opacity = '0'
+        return
+      }
+      el.style.opacity = '1'
+      const L = active.offsetLeft + 6
+      const R = active.offsetLeft + active.offsetWidth - 6
+      if (!blob.current) {
+        const draw = () => {
+          const b = blob.current
+          if (!b) return
+          el.style.transform = `translateX(${b.l.x}px)`
+          el.style.width = `${Math.max(0, b.r.x - b.l.x)}px`
+        }
+        blob.current = { l: new Spring(L, draw, { k: 300, c: 24 }), r: new Spring(R, draw, { k: 300, c: 24 }) }
+        draw()
+        return
+      }
+      const { l, r } = blob.current
+      if (instant || prefersReducedMotion()) {
+        l.set(L)
+        r.set(R)
+        return
+      }
+      const fast = { k: 600, c: 32 }
+      const slow = { k: 160, c: 17 }
+      if (L > l.x) {
+        r.to(R, fast)
+        l.to(L, slow)
+      } else {
+        l.to(L, fast)
+        r.to(R, slow)
+      }
+    }
+    place(false)
+    const onResize = () => place(true)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [pathname])
+  useEffect(() => {
+    buzz(6)
+  }, [pathname])
+
   return (
     <div className="flex h-full flex-col md:flex-row">
       <nav
+        ref={navRef}
         className="fixed inset-x-4 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-30 flex shrink-0 rounded-2xl border border-line bg-surface shadow-[0_8px_28px_rgba(0,0,0,0.14)] md:static md:inset-auto md:bottom-auto md:z-auto md:w-56 md:flex-col md:rounded-none md:border-r md:border-t-0 md:p-3 md:shadow-none"
       >
+        <span ref={blobRef} className="ftg-tab-blob md:hidden" aria-hidden />
         <div className="display hidden items-center gap-1.5 px-3 pb-6 pt-2 text-3xl font-extrabold md:flex">
           <BaseSportIcon className="size-6 text-brand" />
           <span>
@@ -115,14 +172,27 @@ export function AppShell() {
               }`
             }
           >
-            <span className="text-xl md:text-lg" aria-hidden>
-              {tab.navIcon}
-            </span>
-            {t.nav[tab.labelKey]}
-            {tab.to === '/notifications' && !!notes?.unread && (
-              <span className="absolute right-[calc(50%-22px)] top-1 rounded-full bg-brand px-1.5 text-[10px] font-bold text-white md:static md:ml-auto">
-                {notes.unread}
-              </span>
+            {({ isActive }) => (
+              <>
+                <span className={`relative text-xl md:text-lg ${isActive ? 'ftg-tab-hop' : ''}`} aria-hidden>
+                  {tab.to === '/notifications' && !!notes?.unread ? (
+                    <span key={`ring-${notes.unread}`} className="ftg-bell-ring block">
+                      {tab.navIcon}
+                    </span>
+                  ) : (
+                    tab.navIcon
+                  )}
+                </span>
+                <span className="relative">{t.nav[tab.labelKey]}</span>
+                {tab.to === '/notifications' && !!notes?.unread && (
+                  <span
+                    key={notes.unread}
+                    className="ftg-bump absolute right-[calc(50%-22px)] top-1 rounded-full bg-brand px-1.5 text-[10px] font-bold text-white md:static md:ml-auto"
+                  >
+                    {notes.unread}
+                  </span>
+                )}
+              </>
             )}
           </NavLink>
         ))}

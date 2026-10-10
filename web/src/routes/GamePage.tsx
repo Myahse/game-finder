@@ -29,6 +29,8 @@ import { AppAlert, Avatar, Button, Card, Empty, ErrorText, PageHeader } from '..
 import { Loading } from './CourtPage'
 import { useLocale } from '../i18n/LocaleProvider'
 import { useListIntro } from '../lib/motion'
+import { Odometer } from '../components/Odometer'
+import { GameCountdown } from '../components/GameCountdown'
 import { burstOrigin, celebrate } from '../lib/celebrate'
 
 const statusLabel = {
@@ -52,6 +54,7 @@ export function GamePage() {
   const action = useGameAction()
   const [error, setError] = useState('')
   const [farModal, setFarModal] = useState(false)
+  const [justJoined, setJustJoined] = useState(false)
   const playersIntro = useListIntro(game?.players?.length ?? 0)
 
   if (isLoading) return <Loading />
@@ -75,7 +78,15 @@ export function GamePage() {
     const origin = from ? burstOrigin(from) : undefined
     action.mutate(
       { id: game.id, action: a, coords: a === 'join' ? coords : undefined },
-      { onError: (e) => setError(errorMessage(e)), onSuccess: () => a === 'join' && celebrate(origin) },
+      {
+        onError: (e) => setError(errorMessage(e)),
+        onSuccess: () => {
+          if (a !== 'join') return
+          celebrate(origin)
+          setJustJoined(true)
+          window.setTimeout(() => setJustJoined(false), 1700)
+        },
+      },
     )
   }
 
@@ -118,9 +129,16 @@ export function GamePage() {
             )}
           </Link>
 
-          <div className="mt-5">
+          {game.status === 'scheduled' && <GameCountdown start={game.start_time} />}
+
+          <div className="relative mt-5">
+            {!unlimited && !game.spots_left && open && (
+              <span className="ftg-stamp display pointer-events-none absolute right-2 top-0 text-3xl font-black">{tp.full}</span>
+            )}
             <div className="flex items-end justify-between">
-              <p className="display text-5xl font-extrabold">{gamePlayerCountLabel(game.player_count, game.max_players)}</p>
+              <p className="display text-5xl font-extrabold" aria-label={gamePlayerCountLabel(game.player_count, game.max_players)}>
+                <Odometer value={game.player_count} />/{unlimited ? '∞' : game.max_players}
+              </p>
               <p className={`font-semibold ${unlimited || game.spots_left ? 'text-live' : 'text-danger'}`}>
                 {unlimited
                   ? tp.openToAll
@@ -131,12 +149,12 @@ export function GamePage() {
             </div>
             {!unlimited && (
               <div
-                className="mt-2 h-3 overflow-hidden rounded-full bg-surface-2"
+                className="relative mt-2 h-3 overflow-hidden rounded-full bg-surface-2"
                 role="progressbar"
                 aria-valuenow={game.player_count}
                 aria-valuemax={game.max_players}
               >
-                <div className="h-full rounded-full bg-live transition-all duration-500" style={{ width: `${pct}%` }} />
+                <div className={`ftg-bar-fill h-full rounded-full ${pct >= 100 ? 'bg-brand' : 'bg-live'}`} style={{ width: `${pct}%` }} />
               </div>
             )}
           </div>
@@ -157,7 +175,18 @@ export function GamePage() {
           <div className="mt-5 grid gap-2">
             <ErrorText>{error}</ErrorText>
             {open &&
-              (game.joined ? (
+              (justJoined ? (
+                <Button variant="live" className="ftg-joined" aria-live="polite" tabIndex={-1}>
+                  <svg className="size-6 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <path d="M5 12l5 5 9-10" />
+                  </svg>
+                  {[...tp.joined].map((ch, i) => (
+                    <span key={i} className="ftg-joined-l" style={{ animationDelay: `${120 + i * 35}ms` }}>
+                      {ch === ' ' ? '\u00a0' : ch}
+                    </span>
+                  ))}
+                </Button>
+              ) : game.joined ? (
                 <Button variant="danger" onClick={() => run('leave')} loading={action.isPending}>
                   {tp.leave}
                 </Button>

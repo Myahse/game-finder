@@ -210,7 +210,7 @@ export function CourtMap({
                       duration: 600,
                     })
                   }
-                  className={`display flex size-12 flex-col items-center justify-center rounded-full border-[3px] border-white text-white shadow-lg ${
+                  className={`ftg-cluster-pop display flex size-12 flex-col items-center justify-center rounded-full border-[3px] border-white text-white shadow-lg ${
                     p.live ? 'bg-live' : p.players ? 'bg-players text-ink' : 'bg-idle'
                   }`}
                   aria-label={t.courts.map.clusterLabel.replace('{courts}', String(p.point_count)).replace('{players}', String(p.players))}
@@ -400,6 +400,8 @@ export function CourtPin({
       }`}
       style={{ width: COURT_PIN_WIDTH, height: COURT_PIN_HEIGHT }}
     >
+      {!preview && <span aria-hidden className="ftg-pin-shadow" />}
+      <div className={`relative flex w-full flex-col items-center ${preview ? '' : 'ftg-pin-fall'}`}>
       <div className={`relative flex w-full flex-col items-center ${selected ? 'ftg-pin-drop' : ''}`}>
         {!preview && activity === 'active' && (
           <span aria-hidden className="ftg-live-ring pointer-events-none absolute left-1/2 top-0 -ml-[23px] size-[46px] rounded-full bg-live" />
@@ -461,8 +463,9 @@ export function CourtPin({
           </span>
         )}
       </div>
+      </div>
       <span
-        className={`pointer-events-none absolute left-1/2 top-full z-10 mt-0.5 w-max max-w-[110px] -translate-x-1/2 truncate rounded-md border px-1.5 py-0.5 text-center text-[10px] font-bold leading-tight shadow-sm ${
+        className={`ftg-pin-label pointer-events-none absolute left-1/2 top-full z-10 mt-0.5 w-max max-w-[110px] -translate-x-1/2 truncate rounded-md border px-1.5 py-0.5 text-center text-[10px] font-bold leading-tight shadow-sm ${
           preview
             ? 'border-players/60 bg-players/20 text-ink'
             : selected

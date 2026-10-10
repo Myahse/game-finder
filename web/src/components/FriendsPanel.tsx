@@ -10,6 +10,7 @@ import { Avatar, Button, Card, ErrorText, Field, Input } from './ui'
 import { BumpConnectButton } from './BumpConnect'
 import { useLocale } from '../i18n/LocaleProvider'
 import { useListIntro } from '../lib/motion'
+import { buzz, sparkle } from '../lib/fx'
 
 export function FriendsPanel({ viewerIsAdmin = false }: { viewerIsAdmin?: boolean }) {
   const qc = useQueryClient()
@@ -47,9 +48,13 @@ export function FriendsPanel({ viewerIsAdmin = false }: { viewerIsAdmin?: boolea
   })
 
   const respond = useMutation({
-    mutationFn: ({ id, accept }: { id: string; accept: boolean }) =>
+    mutationFn: ({ id, accept }: { id: string; accept: boolean; from?: Element }) =>
       api(`/api/me/friend-requests/${id}/${accept ? 'accept' : 'reject'}`, { method: 'POST' }),
-    onSuccess: () => {
+    onSuccess: (_, { accept, from }) => {
+      if (accept && from) {
+        sparkle(from, 22, ['#ef2b54', '#ff5a1f', '#f2b632', '#16a34a'])
+        buzz([12, 40, 20])
+      }
       qc.invalidateQueries({ queryKey: ['friend-requests'] })
       qc.invalidateQueries({ queryKey: ['friends'] })
     },
@@ -114,7 +119,7 @@ export function FriendsPanel({ viewerIsAdmin = false }: { viewerIsAdmin?: boolea
               <li key={r.id} className="flex items-center justify-between gap-2 rounded-xl border border-line bg-surface-2 p-2">
                 <FriendLine user={r.user} viewerIsAdmin={viewerIsAdmin} />
                 <div className="flex shrink-0 gap-1">
-                  <Button type="button" className="min-h-9 px-3 text-sm" loading={respond.isPending} onClick={() => respond.mutate({ id: r.id, accept: true })}>
+                  <Button type="button" className="min-h-9 px-3 text-sm" loading={respond.isPending} onClick={(e) => respond.mutate({ from: e.currentTarget, id: r.id, accept: true })}>
                     {f.accept}
                   </Button>
                   <Button type="button" variant="ghost" className="min-h-9 px-2 text-sm" onClick={() => respond.mutate({ id: r.id, accept: false })}>

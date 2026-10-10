@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { Crown, Download, Flame, Share2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import type { PlayerAvatarConfig } from '../avatar/schema'
@@ -7,9 +7,76 @@ import { BADGE_ART, isNewBadge, levelTier, TIER_COLORS, useMyProgress, useUserPr
 import { renderSticker } from '../lib/stickers'
 import { Button, Card, CountUp, Skeleton } from './ui'
 import { useSheetExit } from '../lib/motion'
-import { useCountUp } from '../lib/motion'
+import { Odometer } from './Odometer'
+import { burst, buzz, replay, sparkle } from '../lib/fx'
 
 const FALLBACK_ART = { emoji: '🏅', color: '#8a94a6' }
+
+/** "Level {n}" with the number rolling in. */
+function withNumber(template: string, n: number): ReactNode {
+  const [before, after = ''] = template.split('{n}')
+  return (
+    <>
+      {before}
+      <Odometer value={n} />
+      {after}
+    </>
+  )
+}
+
+/** Stars pop around a freshly unlocked badge once it has flipped in. */
+function sparkleOnMount(el: HTMLElement | null) {
+  if (!el || el.dataset.sparkled) return
+  el.dataset.sparkled = '1'
+  window.setTimeout(() => {
+    if (el.isConnected && el.getBoundingClientRect().width) sparkle(el, 14)
+  }, 650)
+}
+
+/** The streak flame flickers and gives off embers; tap it and it flares. */
+function StreakFlame({ lit }: { lit: boolean }) {
+  const ref = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el || !lit) return
+    let visible = false
+    const io = new IntersectionObserver(([e]) => (visible = e.isIntersecting))
+    io.observe(el)
+    const id = window.setInterval(() => {
+      if (!visible || document.hidden) return
+      const r = el.getBoundingClientRect()
+      burst(
+        { x: r.left + r.width / 2 + (Math.random() - 0.5) * 8, y: r.top + 4 },
+        { n: 1, colors: ['#ff5a1f', '#f2b632', '#ff9a4f'], speed: [0.5, 1.2], spread: 0.8, gravity: -0.012, drag: 0.99, size: [3, 5], shape: 'dot', life: [35, 55] },
+      )
+    }, 220)
+    return () => {
+      io.disconnect()
+      window.clearInterval(id)
+    }
+  }, [lit])
+  return (
+    <button
+      ref={ref}
+      type="button"
+      tabIndex={-1}
+      aria-hidden
+      className="ftg-flame-btn"
+      onClick={() => {
+        if (!lit || !ref.current) return
+        replay(ref.current, 'ftg-flare')
+        buzz([10, 30, 20])
+        const r = ref.current.getBoundingClientRect()
+        burst(
+          { x: r.left + r.width / 2, y: r.top + 6 },
+          { n: 26, colors: ['#ff5a1f', '#f2b632', '#ff9a4f', '#ffffff'], speed: [2, 6], spread: 1.6, gravity: -0.02, drag: 0.97, size: [3, 6], shape: 'dot', life: [40, 70] },
+        )
+      }}
+    >
+      <Flame className={`size-6 ${lit ? 'ftg-flicker text-orange-500' : 'text-ink-2'}`} fill={lit ? 'currentColor' : 'none'} />
+    </button>
+  )
+}
 
 /** The signed-in player's progress (also announces newly earned badges). */
 export function MyProgressCard({ avatar }: { avatar: PlayerAvatarConfig | null }) {
@@ -64,17 +131,25 @@ function ProgressView({ p, avatar, mine }: { p: Progress; avatar: PlayerAvatarCo
   const pct = Math.min(100, ((p.xp - p.level_xp) / span) * 100)
   const earned = p.badges.filter((b) => b.earned_at)
   const s = p.streak
-  const level = useCountUp(p.level)
-  const xp = useCountUp(p.xp)
-  const streak = useCountUp(s.current)
+  // Bars and the level ring fill from empty when the card appears.
+  const [shownPct, setShownPct] = useState(0)
+  useEffect(() => {
+    const id = window.setTimeout(() => setShownPct(pct), 120)
+    return () => window.clearTimeout(id)
+  }, [pct])
 
   return (
     <Card className="grid gap-4">
       {/* Level + XP */}
       <div className="flex items-center gap-4">
-        <div className="relative flex size-20 shrink-0 items-center justify-center rounded-full" style={{ background: `conic-gradient(${color} ${pct}%, var(--surface-2) 0)` }}>
+        <div
+          className="ftg-level-ring relative flex size-20 shrink-0 items-center justify-center rounded-full"
+          style={{ '--ftg-pct': shownPct, '--ftg-ring': color } as CSSProperties}
+        >
           <div className="flex size-16 flex-col items-center justify-center rounded-full bg-surface">
-            <span className="display text-3xl font-extrabold leading-none tabular-nums">{level}</span>
+            <span className="display text-3xl font-extrabold leading-none">
+              <Odometer value={p.level} />
+            </span>
           </div>
         </div>
         <div className="min-w-0 flex-1">
@@ -82,10 +157,10 @@ function ProgressView({ p, avatar, mine }: { p: Progress; avatar: PlayerAvatarCo
             {t.progress.titles[tier]}
           </p>
           <p className="text-sm font-semibold">
-            {t.progress.level.replace('{n}', String(level))} · {t.progress.xp.replace('{n}', String(xp))}
+            {withNumber(t.progress.level, p.level)} · {withNumber(t.progress.xp, p.xp)}
           </p>
           <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface-2">
-            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: color }} />
+            <div className="ftg-bar-fill h-full rounded-full" style={{ width: `${shownPct}%`, background: color }} />
           </div>
           <p className="mt-1 text-xs text-ink-2">{t.progress.toNext.replace('{n}', String(p.next_level_xp - p.xp)).replace('{l}', String(p.level + 1))}</p>
         </div>
@@ -104,8 +179,8 @@ function ProgressView({ p, avatar, mine }: { p: Progress; avatar: PlayerAvatarCo
         <div className="rounded-xl bg-surface-2 p-3">
           <p className="text-xs font-semibold text-ink-2">{t.progress.streak}</p>
           <p className="display flex items-center gap-1 text-2xl font-extrabold">
-            <Flame className={`size-6 ${s.current > 0 ? 'text-orange-500' : 'text-ink-2'}`} aria-hidden fill={s.current > 0 ? 'currentColor' : 'none'} />
-            <span className="tabular-nums">{streak}</span>
+            <StreakFlame lit={s.current > 0} />
+            <Odometer value={s.current} />
           </p>
           <p className="text-xs text-ink-2">
             {s.current === 0 ? (mine ? t.progress.noStreak : t.progress.best.replace('{n}', String(s.best))) : s.active_this_week ? t.progress.streakSafe : mine ? t.progress.streakRisk : t.progress.best.replace('{n}', String(s.best))}
@@ -138,6 +213,7 @@ function ProgressView({ p, avatar, mine }: { p: Progress; avatar: PlayerAvatarCo
           {p.badges.map((b) => {
             const art = BADGE_ART[b.id] ?? FALLBACK_ART
             const got = !!b.earned_at
+            const fresh = got && isNewBadge(b)
             return (
               <button
                 key={b.id}
@@ -146,9 +222,10 @@ function ProgressView({ p, avatar, mine }: { p: Progress; avatar: PlayerAvatarCo
                 className="flex flex-col items-center gap-1 rounded-xl p-1 text-center hover:bg-surface-2"
                 aria-label={`${t.progress.names[b.id] ?? b.id}${got ? '' : ` (${t.progress.locked})`}`}
               >
-                <span className="relative">
+                <span className={`relative ${fresh ? 'ftg-badge-new' : ''}`} ref={fresh ? sparkleOnMount : undefined}>
+                  {fresh && <span className="ftg-badge-rays" aria-hidden style={{ '--ftg-ray': `${art.color}aa` } as CSSProperties} />}
                   <span
-                    className={`flex size-12 items-center justify-center rounded-full text-2xl ${got ? 'shadow-md' : 'opacity-40 grayscale'}`}
+                    className={`ftg-badge-face flex size-12 items-center justify-center rounded-full text-2xl ${got ? 'shadow-md' : 'opacity-40 grayscale'}`}
                     style={{ background: got ? art.color : 'var(--surface-2)', boxShadow: got ? `0 0 0 3px var(--surface), 0 0 0 5px ${art.color}55` : undefined }}
                   >
                     {art.emoji}
@@ -231,10 +308,11 @@ function BadgeSheet({ badge, avatar, canShare, onClose: dismiss }: { badge: Badg
           </button>
         </div>
         {sticker ? (
-          <img src={sticker.src} alt="" className="ftg-av-pop mx-auto size-52 object-contain" />
+          <img src={sticker.src} alt="" className="ftg-badge-flip mx-auto size-52 object-contain" />
         ) : (
           <span
-            className={`ftg-av-pop mx-auto flex size-28 items-center justify-center rounded-full text-6xl ${badge.earned_at ? '' : 'opacity-40 grayscale'}`}
+            ref={badge.earned_at ? sparkleOnMount : undefined}
+            className={`${badge.earned_at ? 'ftg-badge-flip' : 'ftg-av-pop'} mx-auto flex size-28 items-center justify-center rounded-full text-6xl ${badge.earned_at ? '' : 'opacity-40 grayscale'}`}
             style={{ background: badge.earned_at ? art.color : 'var(--surface-2)' }}
           >
             {art.emoji}

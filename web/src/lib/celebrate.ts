@@ -1,3 +1,4 @@
+import { buzz, cheer } from './fx'
 import { prefersReducedMotion } from './motion'
 
 export type Point = { x: number; y: number }
@@ -34,24 +35,9 @@ export function burstOrigin(from?: Element | Point | null): Point {
   return { x: window.innerWidth / 2, y: window.innerHeight * 0.4 }
 }
 
-/** A lightweight confetti pop (DOM + CSS, ~0.7s, removes itself). No-op under reduced motion. */
+/** A confetti pop with sparks (canvas particles, removes itself) and a tiny vibration on phones. */
 export function celebrate(from?: Element | Point | null, count = 26): void {
   if (typeof document === 'undefined' || prefersReducedMotion()) return
-  const { x, y } = burstOrigin(from)
-  const layer = document.createElement('div')
-  layer.className = 'ftg-confetti'
-  layer.setAttribute('aria-hidden', 'true')
-  layer.style.left = `${x}px`
-  layer.style.top = `${y}px`
-  for (const p of confettiPieces(count)) {
-    const piece = document.createElement('i')
-    piece.style.setProperty('--dx', `${p.dx}px`)
-    piece.style.setProperty('--dy', `${p.dy}px`)
-    piece.style.setProperty('--r', `${p.rotate}deg`)
-    piece.style.animationDelay = `${p.delay}ms`
-    piece.style.background = COLORS[p.color]
-    layer.appendChild(piece)
-  }
-  document.body.appendChild(layer)
-  window.setTimeout(() => layer.remove(), 900)
+  cheer(burstOrigin(from), Math.max(30, count + 18))
+  buzz([12, 40, 18])
 }

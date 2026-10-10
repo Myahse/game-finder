@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type MouseEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { errorMessage } from '../lib/api'
 import {
@@ -14,6 +14,7 @@ import type { Court, Game } from '../lib/types'
 import { Check, Circle, Hourglass, MapPin, Navigation } from 'lucide-react'
 import { AppAlert, Button, ErrorText } from './ui'
 import { useLocale } from '../i18n/LocaleProvider'
+import { burst, buzz, floatText, shake, shockwave } from '../lib/fx'
 
 /** JOIN GAME · I'M HERE · GET DIRECTIONS — shared by the sheet and the details page. */
 export function CourtActions({ court, games, me }: { court: Court; games: Game[]; me: Coords | null }) {
@@ -71,15 +72,29 @@ export function CourtActions({ court, games, me }: { court: Court; games: Game[]
     )
   }
 
-  const toggleHere = () => {
+  const toggleHere = (e: MouseEvent<HTMLButtonElement>) => {
     if (!hereNow && !atCourt) {
+      shake(e.currentTarget)
+      buzz([20, 30, 20])
       showNotAtCourt()
       return
     }
     setError('')
-    presenceAction.mutate(hereNow ? { kind: 'leave' } : { kind: 'checkin', courtId: court.id, coords: me }, {
-      onError: (e) => setError(errorMessage(e)),
-    })
+    // Where the button is now: the sheet may re-render under us before the request returns.
+    const rect = e.currentTarget.getBoundingClientRect()
+    const mid = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+    const checkingIn = !hereNow
+    presenceAction
+      .mutateAsync(hereNow ? { kind: 'leave' } : { kind: 'checkin', courtId: court.id, coords: me })
+      .then(() => {
+        if (!checkingIn) return
+        // Checked in: green rings ripple out, confetti, and the XP it earns floats up.
+        shockwave(rect)
+        burst(mid, { n: 34, colors: ['#16a34a', '#22c55e', '#ffffff', '#f2b632'], speed: [4, 10], spread: Math.PI * 1.1 })
+        floatText(mid, '+2 XP', 'var(--live)')
+        buzz([20, 40, 20, 40, 60])
+      })
+      .catch((err: unknown) => setError(errorMessage(err)))
   }
 
   return (

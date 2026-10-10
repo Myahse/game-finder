@@ -640,23 +640,58 @@ body {
 .ftg-live-ring {
   animation: ftg-pulse 1.8s ease-out infinite;
 }
+/* The picked pin hops: squash, stretch up, land, settle. */
 @keyframes ftg-pin-drop {
-  0% {
-    transform: translateY(-14px);
-  }
-  55% {
-    transform: translateY(0) scale(1.06, 0.94);
-  }
-  78% {
-    transform: translateY(-4px) scale(0.98, 1.02);
-  }
-  100% {
-    transform: none;
-  }
+  0% { transform: scale(1.18, 0.82); }
+  35% { transform: translateY(-16px) scale(0.88, 1.14); }
+  70% { transform: scale(1.12, 0.9); }
+  85% { transform: scale(0.97, 1.03); }
+  100% { transform: none; }
 }
 .ftg-pin-drop {
   transform-origin: 50% 100%;
-  animation: ftg-pin-drop 0.42s var(--ftg-ease-out);
+  animation: ftg-pin-drop 0.55s var(--ftg-ease-spring);
+}
+/* Pins fall from the sky when they appear and land with a squash; their shadow grows under them. */
+.ftg-pin-fall {
+  transform-origin: 50% 100%;
+  animation: ftg-pin-fall 0.7s both;
+}
+@keyframes ftg-pin-fall {
+  0% { transform: translateY(-120px) scale(0.9, 1.15); opacity: 0; animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
+  8% { opacity: 1; }
+  55% { transform: translateY(0) scale(0.9, 1.15); animation-timing-function: ease-out; }
+  66% { transform: scale(1.25, 0.75); }
+  80% { transform: translateY(-8px) scale(0.95, 1.05); animation-timing-function: ease-in; }
+  92% { transform: scale(1.05, 0.95); }
+  100% { transform: none; }
+}
+.ftg-pin-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: -3px;
+  width: 20px;
+  height: 6px;
+  margin-left: -10px;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.35);
+  animation: ftg-pin-shadow 0.7s both;
+}
+@keyframes ftg-pin-shadow {
+  0% { transform: scale(0.15); opacity: 0; }
+  55% { transform: scale(1); opacity: 1; }
+  66% { transform: scale(1.35); }
+  80% { transform: scale(0.85); }
+  100% { transform: none; opacity: 1; }
+}
+.ftg-pin-label {
+  animation: ftg-fade-in 0.3s 0.45s both;
+}
+.ftg-cluster-pop {
+  animation: ftg-cluster-pop 0.5s var(--ftg-ease-spring) both;
+}
+@keyframes ftg-cluster-pop {
+  from { transform: scale(0.3); opacity: 0; }
 }
 
 /* Celebration burst (lib/celebrate.ts appends a short-lived layer to <body>). */
@@ -960,4 +995,432 @@ body {
   56% { opacity: 0.9; }
   62% { stroke-dashoffset: -1; opacity: 0; }
   100% { stroke-dashoffset: -1; opacity: 0; }
+}
+
+/* ── Physical micro-animations (lib/fx.ts, components/Odometer.tsx) ───────── */
+/* One full-screen canvas for particles: confetti, sparks, stars, dust, embers. */
+.ftg-fx {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 95;
+}
+.ftg-shake {
+  animation: ftg-shake 0.38s linear;
+}
+@keyframes ftg-shake {
+  10% { transform: translate(-5px, 2px); }
+  25% { transform: translate(5px, -3px); }
+  40% { transform: translate(-4px, -1px); }
+  55% { transform: translate(3px, 3px); }
+  70% { transform: translate(-2px, -1px); }
+  85% { transform: translate(1px, 1px); }
+}
+/* Rolling digits: each digit is a 0–9 strip. */
+.ftg-odo {
+  font-variant-numeric: tabular-nums;
+}
+/* Each column keeps an invisible copy of its digit so it sits on the text baseline;
+   clip-path (not overflow) hides the rest of the strip without moving that baseline. */
+.ftg-odo-col {
+  position: relative;
+  display: inline-block;
+  line-height: 1;
+  clip-path: inset(0 -0.15em);
+}
+.ftg-odo-ghost {
+  visibility: hidden;
+}
+.ftg-odo-strip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  transition: transform 0.75s cubic-bezier(0.3, 1.3, 0.45, 1);
+}
+.ftg-odo-strip > span {
+  display: block;
+  height: 1em;
+  text-align: center;
+}
+/* A count badge pops when its number changes. */
+.ftg-bump {
+  animation: ftg-bump 0.5s var(--ftg-ease-spring);
+}
+@keyframes ftg-bump {
+  35% { transform: scale(1.45); }
+}
+/* Phone tab bar: the elastic blob behind the open tab (positioned by AppShell). */
+.ftg-tab-blob {
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--brand) 13%, transparent);
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+/* The icon of the tab you just opened jumps, squashes and settles. */
+.ftg-tab-hop {
+  display: inline-block;
+  transform-origin: 50% 100%;
+  animation: ftg-tab-hop 0.6s;
+}
+@keyframes ftg-tab-hop {
+  0% { transform: scale(0.85, 1.1); }
+  30% { transform: translateY(-8px) scale(0.9, 1.15); animation-timing-function: ease-in; }
+  55% { transform: translateY(0) scale(1.18, 0.82); }
+  75% { transform: scale(0.95, 1.05); }
+  100% { transform: none; }
+}
+/* A new alert: the bell swings. */
+.ftg-bell-ring {
+  transform-origin: 50% 10%;
+  animation: ftg-bell-ring 0.9s ease-out;
+}
+@keyframes ftg-bell-ring {
+  10% { transform: rotate(22deg); }
+  25% { transform: rotate(-18deg); }
+  40% { transform: rotate(12deg); }
+  55% { transform: rotate(-8deg); }
+  70% { transform: rotate(4deg); }
+  85% { transform: rotate(-2deg); }
+}
+/* Game cards: a soft light follows the mouse over a tilted card (lib/useTilt.ts). */
+.ftg-glare {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: var(--ftg-go, 0);
+  background: radial-gradient(circle at var(--ftg-gx, 50%) var(--ftg-gy, 50%), rgb(255 255 255 / 0.5), transparent 55%);
+  mix-blend-mode: overlay;
+}
+/* Progress bars fill with a little overshoot and a running shine. */
+.ftg-bar-fill {
+  position: relative;
+  transition: width 0.9s cubic-bezier(0.3, 1.3, 0.45, 1), background-color 0.3s;
+}
+.ftg-bar-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(100deg, transparent 30%, rgb(255 255 255 / 0.5) 50%, transparent 70%);
+  background-size: 260% 100%;
+  animation: ftg-shine 2.4s ease-in-out infinite;
+}
+@keyframes ftg-shine {
+  from { background-position: 130% 0; }
+  to { background-position: -30% 0; }
+}
+/* "Complet" slams down like a rubber stamp. */
+.ftg-stamp {
+  color: var(--brand);
+  border: 3px solid currentColor;
+  border-radius: 8px;
+  padding: 0 10px;
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
+  transform: rotate(-12deg);
+  animation: ftg-stamp 0.42s cubic-bezier(0.55, 0, 0.8, 0.2) both;
+}
+@keyframes ftg-stamp {
+  0% { opacity: 0; transform: rotate(-4deg) scale(3); }
+  85% { opacity: 1; transform: rotate(-14deg) scale(0.92); }
+  100% { opacity: 1; transform: rotate(-12deg); }
+}
+/* Join → a green "Inscrit !" that boings, draws its check and pops its letters in. */
+.ftg-joined {
+  animation: ftg-boing 0.6s var(--ftg-ease-spring);
+}
+.ftg-joined path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: ftg-draw 0.35s 0.1s var(--ftg-ease-out) forwards;
+}
+.ftg-joined-l {
+  display: inline-block;
+  animation: ftg-letter-in 0.5s var(--ftg-ease-spring) both;
+}
+@keyframes ftg-boing {
+  0% { transform: scale(0.9); }
+  30% { transform: scale(1.06, 0.92); }
+  60% { transform: scale(0.98, 1.04); }
+  100% { transform: none; }
+}
+@keyframes ftg-draw {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes ftg-letter-in {
+  from { opacity: 0; transform: translateY(-16px) scale(0.3); }
+}
+/* Profile: the level ring fills like a gauge (registered so it can transition). */
+@property --ftg-pct {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+.ftg-level-ring {
+  background: conic-gradient(var(--ftg-ring) calc(var(--ftg-pct) * 1%), var(--surface-2) 0);
+  transition: --ftg-pct 1.1s cubic-bezier(0.3, 1.2, 0.45, 1);
+}
+/* Streak flame: flickers all the time, flares when tapped. */
+.ftg-flame-btn {
+  display: inline-flex;
+  transform-origin: 50% 90%;
+}
+.ftg-flicker {
+  transform-origin: 50% 90%;
+  animation: ftg-flicker 1.1s ease-in-out infinite;
+}
+@keyframes ftg-flicker {
+  0%, 100% { transform: scale(1) rotate(-2deg); }
+  25% { transform: scale(1.06, 0.95) rotate(2deg); }
+  50% { transform: scale(0.96, 1.07) rotate(-1deg); }
+  75% { transform: scale(1.03, 0.98) rotate(3deg); }
+}
+.ftg-flare {
+  animation: ftg-flare 0.7s var(--ftg-ease-spring);
+}
+@keyframes ftg-flare {
+  35% { transform: scale(1.7) rotate(-6deg); filter: drop-shadow(0 0 8px #ff5a1f); }
+}
+/* A freshly earned badge flips over in 3D with light rays turning behind it. */
+.ftg-badge-new .ftg-badge-face,
+.ftg-badge-flip {
+  animation: ftg-badge-flip 1.1s cubic-bezier(0.2, 0.75, 0.25, 1.15) both;
+}
+@keyframes ftg-badge-flip {
+  0% { transform: perspective(400px) rotateY(-540deg) scale(0.4); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: perspective(400px) rotateY(0) scale(1); }
+}
+.ftg-badge-rays {
+  position: absolute;
+  inset: -18px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: repeating-conic-gradient(var(--ftg-ray) 0deg 10deg, transparent 10deg 30deg);
+  mask: radial-gradient(circle, #000 30%, transparent 70%);
+  -webkit-mask: radial-gradient(circle, #000 30%, transparent 70%);
+  animation: ftg-rays 2.4s ease-out 0.35s both;
+}
+@keyframes ftg-rays {
+  0% { opacity: 0; transform: scale(0.3) rotate(0); }
+  30% { opacity: 1; transform: scale(1) rotate(40deg); }
+  100% { opacity: 0; transform: scale(1.1) rotate(200deg); }
+}
+/* A filter chip that turns on does a little jelly pop. */
+.ftg-chip-on {
+  animation: ftg-jelly 0.5s var(--ftg-ease-spring);
+}
+@keyframes ftg-jelly {
+  0% { transform: scale(0.9); }
+  35% { transform: scale(1.08, 0.94); }
+  65% { transform: scale(0.97, 1.03); }
+  100% { transform: none; }
+}
+/* Scoreboard: the winner's crown jumps in; a new score flashes. */
+.ftg-crown-in {
+  animation: ftg-crown-in 0.7s var(--ftg-ease-spring) both;
+}
+@keyframes ftg-crown-in {
+  0% { transform: translateY(-30px) rotate(-30deg) scale(0.4); opacity: 0; }
+  60% { transform: translateY(2px) rotate(8deg) scale(1.15); opacity: 1; }
+  100% { transform: none; }
+}
+.ftg-score-hit {
+  animation: ftg-score-hit 0.6s ease-out;
+}
+@keyframes ftg-score-hit {
+  0% { text-shadow: 0 0 0 transparent; transform: scale(1.08); }
+  30% { text-shadow: 0 0 18px color-mix(in srgb, var(--brand) 70%, transparent); }
+  100% { transform: none; }
+}
+/* Share: the icon launches off and comes back; "Link copied" swaps in on green. */
+.ftg-share-launch {
+  animation: ftg-share-launch 0.6s ease-in-out;
+}
+@keyframes ftg-share-launch {
+  40% { transform: translate(14px, -14px) rotate(20deg) scale(0.7); opacity: 0; }
+  41% { transform: translate(-10px, 10px) scale(0.7); opacity: 0; }
+  100% { transform: none; opacity: 1; }
+}
+.ftg-swap {
+  display: inline-block;
+  animation: ftg-swap 0.4s var(--ftg-ease-spring);
+}
+@keyframes ftg-swap {
+  from { transform: translateY(12px); opacity: 0; }
+}
+.ftg-copied {
+  background-color: var(--live) !important;
+  color: #fff !important;
+}
+/* Weather icon: sun turns slowly, clouds drift, rain drops fall and splash, storms flash. */
+.ftg-wx { display: inline-flex; }
+.ftg-wx-sun > svg { animation: ftg-spin 18s linear infinite; }
+.ftg-wx-cloud > svg { animation: ftg-drift 4s ease-in-out infinite; }
+.ftg-wx-storm > svg { animation: ftg-storm 3.2s steps(1) infinite; }
+@keyframes ftg-spin { to { transform: rotate(360deg); } }
+@keyframes ftg-drift { 50% { transform: translateX(4px) translateY(-2px); } }
+@keyframes ftg-storm { 0%, 100% { filter: none; } 46% { filter: brightness(1.8) drop-shadow(0 0 6px #facc15); } 50% { filter: none; } 54% { filter: brightness(1.8); } }
+.ftg-wx > i {
+  position: absolute;
+  top: 70%;
+  width: 3px;
+  height: 9px;
+  border-radius: 2px;
+  background: #0ea5e9;
+  opacity: 0;
+  animation: ftg-wx-drop 0.9s cubic-bezier(0.5, 0, 1, 1) infinite;
+}
+.ftg-wx > i:nth-of-type(1) { left: 30%; }
+.ftg-wx > i:nth-of-type(2) { left: 48%; animation-delay: 0.3s; }
+.ftg-wx > i:nth-of-type(3) { left: 66%; animation-delay: 0.6s; }
+@keyframes ftg-wx-drop {
+  0% { transform: translateY(0); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: translateY(16px); opacity: 0; }
+}
+/* "VS" slam (lib/fx.ts slam()). */
+.ftg-slam {
+  position: fixed;
+  z-index: 96;
+  pointer-events: none;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 900;
+  font-size: 110px;
+  line-height: 1;
+  color: #fff;
+  -webkit-text-stroke: 3px #12151a;
+  translate: -50% -50%;
+  animation: ftg-slam 1.25s var(--ftg-ease-spring) both;
+}
+@keyframes ftg-slam {
+  0% { opacity: 0; transform: scale(3) rotate(-25deg); text-shadow: -16px 0 #0ea5e9, 16px 0 #ff5a1f; }
+  15% { opacity: 1; transform: scale(0.9) rotate(-8deg); text-shadow: -3px 0 #0ea5e9, 3px 0 #ff5a1f; }
+  30% { transform: rotate(-8deg); text-shadow: 4px 5px 0 #ff5a1f; }
+  80% { opacity: 1; transform: rotate(-8deg); text-shadow: 4px 5px 0 #ff5a1f; }
+  100% { opacity: 0; transform: scale(1.3) rotate(-8deg); }
+}
+/* Game countdown: split-flap digits (components/GameCountdown.tsx). */
+.ftg-clock {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 900;
+}
+.ftg-clock-tick {
+  animation: ftg-tick 0.35s var(--ftg-ease-out);
+}
+@keyframes ftg-tick {
+  30% { transform: scale(1.07); }
+}
+.ftg-clock-sep {
+  font-size: 30px;
+  color: var(--ink-2);
+  animation: ftg-sep 1s steps(1) infinite;
+}
+@keyframes ftg-sep {
+  50% { opacity: 0.25; }
+}
+.ftg-flap {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 52px;
+  perspective: 220px;
+  font-size: 40px;
+  color: #fff;
+}
+.ftg-flap-h {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50%;
+  overflow: hidden;
+  background: #1d2229;
+}
+.ftg-flap-h > span {
+  display: block;
+  height: 52px;
+  line-height: 52px;
+  text-align: center;
+}
+.ftg-flap-t {
+  top: 0;
+  border-radius: 8px 8px 0 0;
+  background: linear-gradient(#262c35, #1d2229);
+}
+.ftg-flap-b {
+  bottom: 0;
+  border-radius: 0 0 8px 8px;
+}
+.ftg-flap-b > span {
+  transform: translateY(-26px);
+}
+.ftg-flap-lt {
+  z-index: 2;
+  transform-origin: 50% 100%;
+  backface-visibility: hidden;
+  animation: ftg-flip-top 0.26s ease-in forwards;
+}
+.ftg-flap-lb {
+  z-index: 2;
+  transform-origin: 50% 0;
+  transform: rotateX(90deg);
+  backface-visibility: hidden;
+  animation: ftg-flip-bottom 0.34s cubic-bezier(0.3, 1.5, 0.6, 1) 0.26s forwards;
+}
+@keyframes ftg-flip-top {
+  to { transform: rotateX(-90deg); filter: brightness(0.6); }
+}
+@keyframes ftg-flip-bottom {
+  from { transform: rotateX(90deg); filter: brightness(1.6); }
+  to { transform: rotateX(0); }
+}
+.ftg-flap::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  background: rgb(0 0 0 / 0.55);
+  z-index: 3;
+}
+.ftg-clock-urgent .ftg-flap-h { background: var(--brand); }
+.ftg-clock-urgent .ftg-flap-t { background: linear-gradient(#ff7a45, var(--brand)); }
+.ftg-clock-urgent .ftg-clock-sep { color: var(--brand); }
+/* Check-in: rings ripple out from the button; "+2 XP" floats up (lib/fx.ts). */
+.ftg-shockwave {
+  position: fixed;
+  z-index: 94;
+  pointer-events: none;
+  border: 4px solid;
+  border-radius: 14px;
+  opacity: 0;
+  animation: ftg-shockwave 0.8s ease-out both;
+}
+@keyframes ftg-shockwave {
+  0% { opacity: 0.9; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.35, 1.9); }
+}
+.ftg-float-text {
+  position: fixed;
+  z-index: 96;
+  pointer-events: none;
+  translate: -50% 0;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 900;
+  font-size: 26px;
+  animation: ftg-float-up 0.95s var(--ftg-ease-out) forwards;
+}
+@keyframes ftg-float-up {
+  0% { transform: translateY(6px) scale(0.5); opacity: 0; }
+  25% { transform: translateY(-10px) scale(1.2); opacity: 1; }
+  100% { transform: translateY(-50px); opacity: 0; }
 }

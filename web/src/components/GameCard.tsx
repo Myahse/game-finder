@@ -13,6 +13,7 @@ import {
 } from '../lib/format'
 import { courtPhotoUrl } from '../lib/mediaUrl'
 import type { Game } from '../lib/types'
+import { useTilt } from '../lib/useTilt'
 import { useLocale } from '../i18n/LocaleProvider'
 
 export type GameScheduleAccent = 'upcoming'
@@ -45,11 +46,13 @@ export function GameCard({
   const photo = courtPhotoUrl(game.court.photos ?? [])
   const mapLayout = variant === 'map'
   const hostLine = (showHost || mapLayout) && game.creator?.username
+  const tilt = useTilt<HTMLAnchorElement>(mapLayout ? 4 : 6)
 
   return (
     <Link
+      ref={tilt}
       to={`/games/${game.id}`}
-      className={`ftg-lift flex items-stretch rounded-2xl border shadow-md ${
+      className={`ftg-lift relative flex items-stretch rounded-2xl border shadow-md ${
         mapLayout ? 'flex-row gap-2 p-2' : 'gap-3 p-3'
       } ${
         upcoming
@@ -139,6 +142,7 @@ export function GameCard({
           {full ? tc.full : isUnlimitedMaxPlayers(game.max_players) ? tc.open : (game.spots_left === 1 ? tc.spot : tc.spots).replace('{n}', String(game.spots_left))}
         </span>
       </div>
+      <span className="ftg-glare" aria-hidden />
     </Link>
   )
 }

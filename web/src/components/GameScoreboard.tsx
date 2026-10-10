@@ -78,14 +78,14 @@ function ScoreHeader({ sb, byId }: { sb: Scoreboard; byId: Map<string, Player> }
                 {team.name}
               </p>
               {won && (
-                <span className="inline-flex shrink-0 items-center rounded-md bg-brand p-1 text-brand-ink" title={t.scoreboard.winner}>
+                <span className="ftg-crown-in inline-flex shrink-0 items-center rounded-md bg-brand p-1 text-brand-ink" title={t.scoreboard.winner}>
                   <Crown className="size-4" aria-hidden />
                   <span className="sr-only">{t.scoreboard.winner}</span>
                 </span>
               )}
             </div>
             {anyScore && (
-              <p className="display text-5xl font-extrabold leading-tight tabular-nums">
+              <p key={team.score} className="ftg-score-hit display text-5xl font-extrabold leading-tight tabular-nums">
                 <CountUp value={team.score} />
               </p>
             )}
