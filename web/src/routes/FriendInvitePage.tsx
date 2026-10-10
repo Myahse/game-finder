@@ -12,6 +12,7 @@ import {
 import { OrDivider } from '../components/GoogleSignInButton'
 import { SocialSignInButtons } from '../components/SocialSignInButtons'
 import { Avatar, Button, ErrorText, PageHeader, Spinner } from '../components/ui'
+import { InviteTicket } from '../components/InviteTicket'
 import type { PublicUser } from '../lib/types'
 import { useLocale } from '../i18n/LocaleProvider'
 
@@ -79,12 +80,11 @@ export function FriendInvitePage() {
             <Button type="button" onClick={() => navigate('/', { replace: true })}>{fi.goToMap}</Button>
           </div>
         ) : (
-          <>
-            <div className="flex flex-col items-center gap-3 text-center">
-              <Avatar size={72} user={inviter} />
-              <p className="display text-2xl font-bold">{playerDisplayLabel(inviter, viewerIsAdmin)}</p>
-              <p className="text-ink-2">{fi.wantsToBeFriends}</p>
-            </div>
+          <InviteTicket
+            stub={t.games.link.stub}
+            pull={t.games.link.stubPull}
+            actions={
+              <>
 
             {user?.id === inviter.id ? (
               <p className="text-center text-sm text-ink-2">{fi.ownLink}</p>
@@ -115,7 +115,15 @@ export function FriendInvitePage() {
                 </p>
               </div>
             ) : null}
-          </>
+              </>
+            }
+          >
+            <div className="flex flex-col items-center gap-3 text-center">
+              <Avatar size={72} user={inviter} />
+              <p className="display text-2xl font-bold">{playerDisplayLabel(inviter, viewerIsAdmin)}</p>
+              <p className="text-ink-2">{fi.wantsToBeFriends}</p>
+            </div>
+          </InviteTicket>
         )}
       </div>
     </div>

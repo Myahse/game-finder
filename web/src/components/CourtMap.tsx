@@ -8,6 +8,7 @@ import { clampMapZoom, MAP_MAX_ZOOM, MAP_MIN_ZOOM } from '../lib/mapZoom'
 import { MAPBOX_ACCESS_TOKEN, MAPBOX_MAP_PROPS, mapboxConfigured, mapboxTokenSetupError } from '../lib/mapbox'
 import { mapStyleForTheme } from '../theme/mapStyle'
 import { useTheme } from '../theme/ThemeProvider'
+import { RainLayer } from './RainLayer'
 import { Hourglass, SportIcon, Users } from './icons'
 import { courtPhotoUrl } from '../lib/mediaUrl'
 import { courtPinTone, type CourtPinTone } from '../lib/sort'
@@ -51,6 +52,9 @@ export function CourtMap({
   }, [nearbyGames])
   const { t } = useLocale()
   const { data: rain } = useCourtsRain(courts.map((c) => c.id))
+  // Rain over the map: full when it rains now at a visible court, a drizzle when only forecast.
+  const wetCourts = useMemo(() => courts.filter((c) => rain?.[c.id]), [courts, rain])
+  const rainLevel = wetCourts.some((c) => rain?.[c.id]?.now) ? 1 : wetCourts.length ? 0.35 : 0
   const innerRef = useRef<MapRef>(null)
   const mapRef = mapRefProp ?? innerRef
   const { isDark } = useTheme()
@@ -248,6 +252,7 @@ export function CourtMap({
           <path d="M12 2v3M12 19v3M2 12h3M19 12h3" strokeLinecap="round" />
         </svg>
       </button>
+      <RainLayer mapRef={mapRef} wet={wetCourts} intensity={rainLevel} />
     </div>
   )
 }

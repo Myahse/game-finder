@@ -98,6 +98,7 @@ export function MapPage() {
           locationBias={coords}
           courts={courts ?? []}
           onSelectCourt={(c) => update('court', c.id)}
+          typingPlaceholder
         />
         <div data-guide="sport-chips" className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
           {isAdmin ? (

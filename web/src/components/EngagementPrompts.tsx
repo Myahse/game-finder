@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { registerWebPush } from '../lib/webPush'
 import { toast } from 'sonner'
+import { playInstallDock } from '../lib/installDock'
 import { currentT } from '../i18n/LocaleProvider'
 import { dismissPromptLater, isIos, isStandalonePwa, promptDismissed, PROMPT_KEYS } from '../lib/promptDismiss'
 
@@ -102,7 +103,11 @@ function showInstallPrompt(deferred: BeforeInstallPromptEvent | null, onDone: ()
           void deferred.prompt().then(() =>
             deferred.userChoice.then(({ outcome }) => {
               toast.dismiss(INSTALL_TOAST_ID)
-              if (outcome === 'accepted') toast.success(p.installed)
+              if (outcome === 'accepted') {
+                // Installed: the icon drops into a dock, then the usual confirmation.
+                playInstallDock()
+                window.setTimeout(() => toast.success(p.installed), 1600)
+              }
               onDone()
             }),
           )

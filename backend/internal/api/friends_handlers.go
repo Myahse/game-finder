@@ -68,6 +68,16 @@ func (s *Server) rejectFriendRequest(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// cancelFriendRequest withdraws a request I sent that is still waiting for an answer.
+func (s *Server) cancelFriendRequest(w http.ResponseWriter, r *http.Request) {
+	if err := s.db.Exec(r.Context(), uid(r),
+		`delete from friend_links where id = $1 and requester_id = app_uid() and status = 'pending'`, chi.URLParam(r, "id")); err != nil {
+		writeDBError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (s *Server) createFriendInviteLink(w http.ResponseWriter, r *http.Request) {
 	b, err := s.db.JSON(r.Context(), uid(r), `select jsonb_build_object('token', ensure_friend_invite_link())`)
 	if err != nil {

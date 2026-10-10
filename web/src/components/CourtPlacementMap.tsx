@@ -11,6 +11,7 @@ import { MAPBOX_ACCESS_TOKEN, MAPBOX_MAP_PROPS, mapboxConfigured, mapboxTokenSet
 import type { Court } from '../lib/types'
 import { UserLocationPulse } from './UserLocationPulse'
 import { useLocale } from '../i18n/LocaleProvider'
+import { CrosshairPin, type CrosshairPinHandle } from './CrosshairPin'
 
 type Props = {
   value: Coords | null
@@ -43,6 +44,22 @@ export function CourtPlacementMap({
   const ref = mapRef ?? innerRef
   const containerRef = useRef<HTMLDivElement>(null)
   const [edge, setEdge] = useState<ReturnType<typeof offscreenEdgeHint>>(null)
+  // Editable maps use a fixed pin over a crosshair: you move the map, not the pin.
+  const crosshair = !readOnly
+  const pinRef = useRef<CrosshairPinHandle>(null)
+  const userMove = useRef(false)
+  const lastPx = useRef<{ x: number; y: number } | null>(null)
+
+  // The value changed from outside (my position, address search): bring it under the crosshair.
+  useEffect(() => {
+    if (!crosshair || !value) return
+    const map = ref.current?.getMap()
+    if (!map) return
+    const c = map.getCenter()
+    const p = map.project([value.longitude, value.latitude])
+    const mid = map.project(c)
+    if (Math.hypot(p.x - mid.x, p.y - mid.y) > 2) map.easeTo({ center: [value.longitude, value.latitude], duration: 500 })
+  }, [crosshair, value, ref])
 
   const lockMapRotation = useCallback(() => {
     const map = ref.current?.getMap()
@@ -54,7 +71,7 @@ export function CourtPlacementMap({
   }, [ref])
 
   const syncEdge = useCallback(() => {
-    if (!edgePinHint || !value) {
+    if (!edgePinHint || !value || crosshair) {
       setEdge(null)
       return
     }
@@ -64,7 +81,7 @@ export function CourtPlacementMap({
     const p = map.project([value.longitude, value.latitude])
     const r = el.getBoundingClientRect()
     setEdge(offscreenEdgeHint(r.width, r.height, p.x, p.y))
-  }, [edgePinHint, value, ref])
+  }, [edgePinHint, value, ref, crosshair])
 
   useEffect(() => {
     const map = ref.current?.getMap()
@@ -109,13 +126,43 @@ export function CourtPlacementMap({
         {...MAPBOX_MAP_PROPS}
         ref={ref}
         mapboxAccessToken={MAPBOX_ACCESS_TOKEN}
-        initialViewState={{ longitude: initial.longitude, latitude: initial.latitude, zoom: 15, bearing: 0, pitch: 0 }}
+        initialViewState={{ longitude: (value ?? initial).longitude, latitude: (value ?? initial).latitude, zoom: 15, bearing: 0, pitch: 0 }}
         minZoom={MAP_MIN_ZOOM}
         maxZoom={MAP_MAX_ZOOM}
         mapStyle={mapStyleForTheme(isDark)}
-        onClick={readOnly ? undefined : (e) => onChange({ latitude: e.lngLat.lat, longitude: e.lngLat.lng })}
-        onMove={syncEdge}
-        onMoveEnd={syncEdge}
+        onClick={
+          readOnly
+            ? undefined
+            : (e) => {
+                // Tap: slide that spot under the crosshair (the pin lifts, then lands there).
+                userMove.current = true
+                pinRef.current?.lift()
+                e.target.easeTo({ center: e.lngLat, duration: 450 })
+              }
+        }
+        onMoveStart={(e) => {
+          if (!crosshair) return
+          if ('originalEvent' in e && e.originalEvent) userMove.current = true
+          if (userMove.current) pinRef.current?.lift()
+          lastPx.current = null
+        }}
+        onMove={(e) => {
+          syncEdge()
+          if (!crosshair || !userMove.current) return
+          const map = e.target
+          const c = map.project(map.getCenter())
+          const prevCenter = lastPx.current
+          lastPx.current = { x: c.x, y: c.y }
+          if (prevCenter) pinRef.current?.lean(prevCenter.x - c.x)
+        }}
+        onMoveEnd={(e) => {
+          syncEdge()
+          if (!crosshair || !userMove.current) return
+          userMove.current = false
+          const c = e.target.getCenter()
+          pinRef.current?.drop()
+          onChange({ latitude: c.lat, longitude: c.lng })
+        }}
         onLoad={(e) => {
           configureEarthMap(e.target)
           lockMapRotation()
@@ -128,7 +175,7 @@ export function CourtPlacementMap({
         attributionControl={false}
         logoPosition="bottom-right"
         style={{ width: '100%', height: '100%' }}
-        cursor={readOnly ? 'grab' : 'crosshair'}
+        cursor="grab"
       >
         <AttributionControl compact position="bottom-left" />
         {me && (
@@ -145,7 +192,7 @@ export function CourtPlacementMap({
             />
           </Marker>
         ))}
-        {value && (
+        {value && !crosshair && (
           <Marker
             longitude={value.longitude}
             latitude={value.latitude}
@@ -157,6 +204,8 @@ export function CourtPlacementMap({
           </Marker>
         )}
       </Map>
+
+      {crosshair && <CrosshairPin ref={pinRef} label={t.courts.map.here} placed={!!value} />}
 
       <div className="absolute left-3 bottom-3 z-10 flex flex-col overflow-hidden rounded-xl border border-line bg-surface/95 shadow backdrop-blur">
         <button type="button" className="flex size-10 items-center justify-center text-ink hover:bg-surface-2" onClick={() => zoomBy(1)} aria-label={t.courts.map.zoomIn}>

@@ -176,6 +176,7 @@ func (s *Server) Routes() http.Handler {
 			r.Post("/me/friend-requests", s.sendFriendRequest)
 			r.Post("/me/friend-requests/{id}/accept", s.acceptFriendRequest)
 			r.Post("/me/friend-requests/{id}/reject", s.rejectFriendRequest)
+			r.Delete("/me/friend-requests/{id}", s.cancelFriendRequest)
 			r.Post("/me/friend-invite-link", s.createFriendInviteLink)
 			r.Post("/me/bump", s.bumpConnect)
 			r.Delete("/me/bump", s.bumpCancel)

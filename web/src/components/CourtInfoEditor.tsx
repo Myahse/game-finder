@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { api, errorMessage } from '../lib/api'
 import { reverseGeocode } from '../lib/reverseGeocode'
-import { parseOpeningHours } from '../lib/openingHours'
+import { formatOpeningHours, parseOpeningHours } from '../lib/openingHours'
 import { useAuth } from '../lib/auth'
 import { useMySport } from '../lib/mySport'
 import { qk, useSports } from '../lib/queries'
 import type { CourtDetail } from '../lib/types'
 import { SportName } from './icons'
 import { Button, ErrorText, Field, Input, Textarea } from './ui'
+import { SquashSwitch } from './SquashSwitch'
 import { useLocale } from '../i18n/LocaleProvider'
 
 type Props = {
@@ -28,6 +29,8 @@ export function CourtInfoEditor({ court, canEdit }: Props) {
   const parsed = parseOpeningHours(court.opening_hours)
   const [opens, setOpens] = useState(parsed?.opens ?? '')
   const [closes, setCloses] = useState(parsed?.closes ?? '')
+  // Off = no fixed hours (saved empty). The time fields fold away with the switch.
+  const [fixed, setFixed] = useState(!!parsed)
   const [address, setAddress] = useState(court.address ?? '')
   const [surface, setSurface] = useState(court.surface ?? '')
   const [description, setDescription] = useState(court.description ?? '')
@@ -43,6 +46,7 @@ export function CourtInfoEditor({ court, canEdit }: Props) {
     const p = parseOpeningHours(court.opening_hours)
     setOpens(p?.opens ?? '')
     setCloses(p?.closes ?? '')
+    setFixed(!!p)
     setAddress(court.address ?? '')
     setSurface(court.surface ?? '')
     setDescription(court.description ?? '')
@@ -73,8 +77,8 @@ export function CourtInfoEditor({ court, canEdit }: Props) {
       await api<CourtDetail>(`/api/courts/${court.id}/info`, {
         method: 'PATCH',
         json: {
-          opens_at: opens,
-          closes_at: closes,
+          opens_at: fixed ? opens : '',
+          closes_at: fixed ? closes : '',
           address,
           surface,
           description,
@@ -128,13 +132,28 @@ export function CourtInfoEditor({ court, canEdit }: Props) {
             {geocodingAddress ? t.courts.editor.lookingUp : t.courts.editor.fillFromMap}
           </button>
         </Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label={t.courts.opens}>
-            <Input type="time" value={opens} onChange={(e) => setOpens(e.target.value)} />
-          </Field>
-          <Field label={t.courts.closes}>
-            <Input type="time" value={closes} onChange={(e) => setCloses(e.target.value)} />
-          </Field>
+        <div>
+          <div className="flex items-center justify-between gap-3 rounded-xl bg-surface-2 px-3 py-2">
+            <span className="text-sm font-semibold">{t.courts.hours.fixed}</span>
+            <SquashSwitch checked={fixed} onChange={setFixed} label={t.courts.hours.fixed} />
+          </div>
+          <div className={`ftg-fold ${fixed ? 'is-open' : ''}`} aria-hidden={!fixed}>
+            <div>
+              <div className="grid grid-cols-2 gap-3 pt-3">
+                <Field label={t.courts.opens}>
+                  <Input type="time" value={opens} onChange={(e) => setOpens(e.target.value)} tabIndex={fixed ? 0 : -1} />
+                </Field>
+                <Field label={t.courts.closes}>
+                  <Input type="time" value={closes} onChange={(e) => setCloses(e.target.value)} tabIndex={fixed ? 0 : -1} />
+                </Field>
+              </div>
+            </div>
+          </div>
+          <p className="mt-2 overflow-hidden text-xs text-ink-2">
+            <span key={fixed ? `${opens}-${closes}` : 'any'} className="ftg-roll">
+              {fixed ? (opens && closes ? t.courts.hours.shownAs.replace('{hours}', formatOpeningHours(opens, closes)) : t.courts.hours.hint) : t.courts.hours.anyTime}
+            </span>
+          </p>
         </div>
         <Field label={t.courts.surface}>
           <Input placeholder={t.courts.editor.surfacePlaceholder} value={surface} onChange={(e) => setSurface(e.target.value)} />

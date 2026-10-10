@@ -3,7 +3,7 @@ import type { MapRef } from 'react-map-gl/mapbox'
 import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
 import { api, errorMessage, uploadImage } from '../lib/api'
-import { resolveMediaUrl } from '../lib/mediaUrl'
+import { PhotoPolaroids, type PendingPhoto } from '../components/PhotoPolaroids'
 import { useLocation, type Coords } from '../lib/location'
 import { useAuth } from '../lib/auth'
 import { useMySports } from '../lib/mySport'
@@ -12,7 +12,7 @@ import { useCourtsNearbySports, useSports } from '../lib/queries'
 import type { Court } from '../lib/types'
 import { CourtPlacementMap } from '../components/CourtPlacementMap'
 import { MapSearchBar } from '../components/MapSearchBar'
-import { Hourglass, Plus, SportName, X } from '../components/icons'
+import { Hourglass, Plus, SportName } from '../components/icons'
 import { formatOpeningHours } from '../lib/openingHours'
 import { reverseGeocode } from '../lib/reverseGeocode'
 import { StepIndicator } from '../components/StepIndicator'
@@ -44,6 +44,7 @@ export function AddCourtPage() {
   const [surface, setSurface] = useState('')
   const [lighting, setLighting] = useState<'unknown' | 'yes' | 'no'>('unknown')
   const [photos, setPhotos] = useState<string[]>([])
+  const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([])
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -80,14 +81,23 @@ export function AddCourtPage() {
   const addPhotos = async (files: FileList | null) => {
     if (!files) return
     setUploading(true)
+    const chosen = Array.from(files).slice(0, 6 - photos.length)
+    const slots = chosen.map((f, i) => ({ key: `${Date.now()}-${i}`, preview: URL.createObjectURL(f), done: false }))
+    setPendingPhotos(slots)
     try {
-      for (const f of Array.from(files).slice(0, 6 - photos.length)) {
+      for (const [i, f] of chosen.entries()) {
         const url = await uploadImage(f, 'court')
+        // Fill this square to the top, then its polaroid drops onto the pile.
+        setPendingPhotos((p) => p.map((x) => (x.key === slots[i].key ? { ...x, done: true } : x)))
+        await new Promise((r) => window.setTimeout(r, 300))
+        setPendingPhotos((p) => p.filter((x) => x.key !== slots[i].key))
         setPhotos((p) => [...p, url])
       }
     } catch (e) {
       setError(errorMessage(e))
     } finally {
+      slots.forEach((s) => URL.revokeObjectURL(s.preview))
+      setPendingPhotos([])
       setUploading(false)
     }
   }
@@ -290,23 +300,11 @@ export function AddCourtPage() {
           )}
         </Field>
         <Field label={t.courts.add.photosOptional}>
-          <div className="flex flex-wrap gap-2">
-            {photos.map((p) => (
-              <div key={p} className="relative">
-                <img src={resolveMediaUrl(p)} alt="" className="size-20 rounded-xl object-cover" />
-                <button
-                  type="button"
-                  onClick={() => setPhotos((list) => list.filter((x) => x !== p))}
-                  className="absolute -right-1.5 -top-1.5 flex size-7 items-center justify-center rounded-full border border-line bg-surface text-ink shadow hover:bg-surface-2"
-                  aria-label={t.courts.removePhoto}
-                >
-                  <X className="size-4" aria-hidden />
-                </button>
-              </div>
-            ))}
-            {photos.length < 6 && (
-              <label className="flex size-20 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-line text-2xl text-ink-2">
-                {uploading ? '…' : <Plus className="size-8" aria-hidden />}
+          <div className="flex flex-wrap items-start gap-3">
+            <PhotoPolaroids photos={photos} pending={pendingPhotos} onRemove={(p) => setPhotos((list) => list.filter((x) => x !== p))} removeLabel={t.courts.removePhoto} />
+            {photos.length + pendingPhotos.length < 6 && (
+              <label className="mt-1.5 flex size-[92px] cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-line text-2xl text-ink-2">
+                <Plus className="size-8" aria-hidden />
                 <input type="file" multiple accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => addPhotos(e.target.files)} />
               </label>
             )}

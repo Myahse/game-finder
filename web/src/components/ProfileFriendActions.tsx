@@ -9,10 +9,11 @@ import type { PublicUser } from '../lib/types'
 import { Button, ErrorText } from './ui'
 import { useLocale } from '../i18n/LocaleProvider'
 import { buzz, sparkle } from '../lib/fx'
+import { FriendRequestButton } from './FriendRequestButton'
 
 type Relation = 'self' | 'guest' | 'friends' | 'incoming' | 'outgoing' | 'none'
 
-function useRelation(target: PublicUser): { relation: Relation; incomingId?: string } {
+function useRelation(target: PublicUser): { relation: Relation; incomingId?: string; outgoingId?: string } {
   const { user } = useAuth()
   const { data: friends } = useFriends(!!user)
   const { data: requests } = useFriendRequests(!!user)
@@ -23,7 +24,8 @@ function useRelation(target: PublicUser): { relation: Relation; incomingId?: str
     if (friends?.some((f) => f.id === target.id)) return { relation: 'friends' }
     const incoming = requests?.incoming.find((r) => r.user.id === target.id)
     if (incoming) return { relation: 'incoming', incomingId: incoming.id }
-    if (requests?.outgoing.some((r) => r.user.id === target.id)) return { relation: 'outgoing' }
+    const outgoing = requests?.outgoing.find((r) => r.user.id === target.id)
+    if (outgoing) return { relation: 'outgoing', outgoingId: outgoing.id }
     return { relation: 'none' }
   }, [user, friends, requests, target.id])
 }
@@ -32,11 +34,20 @@ export function ProfileFriendActions({ user, viewerIsAdmin = false }: { user: Pu
   const qc = useQueryClient()
   const { t } = useLocale()
   const f = t.account.friends
-  const { relation, incomingId } = useRelation(user)
+  const { relation, incomingId, outgoingId } = useRelation(user)
   const [error, setError] = useState('')
 
   const send = useMutation({
     mutationFn: () => api('/api/me/friend-requests', { method: 'POST', json: { username: user.username } }),
+    onSuccess: () => {
+      setError('')
+      qc.invalidateQueries({ queryKey: ['friend-requests'] })
+    },
+    onError: (e) => setError(errorMessage(e)),
+  })
+
+  const cancel = useMutation({
+    mutationFn: (id: string) => api(`/api/me/friend-requests/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       setError('')
       qc.invalidateQueries({ queryKey: ['friend-requests'] })
@@ -67,10 +78,16 @@ export function ProfileFriendActions({ user, viewerIsAdmin = false }: { user: Pu
         <p className="text-center text-sm text-ink-2">
           <Link to="/?login=1" className="font-semibold text-brand">{f.guestLogIn}</Link>{f.guestToAdd.replace('{name}', playerDisplayLabel(user, viewerIsAdmin))}
         </p>
-      ) : relation === 'friends' ? (
-        <p className="rounded-xl bg-surface-2 py-2 text-center text-sm font-semibold text-brand">{f.title}</p>
-      ) : relation === 'outgoing' ? (
-        <p className="text-center text-sm text-ink-2">{f.requestSent}</p>
+      ) : relation === 'none' || relation === 'outgoing' || relation === 'friends' ? (
+        <FriendRequestButton
+          relation={relation}
+          sending={send.isPending}
+          cancelling={cancel.isPending}
+          failed={!!error}
+          onSend={() => send.mutate()}
+          onCancel={() => outgoingId && cancel.mutate(outgoingId)}
+          labels={{ add: f.addFriend, pending: f.pending, friends: f.friendsNow, cancel: f.tapToCancel, friendsTitle: f.title }}
+        />
       ) : relation === 'incoming' && incomingId ? (
         <div className="flex gap-2">
           <Button type="button" className="flex-1" loading={respond.isPending} onClick={(e) => respond.mutate({ from: e.currentTarget, id: incomingId, accept: true })}>
@@ -80,11 +97,7 @@ export function ProfileFriendActions({ user, viewerIsAdmin = false }: { user: Pu
             {f.decline}
           </Button>
         </div>
-      ) : (
-        <Button type="button" loading={send.isPending} onClick={() => send.mutate()}>
-          {f.addFriend}
-        </Button>
-      )}
+      ) : null}
       <ErrorText>{error}</ErrorText>
     </div>
   )

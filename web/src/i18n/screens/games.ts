@@ -114,6 +114,8 @@ export const en = {
   link: {
     title: 'Join game',
     invalid: 'This game link isn’t valid anymore.',
+    stub: 'Admit one',
+    stubPull: 'pull ↓',
     invalidHint: 'It may have ended or been cancelled.',
     backToMap: 'Back to map',
     openApp: 'Open Out For Ground',
@@ -250,6 +252,8 @@ export const fr: typeof en = {
   },
   link: {
     title: 'Rejoindre le match',
+    stub: 'Entrée',
+    stubPull: 'tirez ↓',
     invalid: 'Ce lien de match n’est plus valide.',
     invalidHint: 'Le match est peut-être terminé ou a été annulé.',
     backToMap: 'Retour à la carte',

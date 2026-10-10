@@ -11,6 +11,7 @@ import { Star, Swords, TrendingUp } from 'lucide-react'
 import { SportIcon, SportName, Wrench } from '../components/icons'
 import { FriendsPanel } from '../components/FriendsPanel'
 import { ProfileFriendActions } from '../components/ProfileFriendActions'
+import { DockedAvatar, ProfileLayers } from '../components/ProfileLayers'
 import { playerDisplayLabel, playerFullName, playerUsernameLabel } from '../lib/format'
 import { hasPlayerAvatar, playerAvatarForUser } from '../avatar/resolve'
 import { ShareProfileButton } from '../components/ShareProfileSheet'
@@ -34,7 +35,7 @@ export function ProfileCard({ user, viewerIsAdmin = false }: { user: PublicUser;
   const skillLabels: Record<SkillLevel, string> = t.skill
   return (
     <Card className="text-center">
-      <div className="flex justify-center">
+      <div className="flex justify-center" data-profile-avatar>
         <Avatar user={user} size={96} />
       </div>
       {viewerIsAdmin && playerFullName(user) ? (
@@ -113,11 +114,13 @@ export function PlayerProfileView({
     profile && viewerIsAdmin ? playerDisplayLabel(profile, true) : title
   return (
     <div className="pb-10">
-      <PageHeader title={headerTitle} back={back} />
+      <PageHeader title={headerTitle} back={back} right={profile ? <DockedAvatar user={profile} /> : undefined} />
       <div className="mx-auto grid max-w-md grid-cols-[minmax(0,1fr)] gap-4 p-4">
         {profile ? (
           <>
-            <ProfileCard user={profile} viewerIsAdmin={viewerIsAdmin} />
+            <ProfileLayers>
+              <ProfileCard user={profile} viewerIsAdmin={viewerIsAdmin} />
+            </ProfileLayers>
             <ProfileFriendActions user={profile} viewerIsAdmin={viewerIsAdmin} />
             {signedIn && <PlayerCardButton userId={profile.id} mine={viewer?.id === profile.id} legalName={viewerIsAdmin} />}
             {signedIn && viewer?.id !== profile.id && <PlayerChallengeBlock player={profile} />}

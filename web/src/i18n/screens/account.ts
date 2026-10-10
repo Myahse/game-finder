@@ -88,6 +88,9 @@ export const en = {
     guestLogIn: 'Log in',
     guestToAdd: ' to add {name} as a friend.',
     requestSent: 'Friend request sent.',
+    pending: 'Request sent',
+    tapToCancel: 'Tap to cancel the request',
+    friendsNow: 'Friends',
   },
   prompts: {
     notifyTitle: 'Turn on notifications',
@@ -202,6 +205,9 @@ export const fr: typeof en = {
     guestLogIn: 'Connectez-vous',
     guestToAdd: ' pour ajouter {name} en ami.',
     requestSent: 'Demande d’ami envoyée.',
+    pending: 'Demande envoyée',
+    tapToCancel: 'Touchez pour annuler la demande',
+    friendsNow: 'Amis',
   },
   prompts: {
     notifyTitle: 'Activer les notifications',
