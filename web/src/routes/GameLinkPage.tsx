@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
@@ -12,7 +12,6 @@ import { gameTimeLabel, gameTypeLabels } from '../lib/format'
 import { SportIcon } from '../components/icons'
 import { Button, PageHeader, Spinner } from '../components/ui'
 import { InviteTicket } from '../components/InviteTicket'
-import { MatchSeats } from '../components/MatchSeats'
 import type { GameStatus, GameType } from '../lib/types'
 import { useLocale } from '../i18n/LocaleProvider'
 
@@ -25,8 +24,6 @@ type Preview = {
   sport_name: string
   sport_slug: string
   game_type: GameType
-  max_players?: number
-  player_count?: number
 }
 
 export function GameLinkPage() {
@@ -35,7 +32,6 @@ export function GameLinkPage() {
   const navigate = useNavigate()
   const { t } = useLocale()
   const tl = t.games.link
-  const [seated, setSeated] = useState(false)
 
   useEffect(() => {
     if (token) stashGameShareToken(token)
@@ -88,23 +84,8 @@ export function GameLinkPage() {
             pull={tl.stubPull}
             actions={
               <div className="rounded-2xl border border-line bg-surface p-5">
-                {preview.max_players != null && preview.player_count != null && (
-                  <div className="mb-4">
-                    <MatchSeats
-                      taken={preview.player_count}
-                      max={preview.max_players}
-                      onTake={() => setSeated(true)}
-                      labels={{
-                        yourSeat: tl.yourSeat,
-                        you: tl.you,
-                        full: tl.full,
-                        count: tl.seats(preview.player_count + (seated ? 1 : 0), preview.max_players),
-                      }}
-                    />
-                  </div>
-                )}
                 <p className="text-sm text-ink-2">{tl.signInHint}</p>
-                <Button className={`ftg-icta mt-4 w-full ${seated ? 'is-pulse' : ''}`} onClick={() => navigate('/?login=1')}>
+                <Button className="mt-4 w-full" onClick={() => navigate('/?login=1')}>
                   {tl.signIn}
                 </Button>
                 <Link to="/register" className="mt-3 block text-center text-sm font-semibold text-brand">

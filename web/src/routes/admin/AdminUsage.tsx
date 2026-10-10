@@ -1,10 +1,8 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { Card, Chip } from '../../components/ui'
 import { SportName } from '../../components/icons'
-import { StatTile } from '../../components/StatTile'
-import { Odometer } from '../../components/Odometer'
 import { Loading } from '../CourtPage'
 import { currentLocale, useLocale } from '../../i18n/LocaleProvider'
 
@@ -86,12 +84,11 @@ export function AdminUsage() {
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {tiles.map(([label, value, previous]) => (
-            <StatTile
-              key={label}
-              label={label}
-              value={value}
-              footer={previous !== undefined && <Delta count={value} previous={previous} />}
-            />
+            <Card key={label}>
+              <p className="text-xs font-semibold uppercase text-ink-2">{label}</p>
+              <p className="display mt-1 text-5xl font-extrabold tabular-nums">{value}</p>
+              {previous !== undefined && <Delta count={value} previous={previous} />}
+            </Card>
           ))}
         </div>
         <p className="text-sm text-ink-2">
@@ -173,9 +170,7 @@ export function AdminUsage() {
           <p className="mt-1 text-sm text-ink-2">{u.retentionEmpty}</p>
         ) : (
           <div className="mt-1 flex flex-wrap items-baseline gap-x-4 gap-y-1">
-            <p className="display text-5xl font-extrabold tabular-nums">
-              <Odometer value={pct} /> %
-            </p>
+            <p className="display text-5xl font-extrabold tabular-nums">{pct} %</p>
             <p className="min-w-0 flex-1 basis-56 text-sm text-ink-2">
               {u.retentionText(data.retention.returned, data.retention.cohort)}
             </p>
@@ -204,7 +199,7 @@ function BarRow({
         <p className="flex shrink-0 items-baseline gap-2 tabular-nums text-ink-2">{right}</p>
       </div>
       <div className="mt-1 h-2 rounded-full bg-surface-2">
-        <div className={`ftg-hbar-grow h-2 rounded-full ${barClass}`} style={{ width: `${Math.min(1, share) * 100}%` }} />
+        <div className={`h-2 rounded-full ${barClass}`} style={{ width: `${Math.min(1, share) * 100}%` }} />
       </div>
     </li>
   )
@@ -246,36 +241,6 @@ function DailyBars({
   const max = Math.max(1, ...values)
   const step = 10
   const height = 60
-  const curve = useRef<SVGPathElement>(null)
-  const dot = useRef<HTMLSpanElement>(null)
-  const key = values.join(',')
-  const d = values
-    .map((v, i) => `${i ? 'L' : 'M'}${(i * step + step / 2).toFixed(1)} ${(height - (v / max) * height * 0.92).toFixed(1)}`)
-    .join(' ')
-  // The line over the bars draws itself from the left, a dot riding its tip.
-  useLayoutEffect(() => {
-    const line = curve.current
-    const tip = dot.current
-    if (!line || !tip || values.length < 2) return
-    const L = line.getTotalLength()
-    const W = values.length * step
-    line.style.strokeDasharray = `${L}`
-    line.style.strokeDashoffset = `${L}`
-    let raf = 0
-    const t0 = performance.now() + 250
-    const frame = (now: number) => {
-      const k = Math.max(0, Math.min(1, (now - t0) / 1100))
-      const e = 1 - Math.pow(1 - k, 3)
-      line.style.strokeDashoffset = `${L * (1 - e)}`
-      const p = line.getPointAtLength(L * e)
-      tip.style.left = `${(p.x / W) * 100}%`
-      tip.style.top = `${(p.y / height) * 100}%`
-      if (k < 1) raf = requestAnimationFrame(frame)
-    }
-    raf = requestAnimationFrame(frame)
-    return () => cancelAnimationFrame(raf)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key])
   const fmt = (iso: string) =>
     new Date(`${iso}T12:00:00Z`).toLocaleDateString(currentLocale(), { day: 'numeric', month: 'short' })
   return (
@@ -284,7 +249,6 @@ function DailyBars({
         <span className="font-semibold">{label}</span>
         <span className="tabular-nums text-ink-2">{t.admin.usage.peak(Math.max(0, ...values))}</span>
       </figcaption>
-      <div className="relative">
       <svg
         viewBox={`0 0 ${days.length * step} ${height}`}
         preserveAspectRatio="none"
@@ -292,34 +256,24 @@ function DailyBars({
         role="img"
         aria-label={label}
       >
-        {days.map((day, i) => {
+        {days.map((d, i) => {
           const v = values[i]
           const h = v ? Math.max(2, (v / max) * height) : 1
           return (
             <rect
-              key={day.date}
+              key={d.date}
               x={i * step + step * 0.15}
               y={height - h}
               width={step * 0.7}
               height={h}
               rx={Math.min(2, step * 0.2)}
-              className={`ftg-bar-grow ${v ? barClass : 'fill-line'}`}
-              style={{ ['--d' as string]: `${i * 18}ms` }}
+              className={v ? barClass : 'fill-line'}
             >
-              <title>{`${fmt(day.date)} · ${v}`}</title>
+              <title>{`${fmt(d.date)} · ${v}`}</title>
             </rect>
           )
         })}
       </svg>
-      {values.length > 1 && (
-        <>
-          <svg viewBox={`0 0 ${days.length * step} ${height}`} preserveAspectRatio="none" className="ftg-curve" aria-hidden>
-            <path ref={curve} d={d} />
-          </svg>
-          <span ref={dot} className="ftg-curve-dot" aria-hidden />
-        </>
-      )}
-      </div>
       {days.length > 0 && (
         <div className="mt-1 flex justify-between text-xs tabular-nums text-ink-2">
           <span>{fmt(days[0].date)}</span>

@@ -47,7 +47,6 @@ export const en = {
     openReports: 'Open reports',
     mostActiveCourts: 'Most active courts · 30 days',
     noActivity: 'No activity yet.',
-    live: 'Live',
     visits: (n: number) => `${n} check-ins & joins`,
   },
   usage: {
@@ -171,9 +170,6 @@ export const en = {
     resolve: 'Resolve',
     reopen: 'Reopen',
     empty: 'Nothing to review. 🎉',
-    trayDone: 'Resolved',
-    traySkip: 'Dismissed',
-    swipeHint: 'Swipe → resolve · ← dismiss',
   },
   settings: {
     descriptions: {
@@ -238,7 +234,6 @@ export const fr: typeof en = {
     openReports: 'Signalements ouverts',
     mostActiveCourts: 'Terrains les plus actifs · 30 jours',
     noActivity: 'Aucune activité pour l’instant.',
-    live: 'En direct',
     visits: (n: number) => `${n} check-ins et participations`,
   },
   usage: {
@@ -364,9 +359,6 @@ export const fr: typeof en = {
     resolve: 'Résoudre',
     reopen: 'Rouvrir',
     empty: 'Rien à examiner. 🎉',
-    trayDone: 'Traités',
-    traySkip: 'Ignorés',
-    swipeHint: 'Glissez → traité · ← ignoré',
   },
   settings: {
     descriptions: {

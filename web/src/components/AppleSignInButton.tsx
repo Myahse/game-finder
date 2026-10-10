@@ -1,12 +1,10 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { firebaseAppleIdToken, firebaseAuthEnabled, isAppleSignInEnabled, signInErrorText } from '../lib/firebase'
 import { useLocale } from '../i18n/LocaleProvider'
-import { ErrorText } from './ui'
-import { SocialTrace } from './SocialTrace'
-import { playSignedIn, pressSocial } from '../lib/socialFx'
+import { ErrorText, Spinner } from './ui'
 
 /** Off by default — needs Apple Developer + Firebase Apple provider (see scripts/setup-apple-auth.md). */
 export const appleSignInEnabled = firebaseAuthEnabled && isAppleSignInEnabled()
@@ -22,8 +20,6 @@ export function AppleSignInButton({
   const { t } = useLocale()
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const btn = useRef<HTMLButtonElement>(null)
-  const btnRect = useRef<DOMRect | null>(null)
 
   if (!appleSignInEnabled) return null
 
@@ -44,39 +40,24 @@ export function AppleSignInButton({
   return (
     <div className="grid gap-2">
       <button
-        ref={btn}
         type="button"
         disabled={busy}
-        aria-busy={busy}
         onClick={() => {
-          // React clears the ref when the page swaps after sign-in: keep the element.
-          const el = btn.current
-          pressSocial(el)
-          btnRect.current = btn.current?.getBoundingClientRect() ?? null
           setBusy(true)
           setError('')
           void firebaseAppleIdToken()
-            .then((token) => {
-              if (el?.isConnected) btnRect.current = el.getBoundingClientRect()
-              return googleSignIn(token, true)
-            })
-            .then(() => {
-              playSignedIn(el, btnRect.current, t.common.signedIn)
-              onSignedIn?.()
-            })
+            .then((token) => googleSignIn(token, true))
+            .then(() => onSignedIn?.())
             .catch((e) => {
               const text = signInErrorText(e)
               if (text !== null) setError(text ?? errorMessage(e))
             })
             .finally(() => setBusy(false))
         }}
-        className={`ftg-soc ${busy ? 'is-busy' : ''} flex min-h-11 w-full items-center justify-center gap-3 rounded-full bg-black px-4 text-[15px] font-semibold text-white disabled:opacity-50 dark:bg-white dark:text-black`}
+        className="flex min-h-11 w-full items-center justify-center gap-3 rounded-full bg-black px-4 text-[15px] font-semibold text-white disabled:opacity-50 dark:bg-white dark:text-black"
       >
-        <SocialTrace />
-        <span className="ftg-soc-lb">
-          <AppleIcon />
-          {t.welcome.continueApple}
-        </span>
+        {busy ? <Spinner className="text-current" /> : <AppleIcon />}
+        {t.welcome.continueApple}
       </button>
       <ErrorText>{error}</ErrorText>
       {terms}

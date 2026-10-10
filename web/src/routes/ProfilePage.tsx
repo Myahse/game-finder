@@ -27,7 +27,6 @@ import { useMySport } from '../lib/mySport'
 import { ScreenGuide } from '../components/ScreenGuide'
 import { Avatar, Button, Card, CountUp, ErrorText, Field, Input, PageHeader, Select } from '../components/ui'
 import { Loading } from './CourtPage'
-import { playGoodbye } from '../lib/goodbye'
 
 export function ProfileCard({ user, viewerIsAdmin = false }: { user: PublicUser; viewerIsAdmin?: boolean }) {
   const { t, locale } = useLocale()
@@ -213,12 +212,7 @@ export function ProfilePage() {
             {t.profile.adminDashboard}
           </Link>
         )}
-        <Button
-          variant="secondary"
-          onClick={() =>
-            void playGoodbye(logout, { bubble: t.common.seeYou, avatar: document.querySelector('[data-profile-avatar]') })
-          }
-        >
+        <Button variant="secondary" onClick={logout}>
           {t.common.logOut}
         </Button>
       </div>
