@@ -1,0 +1,223 @@
+/* Feedback motion: toasts, page titles, offline banner, notifications, challenge answers. */
+
+/* Toasts: the success check draws itself; an error shakes once. */
+.ftg-toast-ico {
+  width: 20px;
+  height: 20px;
+  overflow: visible;
+}
+.ftg-toast-ico circle {
+  stroke-dasharray: 57;
+  stroke-dashoffset: 57;
+  animation: ftg-draw 0.45s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+.ftg-toast-ico path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: ftg-draw 0.32s 0.34s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+.ftg-toast-ico.is-error path {
+  animation-delay: 0.3s;
+}
+@keyframes ftg-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+[data-sonner-toast][data-type='error'] [data-icon],
+[data-sonner-toast][data-type='error'] [data-content] {
+  animation: ftg-shake 0.42s 0.15s linear;
+}
+
+/* Page titles shrink into the top bar once the page scrolls. */
+.ftg-head {
+  transition:
+    padding 0.25s ease,
+    box-shadow 0.25s ease;
+}
+.ftg-head h1 {
+  transform-origin: left center;
+  transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.25);
+}
+.ftg-head[data-shrunk] {
+  padding-block: 0.35rem;
+  box-shadow: 0 8px 20px -14px rgb(0 0 0 / 0.45);
+}
+.ftg-head[data-shrunk] h1 {
+  transform: scale(0.74);
+}
+
+/* No internet: the ball deflates; it pumps back up when the connection returns. */
+.ftg-offline {
+  animation: ftg-offline-in 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+}
+.ftg-offline.is-leaving {
+  animation: ftg-offline-out 0.35s ease-in forwards;
+}
+@keyframes ftg-offline-in {
+  from {
+    transform: translateY(-120%);
+  }
+}
+@keyframes ftg-offline-out {
+  to {
+    transform: translateY(-120%);
+    opacity: 0;
+  }
+}
+.ftg-offline-ball {
+  transform-origin: 50% 100%;
+  transform-box: fill-box;
+  animation: ftg-deflate 1.4s 0.25s cubic-bezier(0.3, 0.7, 0.4, 1) forwards;
+}
+.ftg-offline.is-online .ftg-offline-ball {
+  animation: ftg-reinflate 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.6) forwards;
+}
+@keyframes ftg-deflate {
+  0% {
+    transform: scale(1, 1);
+  }
+  20% {
+    transform: scale(1.04, 0.96);
+  }
+  45% {
+    transform: scale(1.12, 0.78);
+  }
+  70% {
+    transform: scale(1.22, 0.6);
+  }
+  85% {
+    transform: scale(1.26, 0.52) rotate(-2deg);
+  }
+  100% {
+    transform: scale(1.28, 0.5) rotate(0deg);
+  }
+}
+@keyframes ftg-reinflate {
+  0% {
+    transform: scale(1.28, 0.5);
+  }
+  60% {
+    transform: scale(0.92, 1.12);
+  }
+  100% {
+    transform: scale(1, 1);
+  }
+}
+.ftg-offline-air {
+  opacity: 0;
+  animation: ftg-air 1.2s 0.3s ease-out 2;
+}
+@keyframes ftg-air {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  20% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(10px, -8px);
+  }
+}
+
+/* Notifications: new ones slide in, "mark all read" sweeps the list, swipe one away. */
+.ftg-notif-new {
+  animation: ftg-notif-in 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+}
+@keyframes ftg-notif-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-18px) scale(0.96);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 55%, transparent);
+  }
+  60% {
+    opacity: 1;
+    box-shadow: 0 0 0 8px transparent;
+  }
+  100% {
+    transform: none;
+  }
+}
+.ftg-notif-row {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.28s ease;
+}
+.ftg-notif-row.is-gone {
+  grid-template-rows: 0fr;
+}
+.ftg-notif-row > * {
+  min-height: 0;
+}
+.ftg-notif-card {
+  position: relative;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+.ftg-notif-sweep::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, color-mix(in srgb, var(--brand) 22%, transparent) 50%, transparent 80%);
+  transform: translateX(-110%);
+  animation: ftg-sweep 0.55s ease-in-out forwards;
+  animation-delay: calc(var(--i, 0) * 55ms);
+  pointer-events: none;
+}
+@keyframes ftg-sweep {
+  to {
+    transform: translateX(110%);
+  }
+}
+.ftg-notif-sweep .ftg-notif-dot {
+  animation: ftg-dot-out 0.3s ease-in forwards;
+  animation-delay: calc(var(--i, 0) * 55ms + 0.3s);
+}
+@keyframes ftg-dot-out {
+  40% {
+    transform: scale(1.5);
+  }
+  to {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+.ftg-notif-x {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.ftg-notif-card:hover .ftg-notif-x,
+.ftg-notif-card:focus-within .ftg-notif-x {
+  opacity: 1;
+}
+
+/* Challenge answers: accept glows green, decline tips the card away. */
+.ftg-ch-accepted {
+  animation: ftg-ch-accept 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+}
+@keyframes ftg-ch-accept {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--live) 60%, transparent);
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.025);
+  }
+  100% {
+    box-shadow: 0 0 0 14px transparent;
+    transform: scale(1);
+  }
+}
+.ftg-ch-decline {
+  transform-origin: 20% 100%;
+  animation: ftg-ch-decline 0.5s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+  pointer-events: none;
+}
+@keyframes ftg-ch-decline {
+  to {
+    transform: translateY(24px) rotate(-6deg) scale(0.94);
+    opacity: 0.25;
+  }
+}

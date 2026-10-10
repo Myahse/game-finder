@@ -70,6 +70,7 @@ export const en = {
     emptyTitle: 'All quiet',
     emptyBody: 'Nearby courts and games, invites from friends, and reminders show up here. Allow location on the map and turn on notifications.',
     unread: 'Unread',
+    remove: 'Remove',
   },
   friends: {
     title: 'Friends',
@@ -183,6 +184,7 @@ export const fr: typeof en = {
     emptyTitle: 'Tout est calme',
     emptyBody: 'Les terrains et matchs à proximité, les invitations de vos amis et les rappels apparaissent ici. Autorisez la localisation sur la carte et activez les notifications.',
     unread: 'Non lue',
+    remove: 'Supprimer',
   },
   friends: {
     title: 'Amis',

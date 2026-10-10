@@ -13,6 +13,9 @@ const en = {
   },
   common: {
     open: 'Open',
+    offline: 'No internet connection',
+    offlineHint: 'Pages refresh when you’re back online.',
+    backOnline: 'Back online',
     close: 'Close',
     edit: 'Edit',
     save: 'Save',
@@ -648,6 +651,9 @@ const fr: MessageTree = {
   },
   common: {
     open: 'Ouvrir',
+    offline: 'Pas de connexion internet',
+    offlineHint: 'Les pages se mettent à jour dès que tu es de nouveau en ligne.',
+    backOnline: 'De nouveau en ligne',
     close: 'Fermer',
     edit: 'Modifier',
     save: 'Enregistrer',

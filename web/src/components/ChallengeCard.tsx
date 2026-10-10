@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Crown, Globe, Lock, MapPin, Pencil, Share2, UserPlus, Zap } from 'lucide-react'
@@ -13,6 +13,8 @@ import { VisibilityPicker } from './ChallengeComposer'
 import { MoveCourtButton } from './MoveCourtSheet'
 import { Avatar, Button, Card, ErrorText, Input } from './ui'
 import { burstOrigin, celebrate } from '../lib/celebrate'
+import { replay, shockwave } from '../lib/fx'
+import '../styles/motion-feedback.css'
 
 const STATUS_CLS: Record<string, string> = {
   pending: 'bg-amber-400/20 text-amber-700 dark:text-amber-300',
@@ -65,19 +67,43 @@ export function ChallengeCard({ c }: { c: Challenge }) {
   const start = new Date(c.start_time)
   const soon = start.getTime() <= Date.now() + 10 * 60_000
   const when = soon && c.status === 'pending' ? t.challenge.nowLabel : new Intl.DateTimeFormat(locale, { weekday: 'short', hour: '2-digit', minute: '2-digit' }).format(start)
+  const cardRef = useRef<HTMLDivElement>(null)
   const run = (action: 'accept' | 'decline' | 'cancel' | 'confirm' | 'dispute', from?: Element) => {
     setError('')
     const origin = from ? burstOrigin(from) : undefined
-    act.mutate(
-      { id: c.id, action },
-      { onError: (e) => setError(errorMessage(e)), onSuccess: () => action === 'confirm' && celebrate(origin) },
-    )
+    const card = cardRef.current
+    const send = () =>
+      act.mutate(
+        { id: c.id, action },
+        {
+          onError: (e) => {
+            card?.classList.remove('ftg-ch-decline')
+            setError(errorMessage(e))
+          },
+          onSuccess: () => {
+            if (action === 'confirm') celebrate(origin)
+            if (action === 'decline') window.setTimeout(() => card?.classList.remove('ftg-ch-decline'), 1200)
+            if (action === 'accept') {
+              // Accept: a green ring pulses out from the button and the card glows.
+              if (from) shockwave(from, '#16a34a')
+              replay(card, 'ftg-ch-accepted')
+              celebrate(origin, 18)
+            }
+          },
+        },
+      )
+    // Decline: the card tips away first, then the answer is sent.
+    if (action === 'decline' && card) {
+      replay(card, 'ftg-ch-decline')
+      window.setTimeout(send, 420)
+    } else send()
   }
   const reporter = c.reported_by === c.challenger.id ? c.challenger : c.opponent
   const winner = c.winner_id === c.challenger.id ? c.challenger : c.opponent
   const score = c.score_challenger || c.score_opponent ? `(${c.score_challenger ?? '–'}–${c.score_opponent ?? '–'})` : ''
 
   return (
+    <div ref={cardRef} className="rounded-2xl">
     <Card className="grid grid-cols-[minmax(0,1fr)] gap-3">
       <div className="flex items-center justify-between gap-2">
         <span className="flex min-w-0 items-center gap-1.5 font-bold">
@@ -188,11 +214,11 @@ export function ChallengeCard({ c }: { c: Challenge }) {
         <div className="grid grid-cols-2 gap-2 empty:hidden">
           {(invited || (c.status === 'pending' && c.is_open && !iAmChallenger && !c.my_status)) && (
             <>
-              <Button type="button" variant="live" className={invited ? '' : 'col-span-2'} onClick={() => run('accept')} loading={act.isPending}>
+              <Button type="button" variant="live" className={invited ? '' : 'col-span-2'} onClick={(e) => run('accept', e.currentTarget)} loading={act.isPending}>
                 {invited ? t.challenge.accept : t.challenge.take}
               </Button>
               {invited && (
-                <Button type="button" variant="secondary" onClick={() => run('decline')}>
+                <Button type="button" variant="secondary" onClick={(e) => run('decline', e.currentTarget)}>
                   {t.challenge.decline}
                 </Button>
               )}
@@ -231,6 +257,7 @@ export function ChallengeCard({ c }: { c: Challenge }) {
       )}
       <ErrorText>{error}</ErrorText>
     </Card>
+    </div>
   )
 }
 

@@ -238,6 +238,7 @@ func (s *Server) Routes() http.Handler {
 			r.Get("/notifications", s.listNotifications)
 			r.Post("/notifications/{id}/read", s.readNotification)
 			r.Post("/notifications/read-all", s.readAllNotifications)
+			r.Delete("/notifications/{id}", s.deleteNotification)
 
 			r.Post("/uploads", s.upload)
 

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Toaster } from 'sonner'
+import '../styles/motion-feedback.css'
 
 export type ResolvedTheme = 'light' | 'dark'
 
@@ -53,6 +54,21 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         position="top-center"
         closeButton
         richColors
+        icons={{
+          // The check and the cross draw themselves (styles/motion-feedback.css).
+          success: (
+            <svg className="ftg-toast-ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <circle cx="10" cy="10" r="8.6" transform="rotate(-90 10 10)" />
+              <path d="M6 10.4l2.7 2.7L14.2 7.4" />
+            </svg>
+          ),
+          error: (
+            <svg className="ftg-toast-ico is-error" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden>
+              <circle cx="10" cy="10" r="8.6" transform="rotate(-90 10 10)" />
+              <path d="M7.2 7.2l5.6 5.6M12.8 7.2l-5.6 5.6" />
+            </svg>
+          ),
+        }}
         toastOptions={{
           classNames: {
             toast: 'ftg-sonner-toast',

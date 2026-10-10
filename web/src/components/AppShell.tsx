@@ -11,6 +11,7 @@ import { notificationLink } from '../lib/notificationLinks'
 import { registerWebPush, showSystemNotification } from '../lib/webPush'
 import { usePolledNotificationToasts } from '../lib/usePolledNotificationToasts'
 import { CourtChangeAlert } from './CourtChangeAlert'
+import { OfflineBanner } from './OfflineBanner'
 import { EngagementPrompts } from './EngagementPrompts'
 import { hasPlayerAvatar } from '../avatar/resolve'
 import { PresenceWatcher } from './PresenceWatcher'
@@ -210,6 +211,7 @@ export function AppShell() {
         )}
       </nav>
 
+      <OfflineBanner />
       <main
         ref={mainRef}
         className={`relative min-h-0 flex-1 overflow-y-auto md:pb-0 ${

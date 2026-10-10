@@ -1,4 +1,4 @@
-import { useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react'
+import { useEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { activityIcons } from './icons'
@@ -203,8 +203,20 @@ function AvatarImage({ user, size }: { user: AvatarUser; size: number }) {
 
 export function PageHeader({ title, back, right }: { title: string; back?: string; right?: ReactNode }) {
   const { t } = useLocale()
+  const ref = useRef<HTMLElement>(null)
+  // The title shrinks into the bar once the page (the app's scrolling <main>) moves.
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const scroller: HTMLElement | Window = el.closest('main') ?? window
+    const top = () => (scroller instanceof Window ? scroller.scrollY : scroller.scrollTop)
+    const update = () => el.toggleAttribute('data-shrunk', top() > 12)
+    update()
+    scroller.addEventListener('scroll', update, { passive: true })
+    return () => scroller.removeEventListener('scroll', update)
+  }, [])
   return (
-    <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-line bg-bg/90 px-4 py-3 backdrop-blur">
+    <header ref={ref} className="ftg-head sticky top-0 z-10 flex items-center gap-2 border-b border-line bg-bg/90 px-4 py-3 backdrop-blur">
       {back && (
         <Link to={back} className="-ml-2 rounded-lg p-2 text-ink-2 hover:text-ink" aria-label={t.account.back}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">

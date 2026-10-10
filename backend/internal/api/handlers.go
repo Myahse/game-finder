@@ -1066,6 +1066,16 @@ func (s *Server) readNotification(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// deleteNotification removes one of my notifications (swiped away in the list).
+func (s *Server) deleteNotification(w http.ResponseWriter, r *http.Request) {
+	if err := s.db.Exec(r.Context(), uid(r),
+		"delete from notifications where id = $1 and user_id = app_uid()", chi.URLParam(r, "id")); err != nil {
+		writeDBError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (s *Server) readAllNotifications(w http.ResponseWriter, r *http.Request) {
 	if err := s.db.Exec(r.Context(), uid(r),
 		"update notifications set read = true where user_id = app_uid() and not read"); err != nil {
