@@ -170,6 +170,13 @@ export const en = {
     resolve: 'Resolve',
     reopen: 'Reopen',
     empty: 'Nothing to review. 🎉',
+    trayDone: 'Resolved',
+    traySkip: 'Dismissed',
+    swipeHint: 'Swipe → resolve · ← dismiss',
+    undoResolved: 'Report resolved',
+    undoRejected: 'Report dismissed',
+    undo: 'Undo',
+    allClear: 'Nothing to review',
   },
   settings: {
     descriptions: {
@@ -359,6 +366,13 @@ export const fr: typeof en = {
     resolve: 'Résoudre',
     reopen: 'Rouvrir',
     empty: 'Rien à examiner. 🎉',
+    trayDone: 'Traités',
+    traySkip: 'Ignorés',
+    swipeHint: 'Glissez → traité · ← ignoré',
+    undoResolved: 'Signalement traité',
+    undoRejected: 'Signalement ignoré',
+    undo: 'Annuler',
+    allClear: 'Rien à examiner',
   },
   settings: {
     descriptions: {

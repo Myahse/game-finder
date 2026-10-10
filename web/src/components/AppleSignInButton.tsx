@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { errorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { firebaseAppleIdToken, firebaseAuthEnabled, isAppleSignInEnabled, signInErrorText } from '../lib/firebase'
 import { useLocale } from '../i18n/LocaleProvider'
-import { ErrorText, Spinner } from './ui'
+import { ErrorText } from './ui'
+import { SocialTrace } from './SocialTrace'
+import { failSocial, playSignedIn, pressSocial, signedInBadge } from '../lib/socialFx'
 
 /** Off by default — needs Apple Developer + Firebase Apple provider (see scripts/setup-apple-auth.md). */
 export const appleSignInEnabled = firebaseAuthEnabled && isAppleSignInEnabled()
@@ -20,6 +22,10 @@ export function AppleSignInButton({
   const { t } = useLocale()
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const btn = useRef<HTMLButtonElement>(null)
+  const btnRect = useRef<DOMRect | null>(null)
+  const [failed, setFailed] = useState(false)
+  const [tries, setTries] = useState(0)
 
   if (!appleSignInEnabled) return null
 
@@ -40,24 +46,48 @@ export function AppleSignInButton({
   return (
     <div className="grid gap-2">
       <button
+        ref={btn}
         type="button"
         disabled={busy}
+        aria-busy={busy}
         onClick={() => {
+          // React clears the ref when the page swaps after sign-in: keep the element.
+          const el = btn.current
+          pressSocial(el)
+          btnRect.current = btn.current?.getBoundingClientRect() ?? null
           setBusy(true)
           setError('')
           void firebaseAppleIdToken()
-            .then((token) => googleSignIn(token, true))
-            .then(() => onSignedIn?.())
+            .then((token) => {
+              if (el?.isConnected) btnRect.current = el.getBoundingClientRect()
+              return googleSignIn(token, true)
+            })
+            .then(() => {
+              const badge = signedInBadge(t.common.signedInAs)
+              void playSignedIn(el, btnRect.current, badge.label, badge.initials)
+              onSignedIn?.()
+            })
             .catch((e) => {
               const text = signInErrorText(e)
-              if (text !== null) setError(text ?? errorMessage(e))
+              if (text !== null) {
+                setError(text ?? errorMessage(e))
+                setFailed(true)
+                setTries((n) => n + 1)
+                failSocial(el)
+                window.setTimeout(() => setFailed(false), 1600)
+              }
             })
             .finally(() => setBusy(false))
         }}
-        className="flex min-h-11 w-full items-center justify-center gap-3 rounded-full bg-black px-4 text-[15px] font-semibold text-white disabled:opacity-50 dark:bg-white dark:text-black"
+        className={`ftg-soc ${busy ? 'is-busy' : ''} ${failed ? 'is-bad' : ''} flex min-h-11 w-full items-center justify-center gap-3 rounded-full bg-black px-4 text-[15px] font-semibold text-white disabled:opacity-50 dark:bg-white dark:text-black`}
       >
-        {busy ? <Spinner className="text-current" /> : <AppleIcon />}
-        {t.welcome.continueApple}
+        <SocialTrace />
+        <span key={failed ? 'retry' : 'idle'} className={`ftg-soc-lb ${tries ? 'ftg-soc-roll' : ''}`}>
+          <span className="ftg-soc-logo">
+            <AppleIcon />
+          </span>
+          {failed ? t.common.tryAgain : t.welcome.continueApple}
+        </span>
       </button>
       <ErrorText>{error}</ErrorText>
       {terms}

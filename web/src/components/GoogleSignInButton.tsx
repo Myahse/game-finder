@@ -7,6 +7,8 @@ import { appleSignInEnabled } from './AppleSignInButton'
 import { useLocale } from '../i18n/LocaleProvider'
 import { useTheme } from '../theme/ThemeProvider'
 import { Button, ErrorText, Spinner } from './ui'
+import { SocialTrace } from './SocialTrace'
+import { failSocial, playSignedIn, pressSocial, signedInBadge } from '../lib/socialFx'
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim() ?? ''
 const SCRIPT_SRC = 'https://accounts.google.com/gsi/client'
@@ -66,6 +68,17 @@ export function GoogleSignInButton({
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [ready, setReady] = useState(useFirebase)
+  const [tracing, setTracing] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const [tries, setTries] = useState(0)
+  const fail = () => {
+    setFailed(true)
+    setTries((n) => n + 1)
+    failSocial(btn.current)
+    window.setTimeout(() => setFailed(false), 1600)
+  }
+  const btn = useRef<HTMLButtonElement>(null)
+  const btnRect = useRef<DOMRect | null>(null)
   const { isDark: dark } = useTheme()
 
   const finish = async (idToken: string, viaFirebase: boolean) => {
@@ -74,14 +87,23 @@ export function GoogleSignInButton({
     setBusy(true)
     setError('')
     try {
+      // React clears the ref when the page swaps after sign-in: keep the element.
+      const el = btn.current
+      if (el?.isConnected) btnRect.current = el.getBoundingClientRect()
       await googleSignIn(idToken, viaFirebase)
+      if (viaFirebase) {
+        const badge = signedInBadge(t.common.signedInAs)
+        void playSignedIn(el, btnRect.current, badge.label, badge.initials)
+      }
       onSignedIn?.()
       if (navigateAfterSignIn !== null) navigate(navigateAfterSignIn, { replace: true })
     } catch (e) {
       setError(errorMessage(e))
+      if (viaFirebase) fail()
     } finally {
       signInFlight.current = false
       setBusy(false)
+      setTracing(false)
     }
   }
 
@@ -155,25 +177,39 @@ export function GoogleSignInButton({
     return (
       <div className="grid gap-2">
         <button
+          ref={btn}
           type="button"
           disabled={busy || !sessionReady}
+          aria-busy={busy || tracing}
           onClick={() => {
             if (!sessionReady) return
+            pressSocial(btn.current)
+            btnRect.current = btn.current?.getBoundingClientRect() ?? null
+            setTracing(true)
             void firebaseGoogleIdToken()
               .then((token) => finish(token, true))
               .catch((e) => {
+                setTracing(false)
                 const text = signInErrorText(e)
-                if (text !== null) setError(text ?? errorMessage(e))
+                if (text !== null) {
+                  setError(text ?? errorMessage(e))
+                  fail()
+                }
               })
           }}
-          className={
+          className={`ftg-soc ${busy || tracing ? 'is-busy' : ''} ${failed ? 'is-bad' : ''} ${
             dark
               ? 'flex min-h-11 w-full items-center justify-center gap-3 rounded-full bg-[#131314] px-4 text-[15px] font-semibold text-[#E3E3E3] ring-1 ring-[#8E918F] disabled:opacity-50'
               : 'flex min-h-11 w-full items-center justify-center gap-3 rounded-full border border-line bg-surface px-4 text-[15px] font-semibold text-ink shadow-sm disabled:opacity-50'
-          }
+          }`}
         >
-          {busy ? <Spinner className={dark ? 'text-[#E3E3E3]' : 'text-ink-2'} /> : <GoogleGIcon />}
-          {t.account.continueGoogle}
+          <SocialTrace />
+          <span key={failed ? 'retry' : 'idle'} className={`ftg-soc-lb ${tries ? 'ftg-soc-roll' : ''}`}>
+            <span className="ftg-soc-logo">
+              <GoogleGIcon />
+            </span>
+            {failed ? t.common.tryAgain : t.account.continueGoogle}
+          </span>
         </button>
         <ErrorText>{error}</ErrorText>
         {terms}
