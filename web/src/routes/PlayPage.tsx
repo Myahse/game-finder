@@ -7,7 +7,7 @@ import { usePlayGamesNearby, useSports } from '../lib/queries'
 import { useAuth } from '../lib/auth'
 import { useQueryErrorToast } from '../lib/toastErrors'
 import { sortPlayable, splitScheduledBySoon } from '../lib/sort'
-import { GameCard } from '../components/GameCard'
+import { PlayGameCard } from '../components/PlayGameCard'
 import { MapPin } from 'lucide-react'
 import { BaseSportIcon, LiveText, SportName } from '../components/icons'
 import { ScreenGuide } from '../components/ScreenGuide'
@@ -114,7 +114,7 @@ export function PlayPage() {
                 <div className={`grid gap-2 ${intro}`}>
                   {live.map((g) => (
                     <div key={g.id} className={pulseIds.has(g.id) ? 'ftg-game-enter' : undefined}>
-                      <GameCard game={g} />
+                      <PlayGameCard game={g} />
                     </div>
                   ))}
                 </div>
@@ -126,7 +126,7 @@ export function PlayPage() {
                 <div className={`grid gap-2 ${intro}`}>
                   {soon.map((g) => (
                     <div key={g.id} className={pulseIds.has(g.id) ? 'ftg-game-enter' : undefined}>
-                      <GameCard game={g} />
+                      <PlayGameCard game={g} />
                     </div>
                   ))}
                 </div>
@@ -139,7 +139,7 @@ export function PlayPage() {
                 <div className={`grid gap-2 ${intro}`}>
                   {upcoming.map((g) => (
                     <div key={g.id} className={pulseIds.has(g.id) ? 'ftg-game-enter' : undefined}>
-                      <GameCard game={g} scheduleAccent="upcoming" />
+                      <PlayGameCard game={g} scheduleAccent="upcoming" />
                     </div>
                   ))}
                 </div>

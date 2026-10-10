@@ -8,6 +8,8 @@ import { topPerformers, type Scoreboard } from '../lib/scoreboard'
 import type { Game } from '../lib/types'
 import { Button, Spinner } from './ui'
 import { useSheetExit } from '../lib/motion'
+import { buzz, sparkle } from '../lib/fx'
+import '../styles/motion-play.css'
 
 /** "Share result": the scoreboard as an image card + link to the game. */
 export function ShareResultButton({ game, sb }: { game: Game; sb: Scoreboard }) {
@@ -127,7 +129,17 @@ function ResultSheet({ game, sb, onClose: dismiss }: { game: Game; sb: Scoreboar
           </button>
         </div>
         <div className="mx-auto flex aspect-[4/5] w-full max-w-[17rem] items-center justify-center overflow-hidden rounded-2xl bg-surface-2">
-          {card ? <img src={card.src} alt={t.scoreboard.preview} className="h-full w-full object-cover" /> : failed ? <p className="p-4 text-center text-sm text-ink-2">{t.share.failed}</p> : <Spinner className="text-brand" />}
+          {card ? (
+            <img
+              src={card.src}
+              alt={t.scoreboard.preview}
+              className="ftg-play-card-in h-full w-full object-cover"
+              onAnimationEnd={(e) => {
+                sparkle(e.currentTarget, 14)
+                buzz(10)
+              }}
+            />
+          ) : failed ? <p className="p-4 text-center text-sm text-ink-2">{t.share.failed}</p> : <Spinner className="text-brand" />}
         </div>
         <div className="mt-4 grid grid-cols-2 gap-2">
           <Button type="button" onClick={() => void share()} disabled={!card}>

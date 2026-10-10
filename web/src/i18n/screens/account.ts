@@ -11,6 +11,11 @@ export const en = {
     loading: 'Loading',
     showPassword: 'Show password',
     hidePassword: 'Hide password',
+    pwStrength: 'Password strength',
+    pwWeak: 'Weak',
+    pwFair: 'Fair',
+    pwGood: 'Good',
+    pwStrong: 'Strong',
     kingOfCourt: 'King of the Court',
   },
   register: {
@@ -119,6 +124,11 @@ export const fr: typeof en = {
     loading: 'Chargement',
     showPassword: 'Afficher le mot de passe',
     hidePassword: 'Masquer le mot de passe',
+    pwStrength: 'Solidité du mot de passe',
+    pwWeak: 'Faible',
+    pwFair: 'Moyen',
+    pwGood: 'Bon',
+    pwStrong: 'Solide',
     kingOfCourt: 'Roi du terrain',
   },
   register: {

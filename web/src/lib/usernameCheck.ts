@@ -13,9 +13,15 @@ export async function isUsernameTaken(username: string, sameAs?: string): Promis
   if (!usernamePattern.test(u)) return false
   if (sameAs && u.toLowerCase() === sameAs.trim().toLowerCase()) return false
   const seq = ++checkSeq
-  const r = await api<{ available: boolean }>(
-    `/api/auth/username-available?username=${encodeURIComponent(u)}`,
-  ).catch(() => null)
+  const available = await fetchUsernameAvailable(u)
   if (seq !== checkSeq) return false
-  return r ? !r.available : false
+  return available === false
+}
+
+/** Raw availability from the server: `true` / `false`, or `null` on a network error. No race guard. */
+export async function fetchUsernameAvailable(username: string): Promise<boolean | null> {
+  const r = await api<{ available: boolean }>(
+    `/api/auth/username-available?username=${encodeURIComponent(username.trim())}`,
+  ).catch(() => null)
+  return r ? r.available : null
 }

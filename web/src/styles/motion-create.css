@@ -1,0 +1,339 @@
+/* Create game page: max-players slider (F), start-time wheel (G), publish pin (H). */
+
+/* F · Max players slider */
+.ftg-create-mlabel {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.ftg-create-mval {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  line-height: 1;
+  font-weight: 900;
+  color: var(--brand);
+}
+.ftg-create-mval.ftg-create-pop {
+  animation: ftg-create-boing 0.5s var(--ftg-ease-spring);
+}
+.ftg-create-mtrack {
+  position: relative;
+  height: 10px;
+  border-radius: 10px;
+  background: var(--line);
+  margin: 56px 30px 0 16px;
+  touch-action: none;
+  cursor: pointer;
+}
+.ftg-create-mtrack::before {
+  content: '';
+  position: absolute;
+  inset: -18px -16px;
+}
+.ftg-create-mfill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 10px;
+  background: var(--brand);
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.ftg-create-mtrack.ftg-create-inf .ftg-create-mfill {
+  background: linear-gradient(90deg, var(--brand), #f2b632);
+  box-shadow: 0 0 14px rgba(242, 182, 50, 0.7);
+}
+.ftg-create-mend {
+  position: absolute;
+  right: -26px;
+  top: 50%;
+  transform: translateY(-55%);
+  font-weight: 900;
+  font-size: 18px;
+  color: var(--ink-2);
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+.ftg-create-mtrack.ftg-create-inf .ftg-create-mend {
+  opacity: 0;
+}
+.ftg-create-mthumb {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 4px var(--brand), 0 6px 14px rgba(0, 0, 0, 0.25);
+  touch-action: none;
+  cursor: grab;
+  outline: none;
+}
+.ftg-create-mthumb:focus-visible {
+  box-shadow: 0 0 0 4px var(--brand), 0 0 0 8px color-mix(in srgb, var(--brand) 35%, transparent), 0 6px 14px rgba(0, 0, 0, 0.25);
+}
+.ftg-create-mbub {
+  position: absolute;
+  left: 50%;
+  bottom: 38px;
+  min-width: 44px;
+  height: 40px;
+  padding: 0 8px;
+  translate: -50% 0;
+  border-radius: 12px;
+  background: var(--ink);
+  color: var(--bg);
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 26px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  white-space: nowrap;
+  transform-origin: 50% 130%;
+  pointer-events: none;
+  transition: background 0.25s, color 0.25s;
+}
+.ftg-create-mbub::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  margin-left: -7px;
+  border: 7px solid transparent;
+  border-bottom: 0;
+  border-top-color: var(--ink);
+  transition: border-color 0.25s;
+}
+.ftg-create-mtrack.ftg-create-inf .ftg-create-mbub {
+  background: #f2b632;
+  color: #12151a;
+  font-size: 20px;
+}
+.ftg-create-mtrack.ftg-create-inf .ftg-create-mbub::after {
+  left: 78%;
+  border-top-color: #f2b632;
+}
+/* The wider gold label hangs to the left so it stays inside the screen at the end. */
+.ftg-create-mtrack.ftg-create-inf .ftg-create-mbub {
+  translate: -78% 0;
+  transform-origin: 78% 130%;
+}
+.ftg-create-mbub-inf {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  animation: ftg-create-boing 0.5s var(--ftg-ease-spring);
+}
+.ftg-create-mbub-inf b {
+  font-size: 28px;
+  line-height: 1;
+}
+
+/* G · Start-time wheels */
+.ftg-create-whlab {
+  margin-bottom: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.ftg-create-whlab b {
+  display: inline-block;
+  color: var(--ink);
+}
+.ftg-create-whlab b.ftg-create-tick {
+  animation: ftg-create-tick 0.25s;
+}
+.ftg-create-whlab.ftg-create-past b {
+  color: var(--danger);
+}
+.ftg-create-wheels {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 180px;
+  margin-bottom: 8px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  overflow: hidden;
+  -webkit-mask: linear-gradient(transparent, #000 28%, #000 72%, transparent);
+  mask: linear-gradient(transparent, #000 28%, #000 72%, transparent);
+}
+.ftg-create-band {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 50%;
+  height: 38px;
+  margin-top: -19px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  transition: background 0.15s;
+  pointer-events: none;
+}
+.ftg-create-band.ftg-create-flash {
+  background: color-mix(in srgb, var(--brand) 22%, var(--surface-2));
+  transition: none;
+}
+.ftg-create-wh {
+  position: relative;
+  width: 76px;
+  height: 100%;
+  perspective: 520px;
+  touch-action: none;
+  cursor: grab;
+  outline: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.ftg-create-wh:focus-visible::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  top: 50%;
+  height: 40px;
+  margin-top: -20px;
+  border-radius: 10px;
+  box-shadow: 0 0 0 2px var(--brand);
+}
+.ftg-create-cyl {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+.ftg-create-cyl span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 36px;
+  margin-top: -18px;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 32px;
+  color: var(--ink);
+  backface-visibility: hidden;
+  font-variant-numeric: tabular-nums;
+}
+.ftg-create-colon {
+  position: relative;
+  margin-top: -4px;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 30px;
+  color: var(--ink);
+}
+
+/* H · Publish: the button folds into a round pin while the game is sent. */
+.ftg-create-pub {
+  justify-self: center;
+  width: 100%;
+  transition: width 0.4s cubic-bezier(0.5, 1.6, 0.5, 1), border-radius 0.3s, padding 0.3s, transform 0.15s, opacity 0.2s;
+}
+.ftg-create-pub.ftg-create-fold {
+  width: 48px;
+  min-width: 48px;
+  padding: 0;
+  border-radius: 24px;
+}
+.ftg-create-pub.ftg-create-fold:disabled {
+  opacity: 1;
+}
+.ftg-create-pub.ftg-create-gone {
+  opacity: 0;
+  transform: scale(0.2);
+}
+.ftg-create-flypin {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 60;
+  width: 40px;
+  height: 44px;
+  pointer-events: none;
+  transform-origin: 50% 100%;
+  will-change: transform;
+}
+.ftg-create-flypin svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 100%;
+}
+.ftg-create-flypin.ftg-create-land svg {
+  animation: ftg-create-pland 0.5s;
+}
+.ftg-create-flypin.ftg-create-out {
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.ftg-create-pinsh {
+  position: fixed;
+  z-index: 59;
+  width: 22px;
+  height: 6px;
+  margin: -3px 0 0 -11px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.4);
+  filter: blur(1.5px);
+  pointer-events: none;
+  animation: ftg-create-fadein 0.3s both;
+}
+.ftg-create-waves {
+  position: fixed;
+  z-index: 58;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.ftg-create-waves i {
+  position: absolute;
+  left: -140px;
+  top: -140px;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  border: 2.5px solid var(--brand);
+  opacity: 0;
+  animation: ftg-create-wave 1.4s cubic-bezier(0.2, 0.6, 0.3, 1) forwards;
+}
+.ftg-create-waves i:nth-child(2) {
+  animation-delay: 0.25s;
+}
+.ftg-create-waves i:nth-child(3) {
+  animation-delay: 0.5s;
+}
+
+@keyframes ftg-create-boing {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.12, 0.9); }
+  60% { transform: scale(0.96, 1.05); }
+  100% { transform: scale(1); }
+}
+@keyframes ftg-create-tick {
+  40% { transform: translateY(-2px); }
+}
+@keyframes ftg-create-pland {
+  0% { transform: scale(1.25, 0.7); }
+  40% { transform: scale(0.9, 1.12); }
+  70% { transform: scale(1.05, 0.96); }
+  100% { transform: none; }
+}
+@keyframes ftg-create-wave {
+  0% { transform: scale(0.04); opacity: 1; }
+  100% { transform: scale(1); opacity: 0; }
+}
+@keyframes ftg-create-fadein {
+  from { opacity: 0; }
+}

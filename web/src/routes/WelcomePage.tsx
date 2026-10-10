@@ -4,6 +4,7 @@ import { OrDivider } from '../components/GoogleSignInButton'
 import { SocialSignInButtons } from '../components/SocialSignInButtons'
 import { LoginBottomSheet } from '../components/LoginBottomSheet'
 import { SportPhotoBackdrop } from '../components/SportPhotoBackdrop'
+import { WelcomeBalls } from '../components/WelcomeBalls'
 import { PlatformIntroModal } from '../components/PlatformIntroModal'
 import { useLocale } from '../i18n/LocaleProvider'
 import { guestIntroSeen, markGuestIntroSeen } from '../lib/platformIntro'
@@ -45,6 +46,8 @@ export function WelcomePage() {
     <>
       <div className="relative flex min-h-full flex-col overflow-hidden bg-bg text-ink">
         <SportPhotoBackdrop />
+        {/* Hero only: phones = the photo band above the title; desktop = the photo panel on the right. */}
+        <WelcomeBalls className="absolute inset-x-0 top-0 z-[1] h-[46vh] lg:inset-y-0 lg:left-auto lg:h-full lg:w-[46%]" />
 
         <div className="relative mx-auto flex w-full max-w-md flex-1 flex-col justify-end px-6 pb-10 pt-[46vh] lg:mx-0 lg:ml-[max(3rem,calc(22vw-14rem))] lg:justify-center lg:py-12">
           <h1 className="display text-7xl font-extrabold sm:text-8xl">

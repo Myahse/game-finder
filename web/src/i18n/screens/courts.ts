@@ -25,6 +25,8 @@ export const en = {
   streetPlaceholder: 'Street or place name',
   removePhoto: 'Remove photo',
   backToMap: 'Back to map',
+  openPill: { open: 'Open', until: 'until {time}', closed: 'Closed', opensAt: 'opens at {time}' },
+  resizeSheet: 'Resize the court panel',
   report: {
     thanksTitle: 'Thanks for the report',
     thanksBody: 'An admin will review it.',
@@ -206,6 +208,8 @@ export const fr: typeof en = {
   streetPlaceholder: 'Rue ou nom du lieu',
   removePhoto: 'Retirer la photo',
   backToMap: 'Retour à la carte',
+  openPill: { open: 'Ouvert', until: 'jusqu’à {time}', closed: 'Fermé', opensAt: 'ouvre à {time}' },
+  resizeSheet: 'Agrandir ou réduire le panneau du terrain',
   report: {
     thanksTitle: 'Merci pour le signalement',
     thanksBody: 'Un administrateur va l’examiner.',

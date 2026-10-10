@@ -1,0 +1,336 @@
+/* Court area micro-animations (map sheet detents, open-now pill, leaderboard FLIP, move-for-rain). */
+
+/* M · Court sheet with detents */
+.ftg-court-x-dim {
+  position: absolute;
+  inset: 0;
+  z-index: 19;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+}
+.ftg-court-x-sheet {
+  will-change: transform;
+}
+.ftg-court-x-handle {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  border: 0;
+  background: none;
+  cursor: grab;
+  touch-action: none;
+}
+.ftg-court-x-handle:active {
+  cursor: grabbing;
+}
+.ftg-court-x-handle:focus-visible span {
+  outline: 2px solid var(--brand);
+  outline-offset: 3px;
+}
+
+/* Open-now pill: a breathing dot while the court is open */
+.ftg-court-x-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.ftg-court-x-open[data-open] {
+  color: var(--live);
+  background: color-mix(in srgb, var(--live) 14%, transparent);
+}
+.ftg-court-x-open:not([data-open]) {
+  color: var(--ink-2);
+  background: var(--surface-2);
+}
+.ftg-court-x-dot {
+  position: relative;
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: none;
+  border-radius: 50%;
+  background: currentColor;
+}
+.ftg-court-x-open[data-open] .ftg-court-x-dot::after,
+.ftg-court-x-ldot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: inherit;
+  animation: ftg-court-x-breath 1.8s ease-out infinite;
+}
+@keyframes ftg-court-x-breath {
+  0% { transform: scale(1); opacity: 0.7; }
+  100% { transform: scale(3); opacity: 0; }
+}
+/* Live player count: the dot beats when the number changes */
+.ftg-court-x-ldot {
+  position: relative;
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  margin-right: 0.5rem;
+  flex: none;
+  border-radius: 50%;
+  background: var(--live);
+  vertical-align: middle;
+}
+.ftg-court-x-ldot.ftg-court-x-beat {
+  animation: ftg-court-x-beat 0.4s;
+}
+@keyframes ftg-court-x-beat {
+  40% { transform: scale(1.6); }
+}
+
+/* Photo strip parallax: the picture is wider than its frame and drifts against the scroll */
+.ftg-court-x-ph {
+  position: relative;
+}
+.ftg-court-x-ph img {
+  position: absolute;
+  top: 0;
+  left: -24px;
+  width: calc(100% + 48px);
+  max-width: none;
+  height: 100%;
+  will-change: transform;
+}
+
+/* N · Leaderboard */
+.ftg-court-x-seg {
+  position: relative;
+}
+.ftg-court-x-seg > button {
+  position: relative;
+  z-index: 1;
+  transition: color 0.25s;
+}
+.ftg-court-x-segpill {
+  position: absolute;
+  top: 0.125rem;
+  bottom: 0.125rem;
+  left: 0;
+  width: 0;
+  border-radius: 0.5rem;
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+.ftg-court-x-row {
+  position: relative;
+  border-radius: 0.75rem;
+  background: var(--surface);
+  box-shadow: 0 var(--ftg-court-x-sh, 0px) calc(var(--ftg-court-x-sh, 0px) * 2.4) rgba(0, 0, 0, 0.18);
+}
+.ftg-court-x-rk {
+  transition: background-color 0.3s, color 0.3s;
+}
+.ftg-court-x-rk.ftg-court-x-flip {
+  animation: ftg-court-x-flip 0.5s;
+}
+@keyframes ftg-court-x-flip {
+  50% { transform: rotateX(90deg); }
+}
+.ftg-court-x-mv {
+  display: inline-block;
+  border-radius: 0.375rem;
+  padding: 0 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 900;
+  animation: ftg-court-x-pop 0.45s var(--ftg-ease-spring) 0.35s both;
+}
+.ftg-court-x-mv[data-dir='up'] {
+  color: var(--live);
+  background: color-mix(in srgb, var(--live) 15%, transparent);
+}
+.ftg-court-x-mv[data-dir='down'] {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 13%, transparent);
+}
+@keyframes ftg-court-x-pop {
+  from { transform: scale(0); }
+}
+
+/* O · Move the game away from the rain */
+.ftg-court-x-mvmap {
+  position: relative;
+  height: 13rem;
+  overflow: hidden;
+  border-radius: 1rem;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--ink) 6%, transparent) 1px, transparent 1px) 0 0 / 28px 28px,
+    linear-gradient(color-mix(in srgb, var(--ink) 6%, transparent) 1px, transparent 1px) 0 0 / 28px 28px,
+    var(--surface-2);
+}
+.ftg-court-x-court {
+  position: absolute;
+  width: 34px;
+  height: 22px;
+  margin: -11px 0 0 -17px;
+  border-radius: 4px;
+  background: #c2410c;
+  border: 2px solid #f4d2c2;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+  transition: box-shadow 0.4s;
+}
+.ftg-court-x-court i {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  border-left: 1.5px solid #f4d2c2;
+}
+.ftg-court-x-court i::after {
+  content: '';
+  position: absolute;
+  left: -5.5px;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  margin-top: -4.5px;
+  border: 1.5px solid #f4d2c2;
+  border-radius: 50%;
+}
+.ftg-court-x-court[data-wet] {
+  background: #64748b;
+  border-color: #cbd5e1;
+}
+.ftg-court-x-court[data-wet] i,
+.ftg-court-x-court[data-wet] i::after {
+  border-color: #cbd5e1;
+}
+.ftg-court-x-court[data-lit] {
+  box-shadow: 0 0 0 4px rgba(242, 182, 50, 0.6), 0 3px 8px rgba(0, 0, 0, 0.3);
+}
+.ftg-court-x-label {
+  position: absolute;
+  max-width: 40%;
+  transform: translate(-50%, 16px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
+  padding: 1px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.ftg-court-x-cloud {
+  position: absolute;
+  width: 58px;
+  height: 80px;
+  margin: -78px 0 0 -29px;
+  pointer-events: none;
+}
+.ftg-court-x-cloud svg {
+  position: relative;
+  z-index: 1;
+  animation: ftg-court-x-drift 4s ease-in-out infinite;
+}
+@keyframes ftg-court-x-drift {
+  50% { transform: translateX(4px); }
+}
+.ftg-court-x-cloud i {
+  position: absolute;
+  top: 30px;
+  width: 2px;
+  height: 9px;
+  border-radius: 2px;
+  background: #38bdf8;
+  animation: ftg-court-x-drop 0.7s linear infinite;
+}
+.ftg-court-x-cloud i:nth-of-type(1) { left: 12px; }
+.ftg-court-x-cloud i:nth-of-type(2) { left: 22px; animation-delay: 0.3s; }
+.ftg-court-x-cloud i:nth-of-type(3) { left: 32px; animation-delay: 0.12s; }
+.ftg-court-x-cloud i:nth-of-type(4) { left: 42px; animation-delay: 0.45s; }
+.ftg-court-x-cloud i:nth-of-type(5) { left: 17px; animation-delay: 0.55s; }
+@keyframes ftg-court-x-drop {
+  0% { transform: translateY(0); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translateY(42px); opacity: 0; }
+}
+.ftg-court-x-sun {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  margin: -50px 0 0 14px;
+  border-radius: 50%;
+  background: #f2b632;
+  box-shadow: 0 0 0 5px rgba(242, 182, 50, 0.25), 0 0 18px rgba(242, 182, 50, 0.7);
+}
+.ftg-court-x-sun.ftg-court-x-glow {
+  animation: ftg-court-x-sunp 0.7s var(--ftg-ease-spring);
+}
+@keyframes ftg-court-x-sunp {
+  40% { scale: 1.5; }
+}
+.ftg-court-x-gpin {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 4;
+  width: 36px;
+  height: 40px;
+  pointer-events: none;
+  transform-origin: 50% 100%;
+  will-change: transform;
+}
+.ftg-court-x-gpin svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 100%;
+}
+.ftg-court-x-gpin.ftg-court-x-wiggle svg {
+  animation: ftg-court-x-wig 0.5s;
+}
+@keyframes ftg-court-x-wig {
+  20% { rotate: -14deg; }
+  40% { rotate: 12deg; }
+  60% { rotate: -8deg; }
+  80% { rotate: 4deg; }
+}
+.ftg-court-x-gpin.ftg-court-x-land svg {
+  animation: ftg-court-x-land 0.5s;
+}
+@keyframes ftg-court-x-land {
+  30% { scale: 1.25 0.75; }
+  60% { scale: 0.92 1.08; }
+}
+.ftg-court-x-trail {
+  position: absolute;
+  z-index: 3;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: #f2b632;
+  animation: ftg-court-x-pop 0.35s var(--ftg-ease-spring);
+}
+.ftg-court-x-done {
+  position: absolute;
+  left: 50%;
+  top: 12px;
+  z-index: 6;
+  width: max-content;
+  max-width: calc(100% - 24px);
+  transform: translate(-50%, -80px);
+  border-radius: 99px;
+  background: var(--live);
+  padding: 7px 12px;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+.ftg-court-x-done[data-on] {
+  transform: translate(-50%, 0);
+  transition: transform 0.55s var(--ftg-ease-spring);
+}

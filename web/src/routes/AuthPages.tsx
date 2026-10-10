@@ -1,11 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { ApiError, api, errorMessage, setSession, uploadImage } from '../lib/api'
-import { isUsernameTaken } from '../lib/usernameCheck'
 import { useAuth } from '../lib/auth'
 import { OrDivider } from '../components/GoogleSignInButton'
 import { SocialSignInButtons } from '../components/SocialSignInButtons'
-import { Avatar, Button, ErrorText, Field, Input, PageHeader, PasswordInput } from '../components/ui'
+import { Avatar, Button, ErrorText, Field, Input, PageHeader } from '../components/ui'
+import { PasswordField } from '../components/PasswordStrength'
+import { UsernameHint, UsernameInput, UsernameSuggestions } from '../components/UsernameField'
+import { useUsernameCheck } from '../lib/useUsernameCheck'
 import { useLocale } from '../i18n/LocaleProvider'
 
 export function LoginPage() {
@@ -19,16 +21,14 @@ export function RegisterPage() {
   const navigate = useNavigate()
   const [form, setForm] = useState({ first_name: '', last_name: '', username: '', email: '', password: '' })
   const [photo, setPhoto] = useState<File | null>(null)
-  const [usernameTaken, setUsernameTaken] = useState(false)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [agreed, setAgreed] = useState(false)
   const [checkEmail, setCheckEmail] = useState<string | null>(null)
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [k]: e.target.value })
 
-  const checkUsername = async () => {
-    setUsernameTaken(await isUsernameTaken(form.username))
-  }
+  const uname = useUsernameCheck(form.username, undefined, { first: form.first_name, last: form.last_name })
+  const usernameTaken = uname.taken
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -112,24 +112,23 @@ export function RegisterPage() {
             <Input required autoComplete="family-name" value={form.last_name} onChange={set('last_name')} />
           </Field>
         </div>
-        <Field label={t.profile.username} hint={usernameTaken ? <span className="text-danger">{t.onboarding.usernameTaken}</span> : t.onboarding.usernameHint}>
-          <Input
+        <Field label={t.profile.username} hint={<UsernameHint status={uname.status} />}>
+          <UsernameInput
+            status={uname.status}
             required
             pattern="[A-Za-z0-9_.]{3,24}"
             autoComplete="username"
             value={form.username}
-            onChange={(e) => {
-              setUsernameTaken(false)
-              set('username')(e)
-            }}
-            onBlur={checkUsername}
+            onChange={set('username')}
+            onBlur={() => void uname.check()}
           />
         </Field>
+        <UsernameSuggestions list={uname.taken ? uname.suggestions : []} onPick={(u) => setForm({ ...form, username: u })} />
         <Field label={t.onboarding.email}>
           <Input type="email" required autoComplete="email" value={form.email} onChange={set('email')} />
         </Field>
         <Field label={a.password} hint={a.passwordHint}>
-          <PasswordInput required minLength={8} autoComplete="new-password" value={form.password} onChange={set('password')} />
+          <PasswordField meter required minLength={8} autoComplete="new-password" value={form.password} onChange={set('password')} />
         </Field>
         <label className="flex cursor-pointer items-start gap-3 text-sm text-ink-2">
           <input

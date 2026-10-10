@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { Crown, Minus, Pencil, Plus, Shuffle, Star, Trash2, Users } from 'lucide-react'
 import { useLocale } from '../i18n/LocaleProvider'
 import { errorMessage } from '../lib/api'
@@ -8,6 +8,10 @@ import type { Game, PublicUser } from '../lib/types'
 import { ShareResultButton } from './GameResultShare'
 import { balancedTeams } from '../lib/progress'
 import { Avatar, Button, Card, CountUp, ErrorText, Input, Skeleton } from './ui'
+import { Odometer } from './Odometer'
+import { buzz, centerOf, cheer, dust, replay, sparkle } from '../lib/fx'
+import { flyStar, markRevealSeen, revealSeen, useTeamFlight } from '../lib/playMotion'
+import '../styles/motion-play.css'
 
 type Player = PublicUser & { joined_at?: string }
 
@@ -16,6 +20,8 @@ export function GameScoreboard({ game, canEdit }: { game: Game; canEdit: boolean
   const { t } = useLocale()
   const { data: sb, isLoading } = useScoreboard(game.id)
   const [editing, setEditing] = useState(false)
+  // Just saved from the editor: the result reveal plays again for the person who saved it.
+  const [justSaved, setJustSaved] = useState(false)
   const players: Player[] = game.players ?? []
   const started = new Date(game.start_time).getTime() <= Date.now() + 15 * 60_000
 
@@ -28,7 +34,19 @@ export function GameScoreboard({ game, canEdit }: { game: Game; canEdit: boolean
       </section>
     )
   }
-  if (editing) return <ScoreboardEditor sb={sb} game={game} players={players} started={started} onDone={() => setEditing(false)} />
+  if (editing)
+    return (
+      <ScoreboardEditor
+        sb={sb}
+        game={game}
+        players={players}
+        started={started}
+        onDone={(saved) => {
+          setEditing(false)
+          setJustSaved(!!saved)
+        }}
+      />
+    )
 
   const byId = new Map(players.map((p) => [p.id, p]))
   const empty = sb.teams.length === 0 && Object.keys(sb.stats).length === 0 && !sb.mvp_user_id
@@ -54,7 +72,7 @@ export function GameScoreboard({ game, canEdit }: { game: Game; canEdit: boolean
         </Card>
       ) : (
         <Card className="grid gap-4">
-          {sb.teams.length > 0 && <ScoreHeader sb={sb} byId={byId} />}
+          {sb.teams.length > 0 && <ScoreHeader sb={sb} byId={byId} gameId={game.id} reveal={justSaved ? 'force' : game.status === 'completed' ? 'auto' : 'off'} />}
           <StatsTable sb={sb} byId={byId} />
           {sb.updated_by && <p className="text-xs text-ink-2">{t.scoreboard.updatedBy.replace('{user}', playerUsernameLabel(sb.updated_by))}</p>}
           {hasResult(sb) && <ShareResultButton game={game} sb={sb} />}
@@ -64,36 +82,116 @@ export function GameScoreboard({ game, canEdit }: { game: Game; canEdit: boolean
   )
 }
 
-function ScoreHeader({ sb, byId }: { sb: Scoreboard; byId: Map<string, Player> }) {
+type RevealMode = 'auto' | 'force' | 'off'
+
+/**
+ * Teams and scores. The first time a final result is shown on this device (or right after saving it),
+ * the scores spin like a slot machine and slam down, the winner gets a ribbon and confetti, and a
+ * star flies to the MVP.
+ */
+function ScoreHeader({ sb, byId, gameId, reveal }: { sb: Scoreboard; byId: Map<string, Player>; gameId: string; reveal: RevealMode }) {
   const { t } = useLocale()
   const anyScore = sb.teams.some((x) => x.score > 0)
+  const root = useRef<HTMLDivElement>(null)
+  const [stage, setStage] = useState<'off' | 'wait' | 'spin'>(() =>
+    anyScore && sb.teams.length >= 2 && (reveal === 'force' || (reveal === 'auto' && !revealSeen(gameId))) ? 'wait' : 'off',
+  )
+  const [stopped, setStopped] = useState(0)
+  const revealed = stage === 'spin' && stopped >= sb.teams.length
+  const mvp = sb.mvp_user_id
+
+  // Starts once the scores are on screen.
+  useEffect(() => {
+    const el = root.current
+    if (stage !== 'wait' || !el) return
+    const go = () => {
+      markRevealSeen(gameId)
+      setStage('spin')
+    }
+    if (typeof IntersectionObserver === 'undefined') {
+      const id = window.setTimeout(go, 0)
+      return () => window.clearTimeout(id)
+    }
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (!e?.isIntersecting) return
+        io.disconnect()
+        go()
+      },
+      { threshold: 0.6 },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [stage, gameId])
+
+  useEffect(() => {
+    const el = root.current
+    if (!revealed || !el) return
+    const win = el.querySelector('[data-ftg-play-win]')
+    if (win) {
+      cheer(win, 50)
+      buzz([20, 30, 40])
+    }
+    if (!mvp) return
+    const id = window.setTimeout(() => {
+      const target =
+        el.closest('section')?.querySelector<HTMLElement>('[data-ftg-play-mvp]') ?? el.querySelector<HTMLElement>(`[data-ftg-play-pid="${mvp}"]`)
+      if (!target) return
+      flyStar(centerOf(win ?? el), centerOf(target), () => {
+        if (!target.isConnected) return
+        replay(target, 'ftg-play-hop')
+        sparkle(target, 18)
+        buzz([10, 30, 20])
+      })
+    }, 550)
+    return () => window.clearTimeout(id)
+  }, [revealed, mvp])
+
   return (
-    <div className="grid grid-cols-2 gap-2">
-      {sb.teams.map((team) => {
+    <div ref={root} className="grid grid-cols-2 gap-2">
+      {sb.teams.map((team, i) => {
         const won = sb.winner_position === team.position
         return (
-          <div key={team.id ?? team.name} className="relative overflow-hidden rounded-2xl bg-surface-2 p-3" style={{ boxShadow: `inset 0 4px 0 ${team.color}` }}>
+          <div
+            key={team.id ?? team.name}
+            data-ftg-play-win={revealed && won ? '' : undefined}
+            className={`ftg-play-team relative overflow-hidden rounded-2xl bg-surface-2 p-3 ${revealed && sb.winner_position != null ? (won ? 'is-win' : 'is-lose') : ''}`}
+            style={{ boxShadow: `inset 0 4px 0 ${team.color}` }}
+          >
             <div className="flex items-center justify-between gap-2">
               <p className="display truncate text-lg font-bold" style={{ color: team.color }}>
                 {team.name}
               </p>
-              {won && (
+              {won && (stage === 'off' || revealed) && (
                 <span className="ftg-crown-in inline-flex shrink-0 items-center rounded-md bg-brand p-1 text-brand-ink" title={t.scoreboard.winner}>
                   <Crown className="size-4" aria-hidden />
                   <span className="sr-only">{t.scoreboard.winner}</span>
                 </span>
               )}
             </div>
-            {anyScore && (
-              <p key={team.score} className="ftg-score-hit display text-5xl font-extrabold leading-tight tabular-nums">
-                <CountUp value={team.score} />
-              </p>
-            )}
+            {anyScore &&
+              (stage === 'off' ? (
+                <p key={team.score} className="ftg-score-hit display text-5xl font-extrabold leading-tight tabular-nums">
+                  <CountUp value={team.score} />
+                </p>
+              ) : (
+                <div className="flex items-center justify-between gap-1">
+                  <p className="display text-5xl font-extrabold leading-tight tabular-nums">
+                    <SlotScore value={team.score} run={stage === 'spin'} stopAt={1000 + i * 450} onStop={() => setStopped((n) => n + 1)} />
+                    <span className="sr-only">{team.score}</span>
+                  </p>
+                  {revealed && won && (
+                    <span className="ftg-play-ribbon display" aria-hidden>
+                      {t.scoreboard.winner}
+                    </span>
+                  )}
+                </div>
+              ))}
             <div className="mt-1 flex flex-wrap gap-1">
               {team.players.map((id) => {
                 const p = byId.get(id)
                 return p ? (
-                  <span key={id} title={playerUsernameLabel(p)}>
+                  <span key={id} title={playerUsernameLabel(p)} data-ftg-play-pid={id} className="inline-flex rounded-full">
                     <Avatar user={p} size={28} />
                   </span>
                 ) : null
@@ -105,6 +203,49 @@ function ScoreHeader({ sb, byId }: { sb: Scoreboard; byId: Map<string, Player> }
       {anyScore && sb.teams.length >= 2 && sb.winner_position == null && <p className="col-span-2 text-center text-sm font-semibold text-ink-2">{t.scoreboard.draw}</p>}
     </div>
   )
+}
+
+/** A score that flicks through random numbers, slows down and slams onto the real value. */
+function SlotScore({ value, run, stopAt, onStop }: { value: number; run: boolean; stopAt: number; onStop: () => void }) {
+  const ref = useRef<HTMLSpanElement>(null)
+  const stop = useRef(onStop)
+  useEffect(() => {
+    stop.current = onStop
+  })
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    if (!run) {
+      el.textContent = '?'
+      return
+    }
+    const top = Math.max(9, Math.round(value * 1.5))
+    const t0 = performance.now()
+    let last = -1e9
+    let raf = 0
+    el.classList.add('is-spin')
+    const step = (now: number) => {
+      const t = now - t0
+      if (t >= stopAt) {
+        el.classList.remove('is-spin')
+        el.textContent = String(value)
+        replay(el, 'is-slam')
+        buzz(14)
+        const r = el.getBoundingClientRect()
+        dust({ x: r.left + r.width / 2, y: r.bottom }, 12)
+        stop.current()
+        return
+      }
+      if (t - last > 40 + Math.pow(t / stopAt, 3) * 170) {
+        last = t
+        el.textContent = String(Math.floor(Math.random() * (top + 1)))
+      }
+      raf = requestAnimationFrame(step)
+    }
+    raf = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(raf)
+  }, [run, value, stopAt])
+  return <span ref={ref} className="ftg-play-slot" aria-hidden />
 }
 
 function StatsTable({ sb, byId }: { sb: Scoreboard; byId: Map<string, Player> }) {
@@ -139,7 +280,7 @@ function StatsTable({ sb, byId }: { sb: Scoreboard; byId: Map<string, Player> })
                     <Avatar user={p} size={26} />
                     <span className="truncate font-medium">{playerUsernameLabel(p)}</span>
                     {sb.mvp_user_id === id && (
-                      <span className="inline-flex items-center gap-0.5 rounded bg-amber-400/20 px-1 text-xs font-bold text-amber-700 dark:text-amber-300">
+                      <span data-ftg-play-mvp className="inline-flex items-center gap-0.5 rounded bg-amber-400/20 px-1 text-xs font-bold text-amber-700 dark:text-amber-300">
                         <Star className="size-3" aria-hidden fill="currentColor" /> {t.scoreboard.mvp}
                       </span>
                     )}
@@ -180,7 +321,7 @@ function Stepper({ value, onChange, label, big }: { value: number; onChange: (n:
   )
 }
 
-function ScoreboardEditor({ sb, game, players, started, onDone }: { sb: Scoreboard; game: Game; players: Player[]; started: boolean; onDone: () => void }) {
+function ScoreboardEditor({ sb, game, players, started, onDone }: { sb: Scoreboard; game: Game; players: Player[]; started: boolean; onDone: (saved?: boolean) => void }) {
   const { t } = useLocale()
   const save = useSaveScoreboard(game.id)
   const [error, setError] = useState('')
@@ -194,13 +335,21 @@ function ScoreboardEditor({ sb, game, players, started, onDone }: { sb: Scoreboa
   const [stats, setStats] = useState<Record<string, Record<string, number>>>(() => structuredClone(sb.stats))
   const [mvp, setMvp] = useState<string | null>(sb.mvp_user_id)
   const [open, setOpen] = useState<string | null>(null)
+  // Players fly between the team cards: dealt out of the middle when the teams are first made,
+  // swirled on Shuffle, slid over when moved by hand.
+  const grid = useRef<HTMLDivElement>(null)
+  const fly = useTeamFlight(grid, sb.teams.length === 0 ? 'deal' : undefined)
+  const playerById = new Map(players.map((p) => [p.id, p]))
 
   const teamOf = (id: string) => teams.findIndex((x) => x.players.includes(id))
-  const assign = (id: string, idx: number) =>
+  const assign = (id: string, idx: number) => {
+    fly('flip')
     setTeams((ts) => ts.map((x, i) => ({ ...x, players: i === idx ? [...x.players.filter((p) => p !== id), id] : x.players.filter((p) => p !== id) })))
+  }
   const patchTeam = (idx: number, patch: Partial<ScoreTeam>) => setTeams((ts) => ts.map((x, i) => (i === idx ? { ...x, ...patch } : x)))
   const shuffle = () => {
     const split = balancedTeams(ids, sb.ratings ?? {}, Math.max(teams.length, 2))
+    fly('swirl')
     setTeams((ts) => split.map((ps, i) => ({ ...(ts[i] ?? { name: defaultNames[i], color: TEAM_COLORS[i], score: 0 }), players: ps })))
   }
   const setStat = (id: string, key: string, n: number) => setStats((s) => ({ ...s, [id]: { ...s[id], [key]: n } }))
@@ -218,7 +367,7 @@ function ScoreboardEditor({ sb, game, players, started, onDone }: { sb: Scoreboa
         stats: started ? cleanStats : {},
         mvp_user_id: started ? mvp : null,
       },
-      { onSuccess: onDone, onError: (e) => setError(errorMessage(e)) },
+      { onSuccess: () => onDone(true), onError: (e) => setError(errorMessage(e)) },
     )
   }
 
@@ -226,7 +375,7 @@ function ScoreboardEditor({ sb, game, players, started, onDone }: { sb: Scoreboa
     <section>
       <h2 className="display mb-2 text-2xl font-bold">{t.scoreboard.title}</h2>
       <Card className="grid gap-4">
-        <div className="grid grid-cols-2 gap-2">
+        <div ref={grid} className="grid grid-cols-2 gap-2">
           {teams.map((team, i) => (
             <div key={i} className="grid gap-2 rounded-2xl bg-surface-2 p-2.5" style={{ boxShadow: `inset 0 4px 0 ${team.color}` }}>
               <Input value={team.name} maxLength={24} aria-label={t.scoreboard.teamName} onChange={(e) => patchTeam(i, { name: e.target.value })} className="!min-h-10 !py-1 font-bold" />
@@ -243,14 +392,35 @@ function ScoreboardEditor({ sb, game, players, started, onDone }: { sb: Scoreboa
                   />
                 ))}
               </div>
-              {team.players.length > 0 && (
-                <p className="text-xs font-semibold text-ink-2">
-                  ≈ {Math.round(team.players.reduce((sum, id) => sum + (sb.ratings?.[id] ?? 1000), 0) / team.players.length)}
-                </p>
-              )}
+              <div className="flex min-h-8 flex-wrap gap-1.5">
+                {team.players.map((id) => {
+                  const p = playerById.get(id)
+                  return p ? (
+                    <span key={id} data-ftg-play-pid={id} className="ftg-play-tok" style={{ '--ftg-play-team': team.color } as CSSProperties} title={playerUsernameLabel(p)}>
+                      <Avatar user={p} size={28} />
+                    </span>
+                  ) : null
+                })}
+              </div>
+              <p className="flex items-center justify-between gap-2 text-xs font-semibold text-ink-2">
+                <span className="inline-flex items-center gap-1" aria-label={t.scoreboard.teamCount.replace('{n}', String(team.players.length))}>
+                  <Users className="size-3.5" aria-hidden />
+                  <span aria-hidden>
+                    <Odometer value={team.players.length} />
+                  </span>
+                </span>
+                {team.players.length > 0 && <span>≈ {Math.round(team.players.reduce((sum, id) => sum + (sb.ratings?.[id] ?? 1000), 0) / team.players.length)}</span>}
+              </p>
               {started && <Stepper value={team.score} onChange={(n) => patchTeam(i, { score: n })} label={`${team.name} ${t.scoreboard.score}`} big />}
               {teams.length > 2 && (
-                <button type="button" onClick={() => setTeams((ts) => ts.filter((_, j) => j !== i))} className="inline-flex items-center gap-1 text-xs font-semibold text-danger">
+                <button
+                  type="button"
+                  onClick={() => {
+                    fly('flip')
+                    setTeams((ts) => ts.filter((_, j) => j !== i))
+                  }}
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-danger"
+                >
                   <Trash2 className="size-3.5" aria-hidden /> {t.scoreboard.removeTeam}
                 </button>
               )}
@@ -341,7 +511,7 @@ function ScoreboardEditor({ sb, game, players, started, onDone }: { sb: Scoreboa
 
         <ErrorText>{error}</ErrorText>
         <div className="grid grid-cols-2 gap-2">
-          <Button type="button" variant="secondary" onClick={onDone}>
+          <Button type="button" variant="secondary" onClick={() => onDone()}>
             {t.scoreboard.cancel}
           </Button>
           <Button type="button" onClick={submit} loading={save.isPending}>

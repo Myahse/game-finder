@@ -112,7 +112,7 @@ export function GamePage() {
           message={notAtCourtMessage()}
           onClose={() => setFarModal(false)}
         />
-        <Card>
+        <Card className="ftg-play-vt-hero">
           <span className={`display inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-lg font-bold ${statusCls}`}>
             <StatusIcon className="size-5 shrink-0" aria-hidden />
             {statusText}

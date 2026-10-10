@@ -18,6 +18,7 @@ import type { MapRef } from 'react-map-gl/mapbox'
 import { CourtActions } from '../components/CourtActions'
 import { ShareCourtButton } from '../components/ShareCourtButton'
 import { CourtPhotoStrip } from '../components/CourtPhotoStrip'
+import { CountSentence, LiveCount, OpenNowPill } from '../components/CourtLiveBits'
 import { GameCard } from '../components/GameCard'
 import { ALL_SPORT_ICONS, DistanceText, LiveText, SportName } from '../components/icons'
 import { ScreenGuide } from '../components/ScreenGuide'
@@ -222,13 +223,20 @@ function CourtSheet({
           </p>
 
           <div className="mt-4 rounded-2xl bg-surface-2 p-4">
-            <StatusPill activity={court.activity} />
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusPill activity={court.activity} />
+              <OpenNowPill hours={court.opening_hours} />
+            </div>
             <p className="display mt-2 text-3xl font-bold">
               {court.player_count > 0 ? (
-                (court.activity === 'active'
-                  ? court.player_count === 1 ? t.courts.map.playersPlayingNowOne : t.courts.map.playersPlayingNowMany
-                  : court.player_count === 1 ? t.courts.map.playersHereNowOne : t.courts.map.playersHereNowMany
-                ).replace('{n}', String(court.player_count))
+                <CountSentence
+                  template={
+                    court.activity === 'active'
+                      ? court.player_count === 1 ? t.courts.map.playersPlayingNowOne : t.courts.map.playersPlayingNowMany
+                      : court.player_count === 1 ? t.courts.map.playersHereNowOne : t.courts.map.playersHereNowMany
+                  }
+                  n={<LiveCount value={court.player_count} live />}
+                />
               ) : (
                 t.courts.map.nobodyHere
               )}

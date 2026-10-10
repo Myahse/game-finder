@@ -7,7 +7,6 @@ import {
   formatDistance,
   gameTypeLabels,
   MAX_PLAYERS_SLIDER_CAP,
-  MAX_PLAYERS_SLIDER_MIN,
   MAX_PLAYERS_SLIDER_UNLIMITED,
   maxPlayersSliderLabel,
   maxPlayersSliderToApi,
@@ -25,10 +24,21 @@ import { Plus } from 'lucide-react'
 import { ShareGameButton } from '../components/ShareGameButton'
 import { AppAlert, Button, ErrorText, Field, Input, PageHeader, Select } from '../components/ui'
 import { useLocale } from '../i18n/LocaleProvider'
+import { MaxPlayersSlider } from '../components/MaxPlayersSlider'
+import { TimeWheel } from '../components/TimeWheel'
+import { plantPin } from '../lib/createMotion'
+import '../styles/motion-create.css'
+
+const pad = (n: number) => String(n).padStart(2, '0')
 
 function localInputValue(d: Date) {
-  const pad = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+/** Next whole 5 minutes, so the minute wheel lands on a real row. */
+function roundUp5(ms: number) {
+  const step = 5 * 60_000
+  return new Date(Math.ceil(ms / step) * step)
 }
 
 export function CreateGamePage() {
@@ -36,7 +46,7 @@ export function CreateGamePage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const { user } = useAuth()
-  const { t } = useLocale()
+  const { t, locale } = useLocale()
   const tc = t.games.create
   const mySport = useMySport()
   const mySports = useMySports()
@@ -52,13 +62,14 @@ export function CreateGamePage() {
   const [courtId, setCourtId] = useState(params.get('court') ?? '')
   const [sportId, setSportId] = useState('')
   const [when, setWhen] = useState<'now' | 'later'>('now')
-  const [start, setStart] = useState(() => localInputValue(new Date(Date.now() + 60 * 60_000)))
+  const [start, setStart] = useState(() => localInputValue(roundUp5(Date.now() + 60 * 60_000)))
   const [minStart] = useState(() => localInputValue(new Date()))
   const [maxPlayersSlider, setMaxPlayersSlider] = useState(10)
   const [skill, setSkill] = useState<SkillLevel>('all_levels')
   const [type, setType] = useState<GameType>('pickup')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [planting, setPlanting] = useState(false)
   const [created, setCreated] = useState<Game | null>(null)
   const [placePhotos, setPlacePhotos] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
@@ -141,13 +152,41 @@ export function CreateGamePage() {
       qc.invalidateQueries({ queryKey: ['my-games'] })
       qc.invalidateQueries({ queryKey: ['games-nearby'] })
       qc.invalidateQueries({ queryKey: ['courts'] })
+      // The folded button flies to the court as a pin, then the success screen shows (~1.1 s).
+      const btn = document.getElementById('create-game-submit')
+      if (btn) {
+        setPlanting(true)
+        const sel = document.getElementById('create-game-court')?.getBoundingClientRect()
+        const inView = sel && sel.top > 60 && sel.bottom < window.innerHeight - 40
+        const to = inView ? { x: sel.left + sel.width / 2, y: sel.top + sel.height / 2 } : { x: window.innerWidth / 2, y: window.innerHeight * 0.3 }
+        await plantPin(btn, to)
+      }
       setCreated(game)
     } catch (err) {
       setError(errorMessage(err))
     } finally {
       setBusy(false)
+      setPlanting(false)
     }
   }
+
+  // The wheel edits the time part of the start; the date part stays as picked.
+  const startMatch = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})/.exec(start)
+  const startDate = startMatch?.[1] ?? minStart.slice(0, 10)
+  const startHour = startMatch ? Number(startMatch[2]) : 0
+  const startMinute = startMatch ? Number(startMatch[3]) : 0
+  const setStartTime = (h: number, m: number) => setStart(`${startDate}T${pad(h)}:${pad(m)}`)
+  const startPast = !!startMatch && start < minStart
+  const dayLabel = (() => {
+    const today = new Date(`${minStart.slice(0, 10)}T12:00`)
+    const tomorrow = new Date(today.getTime() + 86_400_000)
+    const d = new Date(`${startDate}T12:00`)
+    if (d.toDateString() === today.toDateString()) return t.games.time.today
+    if (d.toDateString() === tomorrow.toDateString()) return t.games.time.tomorrow
+    return d.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' })
+  })()
+  const maxLabel = tc.maxPlayers.split('{value}')
+  const maxInf = maxPlayersSlider >= MAX_PLAYERS_SLIDER_UNLIMITED
 
   if (created) {
     return (
@@ -202,7 +241,7 @@ export function CreateGamePage() {
         </Field>
 
         <Field label={tc.court} hint={<Link to="/courts/new" className="font-semibold text-brand">{tc.courtNotListed}</Link>}>
-          <Select required value={courtId} onChange={(e) => setCourtId(e.target.value)}>
+          <Select id="create-game-court" required value={courtId} onChange={(e) => setCourtId(e.target.value)}>
             <option value="" disabled>
               {tc.chooseCourt}
             </option>
@@ -284,25 +323,50 @@ export function CreateGamePage() {
               </button>
             ))}
           </div>
-          {when === 'later' && (
-            <Input type="datetime-local" required value={start} min={minStart} onChange={(e) => setStart(e.target.value)} />
-          )}
         </Field>
+        {when === 'later' && (
+          <div className="-mt-3">
+            <TimeWheel
+              hour={startHour}
+              minute={startMinute}
+              onChange={setStartTime}
+              dayLabel={dayLabel}
+              title={tc.startTime}
+              hourLabel={tc.wheelHour}
+              minuteLabel={tc.wheelMinute}
+              past={startPast}
+            />
+            {/* The native field stays for the date and as an accessible fallback; it keeps the min/required checks. */}
+            <Input
+              type="datetime-local"
+              required
+              aria-label={tc.startTime}
+              value={start}
+              min={minStart}
+              onChange={(e) => setStart(e.target.value)}
+            />
+            {startPast && <p className="mt-1 text-sm text-danger">{tc.startInPast}</p>}
+          </div>
+        )}
 
-        <Field label={tc.maxPlayers.replace('{value}', maxPlayersSliderLabel(maxPlayersSlider))}>
-          <input
-            type="range"
-            min={MAX_PLAYERS_SLIDER_MIN}
-            max={MAX_PLAYERS_SLIDER_UNLIMITED}
-            step={1}
+        <div>
+          <span id="create-game-max-label" className="mb-1.5 block text-sm font-semibold text-ink">
+            {maxLabel[0]}
+            <b key={maxInf ? 'inf' : 'n'} className="ftg-create-mval ftg-create-pop">
+              {maxPlayersSliderLabel(maxPlayersSlider)}
+            </b>
+            {maxLabel[1]}
+          </span>
+          <MaxPlayersSlider
             value={maxPlayersSlider}
-            onChange={(e) => setMaxPlayersSlider(Number(e.target.value))}
-            className="w-full accent-[var(--brand)]"
+            onChange={setMaxPlayersSlider}
+            labelledBy="create-game-max-label"
+            unlimitedLabel={t.games.unlimited}
           />
-          <p className="mt-1 text-xs text-ink-2">
+          <p className="mt-3 text-xs text-ink-2">
             {tc.unlimitedHint.replace('{cap}', String(MAX_PLAYERS_SLIDER_CAP))}
           </p>
-        </Field>
+        </div>
 
         <Field label={tc.skillLevel}>
           <Select value={skill} onChange={(e) => setSkill(e.target.value as SkillLevel)}>
@@ -328,7 +392,13 @@ export function CreateGamePage() {
         {suggestPlacePhoto && (
           <p className="text-sm text-ink-2">{tc.noPhotoYet}</p>
         )}
-        <Button type="submit" loading={busy} disabled={!courtId || !chosenSport || uploading}>
+        <Button
+          id="create-game-submit"
+          type="submit"
+          loading={busy}
+          disabled={!courtId || !chosenSport || uploading}
+          className={`ftg-create-pub ${busy ? 'ftg-create-fold' : ''} ${planting ? 'ftg-create-gone' : ''}`}
+        >
           {tc.submit}
         </Button>
       </form>

@@ -1,0 +1,315 @@
+/* Play area micro-animations: card -> game page morph (I), my-games skeleton morph + sleepy ball (J),
+   team shuffle flight (K), result reveal (L). Every class/keyframe is prefixed ftg-play-. */
+
+/* ── I · Card grows into the game page (View Transitions API) ── */
+html.ftg-play-vt::view-transition-group(ftg-play-game) {
+  animation-duration: 0.46s;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  border-radius: 16px;
+  overflow: clip;
+}
+html.ftg-play-vt::view-transition-old(ftg-play-game) {
+  animation: ftg-play-vt-out 0.2s ease-out both;
+}
+html.ftg-play-vt::view-transition-new(ftg-play-game) {
+  animation: ftg-play-vt-in 0.3s 0.08s ease-out both;
+}
+html.ftg-play-vt::view-transition-old(root) {
+  animation: ftg-play-vt-recede 0.46s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: 50% 0;
+}
+html.ftg-play-vt::view-transition-new(root) {
+  animation: ftg-play-vt-in 0.25s 0.2s ease-out both;
+}
+@keyframes ftg-play-vt-out {
+  to { opacity: 0; }
+}
+@keyframes ftg-play-vt-in {
+  from { opacity: 0; }
+}
+@keyframes ftg-play-vt-recede {
+  to { transform: scale(0.94); opacity: 0.35; }
+}
+
+/* ── J · Skeleton rows that become the real cards ── */
+.ftg-play-skrow {
+  display: flex;
+  gap: 0.75rem;
+  height: 4.75rem;
+  padding: 0.75rem;
+  border-radius: 1rem;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.ftg-play-skrow > .ftg-skeleton:first-child {
+  width: 4rem;
+  border-radius: 0.75rem;
+  flex: none;
+}
+.ftg-play-skrow .ftg-play-sklines {
+  display: grid;
+  flex: 1;
+  align-content: center;
+  gap: 0.5rem;
+}
+.ftg-play-skrow .ftg-skeleton {
+  border-radius: 6px;
+}
+.ftg-play-morph {
+  position: relative;
+}
+.ftg-play-morph > a {
+  animation: ftg-play-morph-in 0.5s var(--ftg-ease-out) both;
+  animation-delay: calc(var(--ftg-play-i, 0) * 120ms + 120ms);
+}
+/* The sport badge on the left of the card pops in like the round skeleton it replaces. */
+.ftg-play-morph > a > div:first-child {
+  animation: ftg-play-pop 0.55s var(--ftg-ease-spring) both;
+  animation-delay: calc(var(--ftg-play-i, 0) * 120ms + 200ms);
+}
+.ftg-play-morph-sk {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 1rem;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  pointer-events: none;
+  animation: ftg-play-morph-out 0.42s ease-out both;
+  animation-delay: calc(var(--ftg-play-i, 0) * 120ms + 120ms);
+}
+.ftg-play-morph-sk i {
+  display: block;
+  background: var(--surface-2);
+  border-radius: 6px;
+}
+.ftg-play-morph-sk i:first-child {
+  width: 4rem;
+  border-radius: 0.75rem;
+}
+.ftg-play-morph-sk span {
+  display: grid;
+  flex: 1;
+  align-content: center;
+  gap: 0.5rem;
+}
+.ftg-play-morph-sk span i {
+  height: 0.8rem;
+  animation: ftg-play-sk-grow 0.4s var(--ftg-ease-out) both;
+}
+.ftg-play-morph-sk span i:last-child {
+  height: 0.65rem;
+}
+@keyframes ftg-play-morph-in {
+  from { opacity: 0; filter: blur(5px); transform: translateY(5px); }
+  to { opacity: 1; filter: none; transform: none; }
+}
+@keyframes ftg-play-morph-out {
+  0% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.015); }
+}
+@keyframes ftg-play-sk-grow {
+  from { width: 40%; }
+  to { width: 85%; }
+}
+@keyframes ftg-play-pop {
+  0% { transform: scale(0.4); opacity: 0; }
+  100% { transform: none; opacity: 1; }
+}
+
+/* J · The sleeping ball empty state */
+.ftg-play-ground {
+  border-bottom: 2px dashed var(--line);
+}
+.ftg-play-sleepy {
+  position: relative;
+  width: 72px;
+  height: 78px;
+  flex: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--brand);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.ftg-play-sb-body {
+  position: absolute;
+  left: 8px;
+  bottom: 4px;
+  width: 56px;
+  height: 56px;
+  transform-origin: 50% 100%;
+  animation: ftg-play-breathe 2.6s ease-in-out infinite;
+}
+.ftg-play-sleepy.is-up .ftg-play-sb-body {
+  animation: none;
+}
+.ftg-play-sb-body svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+@keyframes ftg-play-breathe {
+  50% { transform: scale(1.05, 0.95); }
+}
+.ftg-play-sb-shadow {
+  position: absolute;
+  left: 16px;
+  bottom: 0;
+  width: 40px;
+  height: 6px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ink) 18%, transparent);
+  filter: blur(1px);
+}
+.ftg-play-sleepy .ftg-play-awake { opacity: 0; }
+.ftg-play-sleepy.is-up .ftg-play-awake { opacity: 1; }
+.ftg-play-sleepy.is-up .ftg-play-asleep { opacity: 0; }
+.ftg-play-zz {
+  position: absolute;
+  right: -6px;
+  top: -4px;
+  width: 30px;
+  height: 40px;
+  pointer-events: none;
+}
+.ftg-play-zz i {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  font-style: normal;
+  font-family: var(--display, inherit);
+  font-weight: 900;
+  font-size: 14px;
+  color: var(--ink-2);
+  opacity: 0;
+  animation: ftg-play-zz 2.4s linear infinite;
+}
+.ftg-play-zz i:nth-child(2) { animation-delay: 0.8s; }
+.ftg-play-zz i:nth-child(3) { animation-delay: 1.6s; font-size: 18px; }
+.ftg-play-sleepy.is-up .ftg-play-zz { display: none; }
+@keyframes ftg-play-zz {
+  0% { transform: translate(0, 0) rotate(-10deg); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translate(18px, -34px) rotate(14deg); opacity: 0; }
+}
+.ftg-play-elink {
+  background: linear-gradient(var(--brand), var(--brand)) 0 100% / 0 2px no-repeat;
+  transition: background-size 0.4s var(--ftg-ease-out);
+}
+.ftg-play-elink.is-hl {
+  background-size: 100% 2px;
+}
+.ftg-play-nudge {
+  display: inline-block;
+  animation: ftg-play-nudge 0.45s var(--ftg-ease-spring);
+}
+@keyframes ftg-play-nudge {
+  35% { transform: translateX(6px) rotate(2deg); }
+  100% { transform: none; }
+}
+
+/* ── K · Team shuffle flight ── */
+.ftg-play-tok {
+  position: relative;
+  display: inline-flex;
+  border-radius: 9999px;
+  will-change: transform;
+  box-shadow: 0 0 0 2px var(--ftg-play-team, transparent);
+}
+.ftg-play-tok.is-flying {
+  z-index: 20;
+  box-shadow:
+    0 0 0 2px var(--ftg-play-team, transparent),
+    0 8px 16px rgba(0, 0, 0, 0.28);
+}
+.ftg-play-land {
+  animation: ftg-play-land 0.35s var(--ftg-ease-spring);
+}
+@keyframes ftg-play-land {
+  0% { scale: 1.2 0.8; }
+  100% { scale: 1; }
+}
+
+/* ── L · Result reveal ── */
+.ftg-play-slot {
+  display: inline-block;
+  min-width: 1.2ch;
+}
+.ftg-play-slot.is-spin {
+  filter: blur(1.2px);
+  color: var(--ink-2);
+}
+.ftg-play-slot.is-slam {
+  animation: ftg-play-slam 0.45s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@keyframes ftg-play-slam {
+  0% { transform: scale(1.5); }
+  100% { transform: none; }
+}
+.ftg-play-team {
+  transition: opacity 0.4s, transform 0.5s var(--ftg-ease-spring);
+}
+.ftg-play-team.is-win {
+  transform: scale(1.03);
+}
+.ftg-play-team.is-lose {
+  opacity: 0.6;
+  transform: scale(0.97);
+}
+.ftg-play-ribbon {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #f2b632;
+  color: #12151a;
+  font-weight: 900;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  animation: ftg-play-ribbon 0.6s var(--ftg-ease-spring) both;
+}
+@keyframes ftg-play-ribbon {
+  0% { transform: translateY(-22px) scale(0.3) rotate(-12deg); opacity: 0; }
+  100% { transform: rotate(-4deg); opacity: 1; }
+}
+.ftg-play-flystar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 26px;
+  height: 26px;
+  z-index: 70;
+  pointer-events: none;
+  filter: drop-shadow(0 0 6px rgba(242, 182, 50, 0.9));
+}
+.ftg-play-hop {
+  animation: ftg-play-hop 0.6s var(--ftg-ease-spring);
+}
+@keyframes ftg-play-hop {
+  0% { transform: none; }
+  30% { transform: translateY(-8px) scale(1.15); }
+  100% { transform: none; }
+}
+.ftg-play-mvp-hidden {
+  opacity: 0;
+  transform: scale(0.4);
+}
+.ftg-play-mvp-in {
+  transition: opacity 0.2s, transform 0.5s var(--ftg-ease-spring);
+}
+
+/* Share sheet: the result card drops in and lands. */
+.ftg-play-card-in {
+  animation: ftg-play-card-in 0.55s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+@keyframes ftg-play-card-in {
+  0% { transform: translateY(-24px) scale(1.12) rotate(-3deg); opacity: 0; }
+  60% { opacity: 1; }
+  100% { transform: none; }
+}

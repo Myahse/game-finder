@@ -4,6 +4,7 @@ import { formatDistance, timeAgo } from '../lib/format'
 import { CourtAddPhotos } from '../components/CourtAddPhotos'
 import { CourtInfoEditor } from '../components/CourtInfoEditor'
 import { CourtPhotoStrip } from '../components/CourtPhotoStrip'
+import { LiveCount, OpenNowPill } from '../components/CourtLiveBits'
 import { useAuth } from '../lib/auth'
 import { useLocation } from '../lib/location'
 import { useCourt } from '../lib/queries'
@@ -74,7 +75,10 @@ export function CourtPage() {
           )}
         <Card>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <StatusPill activity={court.activity} />
+            <span className="flex flex-wrap items-center gap-2">
+              <StatusPill activity={court.activity} />
+              <OpenNowPill hours={court.opening_hours} />
+            </span>
             {court.distance_m != null && (
               <span className="display text-2xl font-bold">
                 <DistanceText iconClassName="size-5">{formatDistance(court.distance_m)}</DistanceText>
@@ -82,7 +86,8 @@ export function CourtPage() {
             )}
           </div>
           <p className="display mt-3 text-4xl font-extrabold">
-            {court.player_count} <span className="text-2xl text-ink-2">{t.courts.playersNow}</span>
+            <LiveCount value={court.player_count} live={court.player_count > 0} />{' '}
+            <span className="text-2xl text-ink-2">{t.courts.playersNow}</span>
           </p>
           <p className="text-sm text-ink-2">{t.courts.lastActivity.replace('{time}', timeAgo(court.last_activity_at))}</p>
           {court.status === 'approved' && (

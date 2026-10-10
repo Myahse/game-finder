@@ -1,0 +1,409 @@
+/* Welcome, sign-up steps, username / password fields and avatar studio micro-animations.
+   Every class and keyframe is prefixed ftg-onboard-. */
+
+/* ── A · Welcome gravity balls ─────────────────────────────────────────── */
+.ftg-onboard-balls {
+  /* Page scroll still works on the empty area; only the balls take the finger. */
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.ftg-onboard-ball {
+  position: absolute;
+  left: 0;
+  top: 0;
+  touch-action: none;
+  cursor: grab;
+  will-change: transform;
+  filter: drop-shadow(0 3px 2px rgba(0, 0, 0, 0.25));
+}
+.ftg-onboard-ball svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.ftg-onboard-ball-grab {
+  cursor: grabbing;
+}
+
+/* ── Colour flood (carousel pick, avatar swatches) ─────────────────────── */
+.ftg-onboard-flood {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.ftg-onboard-flood-fixed {
+  position: fixed;
+  z-index: 90;
+  opacity: 0.9;
+}
+.ftg-onboard-flood-go {
+  transition: clip-path 0.6s cubic-bezier(0.6, 0, 0.25, 1), opacity 0.45s ease;
+}
+.ftg-onboard-flood-out {
+  opacity: 0 !important;
+}
+
+/* ── B · Sport carousel ────────────────────────────────────────────────── */
+.ftg-onboard-sc {
+  position: relative;
+  perspective: 800px;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+.ftg-onboard-sc-card {
+  position: absolute;
+  left: 50%;
+  will-change: transform, opacity;
+  transform-style: preserve-3d;
+  -webkit-tap-highlight-color: transparent;
+}
+.ftg-onboard-sc-card img,
+.ftg-onboard-sc-card svg {
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+.ftg-onboard-hop {
+  animation: ftg-onboard-hop 0.6s;
+}
+@keyframes ftg-onboard-hop {
+  20% { translate: 0 6px; scale: 1.06 0.94; }
+  50% { translate: 0 -16px; scale: 0.96 1.05; }
+  75% { translate: 0 0; scale: 1.03 0.97; }
+}
+.ftg-onboard-chk {
+  transform: scale(0);
+  transition: transform 0.45s var(--ftg-ease-spring);
+}
+.ftg-onboard-chk-on {
+  transform: scale(1);
+}
+.ftg-onboard-swap {
+  animation: ftg-onboard-swap 0.3s var(--ftg-ease-out);
+}
+@keyframes ftg-onboard-swap {
+  from { transform: translateY(8px); opacity: 0; }
+}
+
+/* ── C · Liquid step line ──────────────────────────────────────────────── */
+.ftg-onboard-steps {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+}
+.ftg-onboard-sline {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 14px;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--line);
+}
+.ftg-onboard-sfill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-radius: 4px;
+  background: var(--brand);
+}
+.ftg-onboard-sdrop {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: var(--brand);
+  opacity: 0;
+}
+.ftg-onboard-sdot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 3px solid var(--line);
+  color: var(--ink-2);
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  transition: border-color 0.25s, color 0.25s;
+}
+.ftg-onboard-sdot::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: var(--brand);
+  transform: scale(0);
+  transition: transform 0.45s var(--ftg-ease-spring);
+}
+.ftg-onboard-sdot em,
+.ftg-onboard-sdot svg {
+  position: relative;
+  font-style: normal;
+  transition: transform 0.35s var(--ftg-ease-spring), opacity 0.2s;
+}
+.ftg-onboard-sdot svg {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px;
+  transform: scale(0) rotate(-30deg);
+  opacity: 0;
+}
+.ftg-onboard-sdot svg path {
+  stroke-dasharray: 22;
+  stroke-dashoffset: 22;
+  transition: stroke-dashoffset 0.3s 0.15s var(--ftg-ease-out);
+}
+.ftg-onboard-sdot.is-cur {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+.ftg-onboard-sdot.is-done {
+  border-color: var(--brand);
+}
+.ftg-onboard-sdot.is-done::before {
+  transform: scale(1);
+}
+.ftg-onboard-sdot.is-done em {
+  transform: scale(0);
+  opacity: 0;
+}
+.ftg-onboard-sdot.is-done svg {
+  transform: none;
+  opacity: 1;
+}
+.ftg-onboard-sdot.is-done svg path {
+  stroke-dashoffset: 0;
+}
+.ftg-onboard-pulse {
+  animation: ftg-onboard-pulse 0.5s var(--ftg-ease-spring);
+}
+@keyframes ftg-onboard-pulse {
+  40% { transform: scale(1.22); }
+}
+.ftg-onboard-pane {
+  will-change: transform, opacity;
+}
+.ftg-onboard-boing {
+  animation: ftg-onboard-boing 0.6s var(--ftg-ease-spring);
+}
+@keyframes ftg-onboard-boing {
+  30% { scale: 1.1 0.9; }
+  60% { scale: 0.96 1.05; }
+}
+
+/* ── D · Username availability ─────────────────────────────────────────── */
+.ftg-onboard-ufld {
+  position: relative;
+}
+.ftg-onboard-ust {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  margin-top: -11px;
+  pointer-events: none;
+}
+.ftg-onboard-ust svg {
+  position: absolute;
+  inset: 0;
+  width: 22px;
+  height: 22px;
+  opacity: 0;
+  transform: scale(0);
+}
+.ftg-onboard-ust .ftg-onboard-spn {
+  color: var(--ink-2);
+}
+.ftg-onboard-ufld.is-checking .ftg-onboard-spn {
+  opacity: 1;
+  transform: none;
+  animation: ftg-onboard-rot 0.7s linear infinite;
+}
+@keyframes ftg-onboard-rot {
+  to { transform: rotate(360deg); }
+}
+.ftg-onboard-ufld.is-available .ftg-onboard-ok,
+.ftg-onboard-ufld.is-taken .ftg-onboard-no {
+  opacity: 1;
+  transform: none;
+  transition: transform 0.45s var(--ftg-ease-spring), opacity 0.1s;
+}
+.ftg-onboard-ok path {
+  stroke-dasharray: 16;
+  stroke-dashoffset: 16;
+}
+.ftg-onboard-ufld.is-available .ftg-onboard-ok path {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 0.3s 0.15s var(--ftg-ease-out);
+}
+.ftg-onboard-ufld.is-available input {
+  border-color: var(--live);
+}
+.ftg-onboard-ufld.is-taken input {
+  border-color: var(--danger);
+}
+.ftg-onboard-fshake {
+  animation: ftg-onboard-fshake 0.42s;
+}
+@keyframes ftg-onboard-fshake {
+  15% { translate: -8px; }
+  30% { translate: 7px; }
+  45% { translate: -5px; }
+  60% { translate: 4px; }
+  75% { translate: -2px; }
+}
+.ftg-onboard-msg {
+  display: inline-block;
+  animation: ftg-onboard-msg 0.35s var(--ftg-ease-out);
+}
+@keyframes ftg-onboard-msg {
+  from { transform: translateY(100%); opacity: 0; }
+}
+.ftg-onboard-sugg {
+  border: 1.5px dashed var(--brand);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  animation: ftg-onboard-spop 0.5s var(--ftg-ease-spring) both;
+}
+@keyframes ftg-onboard-spop {
+  from { transform: scale(0) rotate(-12deg); opacity: 0; }
+}
+
+/* ── D · Password eye + strength meter ─────────────────────────────────── */
+.ftg-onboard-eye .ftg-onboard-pupil {
+  transform-origin: 12px 12px;
+  transform-box: view-box;
+}
+.ftg-onboard-eye .ftg-onboard-slash {
+  stroke-dasharray: 23;
+  stroke-dashoffset: 23;
+  transition: stroke-dashoffset 0.3s var(--ftg-ease-out);
+}
+.ftg-onboard-eye.is-shown .ftg-onboard-slash {
+  stroke-dashoffset: 0;
+}
+.ftg-onboard-blink .ftg-onboard-pupil {
+  animation: ftg-onboard-blink 0.25s;
+}
+@keyframes ftg-onboard-blink {
+  50% { transform: scaleY(0.1); }
+}
+.ftg-onboard-meter {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr) auto;
+  gap: 5px;
+  align-items: center;
+  padding-top: 8px;
+}
+.ftg-onboard-meter > i {
+  position: relative;
+  height: 6px;
+  border-radius: 6px;
+  background: var(--line);
+  overflow: hidden;
+}
+.ftg-onboard-meter > i::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--ftg-onboard-mc, var(--line));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.45s var(--ftg-ease-out), background 0.3s;
+}
+.ftg-onboard-meter > i.is-on::after {
+  transform: none;
+}
+.ftg-onboard-mpop {
+  animation: ftg-onboard-mpop 0.4s var(--ftg-ease-spring);
+}
+@keyframes ftg-onboard-mpop {
+  40% { transform: scaleY(2.1); }
+}
+.ftg-onboard-meter > span {
+  min-width: 58px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ftg-onboard-mc, var(--ink-2));
+}
+
+/* ── E · Avatar studio ─────────────────────────────────────────────────── */
+.ftg-onboard-dcube {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.ftg-onboard-dcube b {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+  padding: 2px;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: inset 0 0 0 1.5px #d6d0c6;
+  backface-visibility: hidden;
+}
+.ftg-onboard-dcube b i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #12151a;
+  place-self: center;
+}
+.ftg-onboard-dcube b.f1 i {
+  width: 6px;
+  height: 6px;
+  background: var(--brand);
+}
+.ftg-onboard-spin {
+  transform-origin: 50% 100%;
+  will-change: transform;
+}
+.ftg-onboard-land {
+  animation: ftg-onboard-land 0.55s;
+}
+@keyframes ftg-onboard-land {
+  20% { scale: 1.08 0.9; }
+  45% { scale: 0.95 1.06; translate: 0 -8px; }
+  70% { scale: 1.02 0.98; translate: 0 0; }
+}
+.ftg-onboard-swring::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2.5px solid var(--ink);
+  pointer-events: none;
+  animation: ftg-onboard-swring 0.5s var(--ftg-ease-out) both;
+}
+@keyframes ftg-onboard-swring {
+  from { transform: scale(1.5); opacity: 0; }
+  45% { transform: scale(1); opacity: 1; }
+  to { transform: scale(1.12); opacity: 0; }
+}

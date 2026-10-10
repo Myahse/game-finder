@@ -1,7 +1,8 @@
-import { useCallback, useMemo, useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { errorMessage } from '../lib/api'
-import { isUsernameTaken, usernamePattern } from '../lib/usernameCheck'
+import { usernamePattern } from '../lib/usernameCheck'
+import { buzz, cheer, replay } from '../lib/fx'
 import { acceptPendingFriendInvite } from '../lib/friendInvite'
 import { useAuth } from '../lib/auth'
 import { playerSkillLevels } from '../lib/format'
@@ -11,7 +12,9 @@ import { BaseSportIcon, SportIcon, SportName } from '../components/icons'
 import { SportCarousel, SportCarouselSkeleton } from '../components/SportCarousel'
 import { SportCourt } from '../components/SportCourt'
 import { StepIndicator } from '../components/StepIndicator'
-import { useStepFlow } from '../components/StepFlow'
+import { StepPane, useStepFlow } from '../components/StepFlow'
+import { UsernameHint, UsernameInput, UsernameSuggestions } from '../components/UsernameField'
+import { useUsernameCheck } from '../lib/useUsernameCheck'
 import { Button, ErrorText, Field, Input } from '../components/ui'
 import { useLocale } from '../i18n/LocaleProvider'
 import { useSportThemePreview } from '../theme/SportThemeProvider'
@@ -44,7 +47,7 @@ export function OnboardingPage() {
   // Base sport comes first: it dresses every screen that follows.
   const steps: OnboardingStep[] = needsProfile ? ['sport', 'profile', 'level'] : ['sport', 'level']
   const lastStep = steps.length - 1
-  const { step, setStep } = useStepFlow(0)
+  const { step, dir, setStep } = useStepFlow(0)
   const current = steps[Math.min(step, lastStep)]
   const [sportId, setSportId] = useState<string | null>(user?.preferred_sport_id ?? null)
   const [extraSportIds, setExtraSportIds] = useState<string[]>(user?.extra_sport_ids ?? [])
@@ -52,19 +55,16 @@ export function OnboardingPage() {
   const [firstName, setFirstName] = useState(user?.first_name ?? '')
   const [lastName, setLastName] = useState(user?.last_name ?? '')
   const [username, setUsername] = useState(user?.username ?? '')
-  const [usernameTaken, setUsernameTaken] = useState(false)
   const [error, setError] = useState('')
   const available = sports?.filter((s) => s.active) ?? []
   const baseSport = available.find((s) => s.id === sportId) ?? null
   // Re-skin the app live as soon as a base sport is picked.
   useSportThemePreview(baseSport?.slug ?? null)
 
+  const uname = useUsernameCheck(username, user?.username, { first: firstName, last: lastName })
+  const usernameTaken = uname.taken
   /** Resolves `true` when the username is already taken. */
-  const checkUsername = useCallback(async () => {
-    const taken = await isUsernameTaken(username, user?.username)
-    setUsernameTaken(taken)
-    return taken
-  }, [username, user?.username])
+  const checkUsername = uname.check
 
   const profileValid =
     firstName.trim().length > 0 &&
@@ -95,6 +95,12 @@ export function OnboardingPage() {
   const submit = (e: FormEvent) => {
     e.preventDefault()
     if (!sportId || !skill) return
+    const btn = (e.currentTarget as HTMLFormElement).querySelector('button[type="submit"]')
+    if (btn) {
+      replay(btn, 'ftg-onboard-boing')
+      buzz([12, 40, 20])
+      cheer(btn, 40)
+    }
     update.mutate(
       {
         first_name: firstName.trim(),
@@ -122,7 +128,7 @@ export function OnboardingPage() {
   const skillLabels = t.skill
 
   return (
-    <div className="min-h-full">
+    <div className="min-h-full overflow-x-clip">
       <div className="mx-auto flex max-w-md flex-col px-6 pb-10 pt-6">
         <div className="mb-8 flex items-center justify-between">
           <span className="display inline-flex items-center gap-1.5 text-xl font-extrabold">
@@ -148,6 +154,7 @@ export function OnboardingPage() {
         <form onSubmit={submit} className="mt-7 grid grid-cols-1 gap-5">
           <StepIndicator current={step + 1} total={steps.length} />
 
+          <StepPane key={current} dir={dir}>
           {current === 'sport' && (
             <div className="grid grid-cols-1 gap-3">
               <div>
@@ -183,28 +190,18 @@ export function OnboardingPage() {
                   <Input required autoComplete="family-name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
                 </Field>
               </div>
-              <Field
-                label={t.profile.username}
-                hint={
-                  usernameTaken ? (
-                    <span className="text-danger">{t.onboarding.usernameTaken}</span>
-                  ) : (
-                    t.onboarding.usernameHint
-                  )
-                }
-              >
-                <Input
+              <Field label={t.profile.username} hint={<UsernameHint status={uname.status} />}>
+                <UsernameInput
+                  status={uname.status}
                   required
                   pattern="[A-Za-z0-9_.]{3,24}"
                   autoComplete="username"
                   value={username}
-                  onChange={(e) => {
-                    setUsernameTaken(false)
-                    setUsername(e.target.value)
-                  }}
+                  onChange={(e) => setUsername(e.target.value)}
                   onBlur={() => void checkUsername()}
                 />
               </Field>
+              <UsernameSuggestions list={usernameTaken ? uname.suggestions : []} onPick={setUsername} />
               {user?.email && (
                 <p className="text-sm text-ink-2">
                   {t.onboarding.email}: <span className="font-medium text-ink">{user.email}</span>
@@ -279,6 +276,8 @@ export function OnboardingPage() {
             </div>
           )}
 
+          </StepPane>
+
           {error ? <ErrorText>{error}</ErrorText> : null}
 
           <div className="flex gap-2">
@@ -296,7 +295,9 @@ export function OnboardingPage() {
               <span className="flex-1" />
             )}
             {step < lastStep ? (
+              // Distinct keys: React must not turn this same node into the submit button mid-click.
               <Button
+                key="next"
                 type="button"
                 className="min-h-11 flex-1 text-base"
                 disabled={!canNext || update.isPending}
@@ -305,7 +306,7 @@ export function OnboardingPage() {
                 {t.account.next}
               </Button>
             ) : (
-              <Button type="submit" className="min-h-11 flex-1 text-base" loading={update.isPending} disabled={!canNext || update.isPending}>
+              <Button key="submit" type="submit" className="min-h-11 flex-1 text-base" loading={update.isPending} disabled={!canNext || update.isPending}>
                 {t.onboarding.openMap}
               </Button>
             )}

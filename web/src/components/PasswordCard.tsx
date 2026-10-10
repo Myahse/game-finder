@@ -5,7 +5,8 @@ import { toast } from 'sonner'
 import { useLocale } from '../i18n/LocaleProvider'
 import { api, errorMessage } from '../lib/api'
 import type { Me } from '../lib/types'
-import { Button, Card, ErrorText, Field, PasswordInput } from './ui'
+import { Button, Card, ErrorText, Field } from './ui'
+import { PasswordField } from './PasswordStrength'
 
 /** Google/Apple accounts can add a password (username login); others can change it. */
 export function PasswordCard({ me }: { me: Me }) {
@@ -56,11 +57,11 @@ export function PasswordCard({ me }: { me: Me }) {
         </div>
         {!adding && (
           <Field label={t.password.current}>
-            <PasswordInput required autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} />
+            <PasswordField required autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} />
           </Field>
         )}
         <Field label={t.password.new} hint={t.password.hint}>
-          <PasswordInput required minLength={8} maxLength={72} autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} />
+          <PasswordField meter required minLength={8} maxLength={72} autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} />
         </Field>
         <ErrorText>{error}</ErrorText>
         <div className="flex gap-2">

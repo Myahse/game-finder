@@ -1,0 +1,448 @@
+/* Social sheets: monthly recap story (P), sticker peel (Q), bump connect (R). */
+
+/* ── P · Recap story ─────────────────────────────── */
+.ftg-social-story {
+  overflow: hidden;
+  background: #12151a;
+  color: #fff;
+  perspective: 900px;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.ftg-social-story:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 3px;
+}
+.ftg-social-story[data-paused] {
+  transform: scale(0.97);
+}
+.ftg-social-bars {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: 10px;
+  z-index: 3;
+  display: flex;
+  gap: 4px;
+  pointer-events: none;
+}
+.ftg-social-bars > i {
+  flex: 1;
+  height: 3px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.35);
+  overflow: hidden;
+}
+.ftg-social-bars > i > b {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: #fff;
+}
+.ftg-social-head {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: 22px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.ftg-social-slides {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+.ftg-social-slide {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 6px;
+  padding: 64px 16px 20px;
+  text-align: center;
+  backface-visibility: hidden;
+  visibility: hidden;
+  will-change: transform;
+}
+.ftg-social-slide[data-cur] {
+  visibility: visible;
+}
+.ftg-social-slide.ftg-social-card {
+  padding: 0;
+  place-content: stretch;
+}
+.ftg-social-s1 { background: linear-gradient(160deg, var(--brand), var(--sport-deep)); }
+.ftg-social-s2 { background: linear-gradient(160deg, #1f2937, #0b1220); }
+.ftg-social-s3 { background: linear-gradient(160deg, #16a34a, #065f46); }
+.ftg-social-s4 { background: linear-gradient(160deg, #7c3aed, #3b0f8a); }
+.ftg-social-big {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 88px;
+  line-height: 0.9;
+}
+.ftg-social-mid {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 30px;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+.ftg-social-lbl {
+  font-size: 15px;
+  font-weight: 800;
+}
+.ftg-social-pill {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 10px;
+  border-radius: 99px;
+}
+.ftg-social-slide:not(.ftg-social-card) > * {
+  opacity: 0;
+}
+.ftg-social-slide[data-on]:not(.ftg-social-card) > * {
+  animation: ftg-social-in 0.6s var(--ftg-ease-spring) forwards;
+  animation-delay: calc(var(--i, 0) * 90ms + 150ms);
+}
+.ftg-social-slide > :nth-child(2) { --i: 1; }
+.ftg-social-slide > :nth-child(3) { --i: 2; }
+.ftg-social-slide > :nth-child(4) { --i: 3; }
+.ftg-social-slide > :nth-child(5) { --i: 4; }
+@keyframes ftg-social-in {
+  from { opacity: 0; transform: translateY(18px) scale(0.9); }
+  to { opacity: 1; transform: none; }
+}
+.ftg-social-clock {
+  width: 64px;
+  height: 64px;
+}
+.ftg-social-slide[data-on] .ftg-social-hand {
+  transform-origin: 40px 40px;
+  animation: ftg-social-hand 1.6s cubic-bezier(0.2, 0.7, 0.3, 1) 0.2s forwards;
+}
+.ftg-social-slide[data-on] .ftg-social-hand2 {
+  transform-origin: 40px 40px;
+  animation: ftg-social-hand2 1.6s cubic-bezier(0.2, 0.7, 0.3, 1) 0.2s forwards;
+}
+@keyframes ftg-social-hand { to { transform: rotate(1080deg); } }
+@keyframes ftg-social-hand2 { to { transform: rotate(90deg); } }
+.ftg-social-pause {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 4;
+  width: 46px;
+  height: 46px;
+  margin: -23px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.2s, transform 0.3s var(--ftg-ease-spring);
+  pointer-events: none;
+}
+.ftg-social-pause > i {
+  width: 5px;
+  height: 16px;
+  border-radius: 2px;
+  background: #fff;
+}
+.ftg-social-story[data-paused] .ftg-social-pause {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── Q · Sticker peel ────────────────────────────── */
+.ftg-social-stk {
+  position: relative;
+  touch-action: none;
+  cursor: grab;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.ftg-social-stk:active {
+  cursor: grabbing;
+}
+.ftg-social-sf,
+.ftg-social-sbw {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.ftg-social-sf > img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  -webkit-user-drag: none;
+}
+.ftg-social-sbw {
+  z-index: 1;
+  filter: drop-shadow(-2px 3px 3px rgba(0, 0, 0, 0.3));
+}
+/* The back of the sticker: same die-cut silhouette, mirrored across the fold line. */
+.ftg-social-sb {
+  position: absolute;
+  inset: 0;
+  display: none;
+  transform-origin: 0 0;
+  background: linear-gradient(135deg, #ffffff, #e9edf3 60%, #d5dbe4);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+.ftg-social-stk[data-peel] .ftg-social-sb {
+  display: block;
+}
+.ftg-social-stk[data-gone] .ftg-social-sf,
+.ftg-social-stk[data-gone] .ftg-social-sbw {
+  visibility: hidden;
+}
+.ftg-social-stk[data-back] .ftg-social-sf {
+  animation: ftg-social-back 0.45s var(--ftg-ease-spring);
+}
+@keyframes ftg-social-back {
+  from { opacity: 0; transform: scale(0.6); }
+}
+.ftg-social-fly {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 70;
+  pointer-events: none;
+  transform-origin: 50% 50%;
+  filter: drop-shadow(0 12px 14px rgba(0, 0, 0, 0.35));
+}
+.ftg-social-fly > img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.ftg-social-tray {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-height: 72px;
+  padding: 10px 12px 14px;
+  border-radius: 16px;
+  background: var(--surface-2);
+  background-image: radial-gradient(color-mix(in srgb, var(--ink) 8%, transparent) 1px, transparent 1px);
+  background-size: 10px 10px;
+}
+.ftg-social-msg {
+  position: relative;
+  width: 48px;
+  height: 48px;
+}
+.ftg-social-msg[data-hidden] {
+  visibility: hidden;
+}
+.ftg-social-msg > img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.ftg-social-msg.ftg-social-boing {
+  animation: ftg-social-boing 0.5s var(--ftg-ease-spring);
+}
+@keyframes ftg-social-boing {
+  0% { transform: scale(0.7); }
+  50% { transform: scale(1.15); }
+}
+.ftg-social-ticks {
+  position: absolute;
+  right: -4px;
+  bottom: -8px;
+  width: 16px;
+  height: 10px;
+  color: var(--ink-2);
+  transition: color 0.3s;
+}
+.ftg-social-ticks[data-read] {
+  color: #0ea5e9;
+}
+
+/* ── R · Bump ─────────────────────────────────────── */
+.ftg-social-bump {
+  position: relative;
+  width: min(100%, 300px);
+  height: 190px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.ftg-social-sweep {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 220px;
+  height: 220px;
+  margin: -110px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, color-mix(in srgb, var(--brand) 38%, transparent), transparent 30%);
+  animation: ftg-social-rot 1.6s linear infinite;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.ftg-social-sweep::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--brand) 30%, transparent);
+  background: radial-gradient(circle, transparent 0 49%, color-mix(in srgb, var(--brand) 22%, transparent) 49.5% 50.5%, transparent 51%);
+}
+.ftg-social-bump[data-ok] .ftg-social-sweep {
+  opacity: 0;
+}
+@keyframes ftg-social-rot {
+  to { transform: rotate(360deg); }
+}
+.ftg-social-ph {
+  position: absolute;
+  top: 39px;
+  width: 64px;
+  height: 112px;
+  padding: 5px;
+  border-radius: 14px;
+  background: #12151a;
+  box-shadow: 0 10px 20px -8px rgba(0, 0, 0, 0.5), 0 0 0 1px color-mix(in srgb, var(--line) 70%, transparent);
+  will-change: transform;
+}
+.ftg-social-ph.ftg-social-me {
+  left: calc(50% - 118px);
+  cursor: grab;
+  touch-action: none;
+}
+.ftg-social-ph.ftg-social-me:active {
+  cursor: grabbing;
+}
+.ftg-social-ph.ftg-social-fr {
+  left: calc(50% + 54px);
+}
+.ftg-social-scr {
+  position: relative;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 4px;
+  height: 100%;
+  border-radius: 10px;
+  background: #232a33;
+  overflow: hidden;
+}
+.ftg-social-scr em {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 800;
+  color: #cbd5e1;
+  font-variant-numeric: tabular-nums;
+}
+.ftg-social-q {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #3a4350;
+  color: #cbd5e1;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 20px;
+  animation: ftg-social-q 1.4s ease-in-out infinite;
+}
+@keyframes ftg-social-q {
+  50% { transform: scale(0.88); opacity: 0.7; }
+}
+.ftg-social-ok {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--live);
+  clip-path: circle(0 at 50% 50%);
+  transition: clip-path 0.5s var(--ftg-ease-out);
+}
+.ftg-social-ok path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  transition: stroke-dashoffset 0.35s 0.3s var(--ftg-ease-out);
+}
+.ftg-social-bump[data-ok] .ftg-social-ok {
+  clip-path: circle(80% at 50% 50%);
+}
+.ftg-social-bump[data-ok] .ftg-social-ok path {
+  stroke-dashoffset: 0;
+}
+.ftg-social-shock {
+  position: absolute;
+  top: 95px;
+  width: 20px;
+  height: 20px;
+  margin: -10px;
+  border-radius: 50%;
+  border: 3px solid var(--brand);
+  opacity: 0;
+  pointer-events: none;
+}
+.ftg-social-shock.ftg-social-go {
+  animation: ftg-social-shock 0.7s var(--ftg-ease-out);
+}
+@keyframes ftg-social-shock {
+  0% { transform: scale(0.4); opacity: 1; border-width: 6px; }
+  100% { transform: scale(9); opacity: 0; border-width: 1px; }
+}
+.ftg-social-ph.ftg-social-sq {
+  animation: ftg-social-sq 0.45s;
+}
+@keyframes ftg-social-sq {
+  20% { scale: 0.84 1.07; }
+  55% { scale: 1.05 0.97; }
+}
+/* The whole screen floods green from the point of impact. */
+.ftg-social-flood {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--live);
+  color: #fff;
+  clip-path: circle(0 at var(--fx, 50%) var(--fy, 50%));
+  animation: ftg-social-flood 0.6s var(--ftg-ease-out) forwards;
+}
+@keyframes ftg-social-flood {
+  to { clip-path: circle(150vmax at var(--fx, 50%) var(--fy, 50%)); }
+}
+.ftg-social-flood > * > * {
+  animation: ftg-social-in 0.55s var(--ftg-ease-spring) both;
+  animation-delay: calc(var(--i, 0) * 90ms + 180ms);
+}
+.ftg-social-flood > * > :nth-child(2) { --i: 1; }
+.ftg-social-flood > * > :nth-child(3) { --i: 2; }
+.ftg-social-flood > * > :nth-child(4) { --i: 3; }

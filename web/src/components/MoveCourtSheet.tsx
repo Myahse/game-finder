@@ -10,6 +10,7 @@ import type { Court } from '../lib/types'
 import { useCourtsRain } from '../lib/weather'
 import { Button, ErrorText, Spinner } from './ui'
 import { useSheetExit } from '../lib/motion'
+import { showMoveHop } from '../lib/moveHop'
 
 type CurrentCourt = Pick<Court, 'id' | 'name' | 'latitude' | 'longitude'>
 
@@ -81,7 +82,19 @@ export function MoveCourtSheet({ kind, id, sportId, sportSlug, court, defaultRea
       { kind, id, court_id: picked, reason },
       {
         onSuccess: () => {
-          toast.success(tm.done)
+          // The pin hops from the rain to the new court in a little card that outlives this sheet
+          // (the rain-check that opened it may disappear once the game is somewhere dry).
+          const to = options.find((c) => c.id === picked)
+          const shown =
+            !!to &&
+            showMoveHop({
+              from: { ...court, wet: !!rainHere, dry: false },
+              to: { ...to, wet: !!rain?.[to.id], dry: !!rain && !rain[to.id] },
+              label: tm.mapLabel.replace('{from}', court.name).replace('{to}', to.name),
+              done: tm.done,
+              closeLabel: t.common.close,
+            })
+          if (!shown) toast.success(tm.done)
           onClose()
         },
         onError: (e) => setError(errorMessage(e)),
