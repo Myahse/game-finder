@@ -4,6 +4,8 @@ User-agent: *
 Allow: /$
 Allow: /terms
 Allow: /privacy
+Allow: /og-image.jpg
+Allow: /icon-512.png
 Disallow: /api/
 Disallow: /admin
 Disallow: /profile
@@ -21,3 +23,5 @@ Disallow: /login
 Disallow: /register
 Disallow: /verify-email
 Disallow: /uploads/
+
+Sitemap: https://www.outforground.com/sitemap.xml

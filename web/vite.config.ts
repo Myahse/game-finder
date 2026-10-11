@@ -28,7 +28,8 @@ export default defineConfig({
         id: '/',
         name: 'Out For Ground',
         short_name: 'OutForGround',
-        description: "Don't search for a court. Find the game.",
+        description: 'Trouve un match près de chez toi : basket, foot, volley, tennis.',
+        lang: 'fr',
         theme_color: '#ff5a1f',
         background_color: '#12151a',
         display: 'standalone',
@@ -36,6 +37,8 @@ export default defineConfig({
         start_url: '/',
         icons: [
           { src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+          { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
           { src: 'favicon.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'maskable' },
         ],
       },

@@ -2,8 +2,10 @@ import { Link } from 'react-router-dom'
 import type { LegalSection } from '../content/legal'
 import { PageHeader } from '../components/ui'
 import { useLocale } from '../i18n/LocaleProvider'
+import { usePageSeo } from '../lib/seo'
 
-function LegalDoc({ title, sections }: { title: string; sections: LegalSection[] }) {
+function LegalDoc({ title, sections, path }: { title: string; sections: LegalSection[]; path: string }) {
+  usePageSeo({ title, path })
   const { t } = useLocale()
   return (
     <div className="pb-12">
@@ -24,12 +26,12 @@ function LegalDoc({ title, sections }: { title: string; sections: LegalSection[]
 
 export function TermsPage() {
   const { t } = useLocale()
-  return <LegalDoc title={t.legal.termsTitle} sections={t.legal.terms} />
+  return <LegalDoc title={t.legal.termsTitle} sections={t.legal.terms} path="/terms" />
 }
 
 export function PrivacyPage() {
   const { t } = useLocale()
-  return <LegalDoc title={t.legal.privacyTitle} sections={t.legal.privacy} />
+  return <LegalDoc title={t.legal.privacyTitle} sections={t.legal.privacy} path="/privacy" />
 }
 
 export function LegalFooter({ className = '' }: { className?: string }) {

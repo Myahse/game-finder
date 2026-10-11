@@ -1,21 +1,103 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Out For Ground — Trouve un match de basket, foot, volley ou tennis près de chez toi</title>
+    <meta
+      name="description"
+      content="Trouve un match près de chez toi : basket, foot, volley, tennis. Carte des terrains et matchs en direct, check-in, défis entre joueurs et classements. Gratuit."
+    />
+    <link rel="canonical" href="https://www.outforground.com/" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#f6f4f0" />
     <script src="/theme-boot.js"></script>
-    <meta name="description" content="Don't search for a court. Find the game." />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Find Game" />
-    <link rel="apple-touch-icon" href="/favicon.svg" />
-    <title>Out For Ground</title>
+    <meta name="apple-mobile-web-app-title" content="Out For Ground" />
+
+    <!-- Link previews (WhatsApp, Facebook, X, LinkedIn…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Out For Ground" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:url" content="https://www.outforground.com/" />
+    <meta property="og:title" content="Out For Ground — Trouve un match près de chez toi" />
+    <meta
+      property="og:description"
+      content="Basket, foot, volley, tennis : terrains et matchs en direct, entre potes ou avec les joueurs du coin. Gratuit."
+    />
+    <meta property="og:image" content="https://www.outforground.com/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Out For Ground : trouve un match près de chez toi" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Out For Ground — Trouve un match près de chez toi" />
+    <meta
+      name="twitter:description"
+      content="Basket, foot, volley, tennis : terrains et matchs en direct, entre potes ou avec les joueurs du coin. Gratuit."
+    />
+    <meta name="twitter:image" content="https://www.outforground.com/og-image.jpg" />
+
+    <!-- What the site is, for Google -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://www.outforground.com/#org",
+            "name": "Out For Ground",
+            "url": "https://www.outforground.com/",
+            "logo": "https://www.outforground.com/icon-512.png"
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://www.outforground.com/#site",
+            "name": "Out For Ground",
+            "url": "https://www.outforground.com/",
+            "inLanguage": ["fr", "en"],
+            "publisher": { "@id": "https://www.outforground.com/#org" }
+          },
+          {
+            "@type": "WebApplication",
+            "name": "Out For Ground",
+            "url": "https://www.outforground.com/",
+            "applicationCategory": "SportsApplication",
+            "operatingSystem": "Web, Android, iOS",
+            "inLanguage": "fr",
+            "description": "Trouve un match près de chez toi : basket, foot, volley, tennis. Carte des terrains et matchs en direct, check-in, défis et classements.",
+            "image": "https://www.outforground.com/og-image.jpg",
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "XOF" },
+            "publisher": { "@id": "https://www.outforground.com/#org" }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Shown until the app loads, and read by search engines. React replaces it. -->
+      <main style="max-width: 36rem; margin: 0 auto; padding: 3rem 1.25rem; font-family: system-ui, sans-serif">
+        <h1>Out For Ground : trouve un match près de chez toi</h1>
+        <p>
+          Ne cherchez pas un terrain, trouvez le match. Basket, foot, volley, tennis et plus : la carte des terrains
+          et des matchs en direct autour de vous, pour jouer entre potes ou avec les joueurs du coin.
+        </p>
+        <ul>
+          <li>Carte des terrains et des matchs en direct</li>
+          <li>Crée ou rejoins un match en un tap</li>
+          <li>Check-in au terrain : tes potes savent que tu es là</li>
+          <li>Défie n'importe qui et monte au classement du terrain</li>
+          <li>Ta carte de joueur, tes badges et tes stickers</li>
+        </ul>
+        <p>Gratuit. <a href="/register">Créer un compte</a> · <a href="/terms">Conditions</a> · <a href="/privacy">Confidentialité</a></p>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
