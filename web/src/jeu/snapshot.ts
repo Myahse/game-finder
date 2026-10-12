@@ -1,7 +1,7 @@
 // The match state the server sends about 20 times a second (it plays online
 // matches itself), and how the phones read it. What arrives from the network is untrusted: every
 // field is checked and clamped before it is drawn.
-import { H, W, clamp, emptyStats, type Banner, type Choice, type FeedLine, type Fx, type Moment, type Stats, type Tactics } from './engine'
+import { H, SPORTS, W, clamp, emptyStats, type Banner, type Choice, type FeedLine, type Fx, type Moment, type Sport, type Stats, type Tactics } from './engine'
 
 export interface Snap {
   v: 1
@@ -28,10 +28,12 @@ export interface Snap {
   tm: { pace: string; focus: string; def: string; to: boolean }
   sp: number
   pause: boolean
+  g: string
 }
 
 export interface ViewPlayer { id: string; name: string; num: number; team: 0 | 1; x: number; y: number; tx: number; ty: number; stam: number; st: Stats; fire: boolean; bob: number; jt: number; jd: number; jh: number; jz: number; pts: number }
 export interface ClientView {
+  sport: Sport
   P: ViewPlayer[]
   score: [number, number]
   phase: string
@@ -79,7 +81,8 @@ function feedLine(v: unknown): FeedLine | null {
 export function applySnap(prev: ClientView | null, raw: unknown): { view: ClientView; fx: Fx[]; newRoster: boolean } | null {
   if (!raw || typeof raw !== 'object') return null
   const s = raw as Partial<Snap>
-  if (s.v !== 1 || !Array.isArray(s.ro) || s.ro.length !== 6 || !Array.isArray(s.pl) || s.pl.length !== 6) return null
+  if (s.v !== 1 || !Array.isArray(s.ro) || ![2, 4, 6].includes(s.ro.length) || !Array.isArray(s.pl) || s.pl.length !== s.ro.length) return null
+  const half = s.ro.length / 2
   const ro = s.ro.map((r) => (Array.isArray(r) ? [str(r[0], 64), str(r[1], 24) || '?', int(r[2], 0, 99)] as const : null))
   if (ro.some((r) => !r || !r[0])) return null
   const newRoster = !prev || prev.P.some((p, i) => p.id !== ro[i]![0])
@@ -88,7 +91,7 @@ export function applySnap(prev: ClientView | null, raw: unknown): { view: Client
     const a = Array.isArray(s.pl![i]) ? (s.pl![i] as unknown[]) : []
     const tx = clamp(n(a[0], 185), -20, W + 20), ty = clamp(n(a[1], 300), -20, H + 20)
     const st: Stats = { ...emptyStats(), pts: int(a[3], 0, 99), reb: int(a[4], 0, 99), ast: int(a[5], 0, 99), stl: int(a[6], 0, 99), blk: int(a[7], 0, 99), fgm: int(a[8], 0, 99), fga: int(a[9], 0, 99), tpm: int(a[11], 0, 99), tpa: int(a[12], 0, 99), to: int(a[13], 0, 99) }
-    return { id: r![0], name: r![1], num: r![2], team: i < 3 ? 0 : 1, x: old ? old.x : tx, y: old ? old.y : ty, tx, ty, stam: clamp(n(a[2], 100) / 100, 0, 1), st, pts: st.pts, fire: !!a[10], bob: old?.bob ?? i, jt: old?.jt ?? 0, jd: old?.jd ?? 0.4, jh: old?.jh ?? 12, jz: old?.jz ?? 0 }
+    return { id: r![0], name: r![1], num: r![2], team: i < half ? 0 : 1, x: old ? old.x : tx, y: old ? old.y : ty, tx, ty, stam: clamp(n(a[2], 100) / 100, 0, 1), st, pts: st.pts, fire: !!a[10], bob: old?.bob ?? i, jt: old?.jt ?? 0, jd: old?.jd ?? 0.4, jh: old?.jh ?? 12, jz: old?.jz ?? 0 }
   })
   const b = Array.isArray(s.b) ? s.b : []
   const ballT = { x: clamp(n(b[0], 185), -20, W + 20), y: clamp(n(b[1], 300), -20, H + 20), z: clamp(n(b[2]), 0, 140), zb: clamp(n(b[3]), 0, 60) }
@@ -110,6 +113,7 @@ export function applySnap(prev: ClientView | null, raw: unknown): { view: Client
     aw = { k: int(s.aw.k, 0, 5), q: n(s.aw.q), t: int(s.aw.t, 0, 30), who: str(s.aw.who, 64), o }
   }
   const view: ClientView = {
+    sport: SPORTS.find((x) => x === s.g) ?? 'basketball',
     P,
     score: [int(s.s?.[0], 0, 99), int(s.s?.[1], 0, 99)],
     phase: str(s.ph, 12) || 'play',
@@ -152,4 +156,24 @@ export function glide(v: ClientView, dt: number) {
   const b = v.ball, t = v.ballT
   if (Math.hypot(t.x - b.x, t.y - b.y) > 200) Object.assign(b, t)
   else { b.x += (t.x - b.x) * kb; b.y += (t.y - b.y) * kb; b.z += (t.z - b.z) * kb; b.zb += (t.zb - b.zb) * kb }
+}
+
+/** An online match before kick-off: who sits where, who is ready, who is online. */
+export interface RoomLobby { sport: Sport; size: number; slots: string[]; ready: string[]; online: string[]; startIn: number | null; host: string; court: string }
+export function parseRoom(raw: unknown): RoomLobby | null {
+  if (!raw || typeof raw !== 'object') return null
+  const o = raw as Record<string, unknown>
+  const size = o.size === 1 || o.size === 2 || o.size === 3 ? o.size : 0
+  if (!size || !Array.isArray(o.slots) || o.slots.length !== size * 2) return null
+  const ids = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string').map((x) => x.slice(0, 64).toLowerCase()).slice(0, 12) : [])
+  return {
+    sport: SPORTS.find((x) => x === o.sport) ?? 'basketball',
+    size,
+    slots: o.slots.map((x) => (typeof x === 'string' ? x.slice(0, 64).toLowerCase() : '')),
+    ready: ids(o.ready),
+    online: ids(o.online),
+    startIn: typeof o.start_in === 'number' && Number.isFinite(o.start_in) ? clamp(Math.ceil(o.start_in), 0, 9) : null,
+    host: typeof o.host_id === 'string' ? o.host_id.toLowerCase() : '',
+    court: typeof o.court_id === 'string' ? o.court_id : '',
+  }
 }

@@ -1,5 +1,5 @@
 // Small synthesized match sounds (no audio files). Off until the player turns them on.
-type Name = 'swish' | 'clank' | 'thud' | 'whistle' | 'horn' | 'crowd' | 'dribble' | 'pop'
+type Name = 'swish' | 'clank' | 'thud' | 'whistle' | 'horn' | 'crowd' | 'dribble' | 'pop' | 'hit' | 'kick'
 
 class Sound {
   on = false
@@ -60,6 +60,8 @@ class Sound {
         case 'horn': for (const f of [220, 277, 330]) this.tone(f, 1.2, 'sawtooth', 0.06); break
         case 'crowd': this.noise(1.3 + k * 0.5, 'bandpass', 950, 0.16 * k, 0.6, 0.25); this.noise(1.2, 'lowpass', 420, 0.1 * k, 0.7, 0.3); break
         case 'dribble': this.tone(95, 0.07, 'sine', 0.22, 60); break
+        case 'hit': this.noise(0.06, 'bandpass', 2400, 0.32, 1.4, 0.003); this.tone(420, 0.06, 'triangle', 0.12, 260); break
+        case 'kick': this.tone(120, 0.12, 'sine', 0.45, 60); this.noise(0.05, 'lowpass', 1200, 0.25, 0.8, 0.003); break
         case 'pop': this.tone(760, 0.08, 'sine', 0.14, 1200); break
       }
     } catch {

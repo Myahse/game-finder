@@ -7,6 +7,7 @@ import { useLocation as useGeo } from '../../lib/location'
 import { useCourtsNearby } from '../../lib/queries'
 import type { Court } from '../../lib/types'
 import { Button } from '../../components/ui'
+import { hasJeuSport } from '../../jeu/words'
 import { firstName, headImage, useGamePlayers, useJeuMe } from '../../jeu/data'
 import { useJeuSocket, useLobby } from './JeuLayout'
 import { JeuRealMap } from './JeuRealMap'
@@ -30,8 +31,8 @@ function JeuCanvasMap() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { center } = useGeo()
-  const courtsQ = useCourtsNearby(center, 'basketball', 15)
-  const courts = useMemo(() => (courtsQ.data ?? []).filter((c) => c.status === 'approved' || c.status === 'pending'), [courtsQ.data])
+  const courtsQ = useCourtsNearby(center, null, 15)
+  const courts = useMemo(() => (courtsQ.data ?? []).filter((c) => (c.status === 'approved' || c.status === 'pending') && hasJeuSport(c)), [courtsQ.data])
   const socket = useJeuSocket()
   const lobby = useLobby()
   const { data: me } = useJeuMe()

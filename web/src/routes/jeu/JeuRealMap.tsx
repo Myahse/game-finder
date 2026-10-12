@@ -12,6 +12,7 @@ import { mapStyleForTheme } from '../../theme/mapStyle'
 import type { Court } from '../../lib/types'
 import { Avatar, Button } from '../../components/ui'
 import { SportIcon } from '../../components/icons'
+import { hasJeuSport, jeuSportOf } from '../../jeu/words'
 import { firstName, useGamePlayers, useJeuMe } from '../../jeu/data'
 import { useJeuSocket, useLobby } from './JeuLayout'
 
@@ -34,8 +35,8 @@ export function JeuRealMap() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { center } = useGeo()
-  const courtsQ = useCourtsNearby(center, 'basketball', 15)
-  const courts = useMemo(() => (courtsQ.data ?? []).filter((c) => c.status === 'approved' || c.status === 'pending'), [courtsQ.data])
+  const courtsQ = useCourtsNearby(center, null, 15)
+  const courts = useMemo(() => (courtsQ.data ?? []).filter((c) => (c.status === 'approved' || c.status === 'pending') && hasJeuSport(c)), [courtsQ.data])
   const socket = useJeuSocket()
   const lobby = useLobby()
   const { data: me } = useJeuMe()
@@ -145,7 +146,7 @@ export function JeuRealMap() {
             <Marker key={c.id} longitude={c.longitude} latitude={c.latitude} anchor="bottom" onClick={(e) => { e.originalEvent.stopPropagation(); target.current = { lat: c.latitude - 0.0002, lng: c.longitude }; follow.current = true }}>
               <div className="grid cursor-pointer justify-items-center">
                 <span className="grid size-11 place-items-center rounded-full border-[3px] border-brand bg-[#0d1117] text-brand shadow-[0_0_0_6px_rgba(255,90,31,.22)]">
-                  <SportIcon slug="basketball" className="size-6" />
+                  <SportIcon slug={jeuSportOf(c)} className="size-6" />
                 </span>
                 <span className="h-3 w-1 bg-brand" />
                 <span className="display mt-0.5 max-w-36 truncate rounded-md bg-black/75 px-1.5 text-xs font-extrabold uppercase text-white">{c.name}</span>

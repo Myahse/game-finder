@@ -4,11 +4,12 @@
 import { api, apiOrigin } from '../lib/api'
 
 export interface LobbyPlayer { user_id: string; lat: number; lng: number; scene: string; room?: string; on_map: boolean }
-export interface LobbyRoom { code: string; court_id: string; host_id: string; players: number; started: boolean }
+export interface LobbyRoom { code: string; court_id: string; host_id: string; players: number; started: boolean; sport: string; size: number; filled: number }
 export interface Lobby { players: LobbyPlayer[]; rooms: LobbyRoom[] }
 
 export type RoomEvent =
-  | { t: 'joined'; code: string; court_id: string; host_id: string; host: boolean; state: unknown }
+  | { t: 'joined'; code: string; court_id: string; host_id: string; sport: string; size: number; state: unknown; room: unknown }
+  | { t: 'room'; r: unknown }
   | { t: 'members'; code: string; members: string[]; host_online: boolean }
   | { t: 'state'; s: unknown }
   | { t: 'claim'; from: string; k: string | null }
@@ -17,6 +18,7 @@ export type RoomEvent =
   | { t: 'host_left' }
   | { t: 'closed'; code: string; why: string }
   | { t: 'error'; code: string }
+  | ({ t: 'award' } & Record<string, unknown>)
 
 type Listener = (e: RoomEvent) => void
 
@@ -91,11 +93,9 @@ export class JeuSocket {
   hide() { this.pos = null; this.raw({ t: 'hide' }) }
   join(code: string) { this.room = code; this.raw({ t: 'join', code }) }
   leave() { this.room = null; this.raw({ t: 'leave' }) }
-  /** Host only: coach team A on the server's match. */
-  tactic(k: string, v: string) { this.raw({ t: 'tactic', k, v }) }
-  timeout() { this.raw({ t: 'timeout' }) }
-  speed(n: number) { this.raw({ t: 'speed', n }) }
+  /** Before kick-off: sit in a spot (null to stand up), and say you're ready. */
   claim(k: string | null) { this.raw({ t: 'claim', k }) }
+  ready(on: boolean) { this.raw({ t: 'ready', n: on ? 1 : 0 }) }
   intent(q: number, i: number) { this.raw({ t: 'intent', q, i }) }
   react(e: string) { this.raw({ t: 'react', e }) }
 

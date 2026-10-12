@@ -10,6 +10,9 @@ export const R3 = 160
 export const WIN = 15
 export const RIM = 40
 
+export type Sport = 'basketball' | 'football' | 'volleyball' | 'tennis' | 'badminton'
+export const SPORTS: Sport[] = ['basketball', 'football', 'volleyball', 'tennis', 'badminton']
+
 export type AttrKey = 'tir' | 'pen' | 'col' | 'def' | 'end' | 'men'
 export type Attrs = Record<AttrKey, number>
 export const ATTR_KEYS: AttrKey[] = ['tir', 'pen', 'col', 'def', 'end', 'men']
@@ -79,14 +82,19 @@ export function makePlayer(r: RosterEntry, team: 0 | 1, slot: number): SimPlayer
 }
 
 /** Match rating 3–10, like a newspaper player rating. */
-export function rating(p: Pick<SimPlayer, 'st'>, won: boolean | null) {
-  const s = p.st
+export function rating(p: Pick<SimPlayer, 'st'>, won: boolean | null, sport: Sport = 'basketball') {
+  const s = p.st, w = won === null ? 0 : won ? 0.4 : -0.2
+  if (sport === 'football') return clamp(6 + s.pts * 0.9 + s.ast * 0.6 + s.stl * 0.3 + s.blk * 0.3 + s.reb * 0.1 - s.to * 0.3 - (s.fga - s.fgm) * 0.06 + w, 3, 10)
+  if (sport !== 'basketball') return clamp(5.6 + s.pts * 0.22 + s.tpm * 0.25 + s.blk * 0.3 + s.reb * 0.05 + s.ast * 0.04 - s.to * 0.28 + w, 3, 10)
   return clamp(6 + s.pts * 0.11 + s.ast * 0.28 + s.reb * 0.14 + s.stl * 0.45 + s.blk * 0.4 - s.to * 0.35 - (s.fga - s.fgm) * 0.07 + (won === null ? 0 : won ? 0.4 : -0.2), 3, 10)
 }
 
 export interface Ball { mode: 'held' | 'pass' | 'shot' | 'loose'; x: number; y: number; z: number; zb: number; fx?: number; fy?: number; tx?: number; ty?: number; dur?: number; h?: number; to?: SimPlayer; from?: SimPlayer; steal?: boolean; blocked?: boolean; z0?: number }
 
 export class Match {
+  sport: 'basketball' | 'football'
+  /** Points to win: 15 in basketball, 5 goals in football. */
+  win: number
   P: SimPlayer[]
   score: [number, number] = [0, 0]
   off: 0 | 1
@@ -119,7 +127,11 @@ export class Match {
   private hooks: Hooks
   private rnd: () => number
 
-  constructor(teams: [RosterEntry[], RosterEntry[]], hooks: Hooks, rnd: () => number = Math.random) {
+  private foot: boolean
+  constructor(teams: [RosterEntry[], RosterEntry[]], hooks: Hooks, rnd: () => number = Math.random, sport: 'basketball' | 'football' = 'basketball') {
+    this.sport = sport
+    this.foot = sport === 'football'
+    this.win = this.foot ? 5 : WIN
     this.hooks = hooks
     this.rnd = rnd
     this.P = [...teams[0].map((r, i) => makePlayer(r, 0, i)), ...teams[1].map((r, i) => makePlayer(r, 1, i))]
@@ -159,7 +171,9 @@ export class Match {
   /** Chance of a shot going in, from the shooter's attributes, the spot and the defense. */
   shotProb(p: SimPlayer, x: number, y: number) {
     const d = Math.hypot(x - HOOP.x, y - HOOP.y), a = p.a
-    let pr = d < 72 ? 0.4 + a.pen * 0.0045 : d < R3 - 2 ? 0.27 + a.tir * 0.0036 : 0.12 + a.tir * 0.0038
+    let pr = this.foot
+      ? (d < 72 ? 0.3 + a.pen * 0.0036 : d < R3 - 2 ? 0.14 + a.tir * 0.0026 : 0.05 + a.tir * 0.0016)
+      : (d < 72 ? 0.4 + a.pen * 0.0045 : d < R3 - 2 ? 0.27 + a.tir * 0.0036 : 0.12 + a.tir * 0.0038)
     const defs = this.team((1 - p.team) as 0 | 1)
     const dq = defs.reduce((m, q) => (Math.hypot(q.x - x, q.y - y) < Math.hypot(m.x - x, m.y - y) ? q : m))
     const nd = Math.hypot(dq.x - x, dq.y - y)
@@ -167,7 +181,7 @@ export class Match {
     pr -= Math.max(0, (48 - nd) / 48) * (0.16 + dq.a.def / 650) * press
     pr *= 0.72 + 0.28 * p.stam
     if (p.fire) pr += 0.07
-    if (Math.max(...this.score) >= WIN - 5) pr += (a.men - 66) * 0.003
+    if (Math.max(...this.score) >= this.win - (this.foot ? 2 : 5)) pr += (a.men - 66) * 0.003
     if (p.team === 0) pr += 0.012
     return clamp(pr, 0.05, 0.9)
   }
@@ -180,11 +194,11 @@ export class Match {
   }
   private options(h: SimPlayer): Op[] {
     const ops: Op[] = [], fo = h.team === 0 ? this.tactics.focus : 'bal', uh = this.usage(h)
-    const pShot = this.shotProb(h, h.x, h.y), three = isThree(h.x, h.y)
-    ops.push({ kind: 'shoot', p: pShot, val: pShot * (three ? 3 : 2) * uh * (three ? (fo === 'out' ? 1.3 : fo === 'in' ? 0.7 : 1) : 1) })
-    if (this.dHoop(h) > 70) { const g2 = this.guard(h), pd = clamp(0.38 + h.a.pen * 0.0048 - g2.a.def * 0.0026 + (h.team === 1 && this.tactics.def === 'press' ? 0.06 : 0), 0.12, 0.8); ops.push({ kind: 'drive', p: pd, val: pd * 2 * uh * (fo === 'in' ? 1.3 : fo === 'out' ? 0.8 : 1) }) }
+    const pShot = this.shotProb(h, h.x, h.y), three = this.isThree(h.x, h.y)
+    ops.push({ kind: 'shoot', p: pShot, val: pShot * this.value(three) * uh * (three ? (fo === 'out' ? 1.3 : fo === 'in' ? 0.7 : 1) : 1) })
+    if (this.dHoop(h) > 70) { const g2 = this.guard(h), pd = clamp(0.38 + h.a.pen * 0.0048 - g2.a.def * 0.0026 + (h.team === 1 && this.tactics.def === 'press' ? 0.06 : 0), 0.12, 0.8); ops.push({ kind: 'drive', p: pd, val: pd * this.value(false) * uh * (fo === 'in' ? 1.3 : fo === 'out' ? 0.8 : 1) }) }
     this.team(h.team).filter((q) => q !== h).forEach((q) => {
-      const open = this.nearestDef(q).d, ps = this.shotProb(q, q.x, q.y), vv = isThree(q.x, q.y) ? 3 : 2, steal = this.passSteal(h, q)
+      const open = this.nearestDef(q).d, ps = this.shotProb(q, q.x, q.y), vv = this.value(this.isThree(q.x, q.y)), steal = this.passSteal(h, q)
       ops.push({ kind: 'pass', to: q, p: 1 - steal, val: (ps * vv * 0.9 + Math.min(open, 60) / 400) * this.usage(q) * (1 - steal * 2.2) * (0.85 + h.a.col / 400) })
     })
     return ops
@@ -236,18 +250,20 @@ export class Match {
     const thief = steal ? this.team((1 - h.team) as 0 | 1).reduce((m, q) => (Math.hypot(q.x - mx, q.y - my) < Math.hypot(m.x - mx, m.y - my) ? q : m)) : null
     this.ball = { mode: 'pass', fx: h.x, fy: h.y, to: thief ?? to, from: h, steal, dur: 0.28 + this.dist(h, to) / 900, x: h.x, y: h.y, z: 10, zb: 6 }
   }
+  /** A three-pointer (basketball only: a goal is always one). */
+  isThree(x: number, y: number) { return !this.foot && isThree(x, y) }
   private release(x: number, y: number, layup: boolean) {
-    const h = this.handler, three = isThree(x, y), d = Math.hypot(x - HOOP.x, y - HOOP.y)
-    const nd = this.nearestDef(h), dunk = layup && h.a.pen >= 72 && h.stam > 0.5 && this.rnd() < 0.45
+    const h = this.handler, three = this.isThree(x, y), d = Math.hypot(x - HOOP.x, y - HOOP.y)
+    const nd = this.nearestDef(h), dunk = !this.foot && layup && h.a.pen >= 72 && h.stam > 0.5 && this.rnd() < 0.45
     const blockP = nd.d < (layup ? 34 : 24) ? (layup ? 0.05 : 0.02) + nd.q.a.def / (layup ? 650 : 1500) : 0
     let pr = this.shotProb(h, x, y); if (dunk) pr = Math.min(0.94, pr + 0.2)
     const blocked = this.rnd() < blockP, made = !blocked && this.rnd() < pr
     h.st.fga++; if (three) h.st.tpa++
-    const winning = made && this.score[h.team] + (three ? 3 : 2) >= WIN
+    const winning = made && this.score[h.team] + this.value(three) >= this.win
     this.pending = { by: h, three, made, blocked, blocker: nd.q, dunk, layup, x, y }
     this.phase = 'shot'; this.pt = 0
     const dur = blocked ? 0.22 : dunk ? 0.3 : layup ? 0.45 : d > R3 ? 0.78 : 0.62
-    this.ball = { mode: 'shot', fx: x, fy: y - 6, tx: blocked ? nd.q.x : HOOP.x, ty: blocked ? nd.q.y - 8 : HOOP.y, dur, h: blocked ? 14 : dunk ? 26 : layup ? 34 : d > R3 ? 92 : 70, blocked, x, y, z: 10, zb: 0 }
+    this.ball = { mode: 'shot', fx: x, fy: y - 6, tx: blocked ? nd.q.x : HOOP.x, ty: blocked ? nd.q.y - 8 : HOOP.y, dur, h: this.foot ? (blocked ? 8 : layup ? 10 : d > R3 ? 34 : 22) : blocked ? 14 : dunk ? 26 : layup ? 34 : d > R3 ? 92 : 70, blocked, x, y, z: 10, zb: 0 }
     if (winning) this.slow = 0.32
     h.stam = Math.max(0.2, h.stam - 0.012)
     this.fx('rel', this.idx(h), x, y, dunk ? 1 : 0)
@@ -263,7 +279,7 @@ export class Match {
       return this.rebound(true)
     }
     if (s.made) {
-      const v = s.three ? 3 : 2; this.score[p.team] += v; p.st.pts += v; p.st.fgm++; if (s.three) p.st.tpm++
+      const v = this.value(s.three); this.score[p.team] += v; p.st.pts += v; p.st.fgm++; if (s.three) p.st.tpm++
       const ast = this.lastPass && this.lastPass.to === p && this.gameT - this.lastPass.t < 3.2 ? this.lastPass.from : null
       if (ast) ast.st.ast++
       p.streak++
@@ -276,9 +292,10 @@ export class Match {
       if (p.streak === 3 && !p.fire) { p.fire = true; this.say({ k: 'fire', p: [i] }); this.moment('fire', [p]); if (!s.dunk) this.showBanner('fire', { p: i }) }
       this.hooks.onScore?.(p.team)
       this.hist.push(this.score[0] - this.score[1])
-      if (this.score[p.team] >= WIN) return this.finish(p)
-      const run = this.runOf(p.team); if (run >= 7) { this.say({ k: 'run', n: run, team: p.team }); this.moment('run', [p]) }
-      if (this.score[p.team] >= WIN - 3 && this.score[p.team] - v < WIN - 3) this.showBanner('matchPoint', { team: p.team }, 900)
+      if (this.score[p.team] >= this.win) return this.finish(p)
+      const run = this.runOf(p.team); if (run >= (this.foot ? 3 : 7)) { this.say({ k: 'run', n: run, team: p.team }); this.moment('run', [p]) }
+      const mp = this.win - (this.foot ? 1 : 3)
+      if (this.score[p.team] >= mp && this.score[p.team] - v < mp) this.showBanner('matchPoint', { team: p.team }, 900)
       this.celebrate = 0.5; this.phase = 'celebrate'; this.pt = 0; this.off = (1 - p.team) as 0 | 1
       return
     }
@@ -288,10 +305,11 @@ export class Match {
     this.evs.push({ type: 'miss', p, v: 0 })
     this.rebound(false)
   }
+  private value(three: boolean) { return this.foot ? 1 : three ? 3 : 2 }
   private runOf(t: number) { let r = 0; for (let i = this.evs.length - 1; i >= 0; i--) { const e = this.evs[i]; if (e.type !== 'make') continue; if (e.p.team !== t) break; r += e.v } return r }
   private rebound(blocked: boolean) {
     const a = this.r(0.15, Math.PI - 0.15), r = this.r(26, 78)
-    this.ball = { mode: 'loose', x: HOOP.x, y: HOOP.y, tx: HOOP.x + Math.cos(a) * r, ty: HOOP.y + Math.sin(a) * r + 6, z: 0, zb: blocked ? 10 : RIM, z0: blocked ? 10 : RIM }
+    this.ball = { mode: 'loose', x: HOOP.x, y: HOOP.y, tx: HOOP.x + Math.cos(a) * r, ty: HOOP.y + Math.sin(a) * r + 6, z: 0, zb: blocked || this.foot ? 10 : RIM, z0: blocked || this.foot ? 10 : RIM }
     this.P.forEach((p) => { if (Math.hypot(p.x - this.ball.tx!, p.y - this.ball.ty!) < 150) { p.tx = this.ball.tx! + this.r(-14, 14); p.ty = this.ball.ty! + this.r(-10, 14) } })
     this.phase = 'rebound'; this.pt = 0
   }
@@ -375,8 +393,9 @@ export class Match {
         if (Math.hypot(h.x - h.tx, h.y - h.ty) < 8 || this.pt > 0.9) {
           const gd = this.guard(h)
           const stop = this.rnd() < clamp(gd.a.def / 210 - h.a.pen / 320 + (h.team === 1 && t.def === 'press' ? -0.06 : 0) + 0.12, 0.05, 0.45)
-          if (stop) {
-            const mate = this.pick(this.team(this.off).filter((q) => q !== h)); this.say({ k: 'kickOut', p: [this.idx(h)] })
+          const mates = this.team(this.off).filter((q) => q !== h)
+          if (stop && mates.length) {
+            const mate = this.pick(mates); this.say({ k: 'kickOut', p: [this.idx(h)] })
             this.ball = { mode: 'pass', fx: h.x, fy: h.y, to: mate, from: h, steal: false, dur: 0.35, x: h.x, y: h.y, z: 10, zb: 6 }; this.phase = 'pass'; this.pt = 0
           } else this.release(h.x, h.y, true)
         }
@@ -398,7 +417,7 @@ export class Match {
       }
       case 'shot': {
         const k = Math.min(1, this.pt / b.dur!)
-        b.x = lerp(b.fx!, b.tx!, k); b.y = lerp(b.fy!, b.ty!, k); b.z = 10 + Math.sin(k * Math.PI) * b.h! * (1 - k * 0.4); b.zb = (b.blocked ? 20 : RIM - 10) * k
+        b.x = lerp(b.fx!, b.tx!, k); b.y = lerp(b.fy!, b.ty!, k); b.z = 10 + Math.sin(k * Math.PI) * b.h! * (1 - k * 0.4); b.zb = (b.blocked ? 20 : this.foot ? 0 : RIM - 10) * k
         if (k >= 1) this.landed()
         break
       }
@@ -413,7 +432,7 @@ export class Match {
         if (this.pt > this.celebrate) this.startPossession()
         break
       case 'over': {
-        const wt = this.score[0] >= WIN ? 0 : 1
+        const wt = this.score[0] >= this.win ? 0 : 1
         for (const p of this.P) if (p.team === wt) { p.tx = 185 + Math.cos(this.gameT + p.slot * 2) * 40; p.ty = 190 + Math.sin(this.gameT * 2 + p.slot) * 20; if (p.jt <= 0 && this.rnd() < dt * 1.5) { p.jd = 0.45; p.jt = 0.45; p.jh = 14 } }
         b.zb = Math.max(0, b.zb - dt * 110)
         break

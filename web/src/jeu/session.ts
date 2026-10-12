@@ -1,10 +1,11 @@
 // Hand-off between the arena and the match screen (kept in memory: a reload
 // sends the player back to the arena, where the teams are picked again).
-import type { RosterEntry } from './engine'
+import type { RosterEntry, Sport } from './engine'
 import type { PublicUser } from '../lib/types'
 
 export interface PendingMatch {
   mode: 'solo' | 'host'
+  sport: Sport
   code?: string
   court: { id: string; name: string }
   teams: [RosterEntry[], RosterEntry[]]

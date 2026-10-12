@@ -1,16 +1,18 @@
 import type { ReactNode } from 'react'
 import {
-  ArrowLeftRight, CircleDot, CircleSlash, ClipboardList, Flag, Flame, Hand, HandGrab, Pause, Repeat, Target, Timer, TrendingUp, Trophy, Zap,
+  ArrowDownToLine, ArrowLeftRight, CircleDot, CircleSlash, ClipboardList, Feather, Flag, Flame, Hand, HandGrab, Pause, Repeat, Sparkles, Target, Timer, TrendingUp, Trophy, Zap,
   type LucideIcon,
 } from 'lucide-react'
 import { useLocale } from '../i18n/LocaleProvider'
-import type { FeedLine } from './engine'
+import type { FeedLine, Sport } from './engine'
+import { sportWords } from './words'
 
 /** The icon in front of a feed line or a key moment. */
 export const FEED_ICON: Record<string, LucideIcon> = {
   kickoff: Flag, dunk: Zap, dunkAst: Zap, three: Target, threeAst: Target, layup: CircleDot, layupAst: CircleDot, jumper: CircleDot, jumperAst: CircleDot,
   miss: CircleSlash, miss3: CircleSlash, missLayup: CircleSlash, block: Hand, steal: HandGrab, orb: Repeat, drb: Repeat, kickOut: ArrowLeftRight,
   fire: Flame, run: TrendingUp, win: Trophy, timeout: Pause, coach: ClipboardList, aiPlays: Timer,
+  net: CircleSlash, out: CircleSlash, ace: Sparkles, smash: Zap, drop: Feather, winner: ArrowDownToLine,
 }
 
 export interface FeedContext {
@@ -18,6 +20,7 @@ export interface FeedContext {
   teams: [string, string]
   /** Team of each player (0 or 1), for the name colours. */
   side: (0 | 1)[]
+  sport?: Sport
 }
 
 /** Fills {a} {b} {team} {score} {n} {v} with styled names and numbers. */
@@ -40,7 +43,7 @@ export function useFill() {
 export function FeedText({ line, ctx }: { line: FeedLine; ctx: FeedContext }) {
   const { t } = useLocale()
   const fill = useFill()
-  const tpl = (t.jeu.feed as Record<string, string>)[line.k]
+  const tpl = sportWords(t, ctx.sport ?? 'basketball').feed[line.k]
   if (!tpl) return null
   const Icon = FEED_ICON[line.k] ?? CircleDot
   return (

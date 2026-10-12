@@ -5,16 +5,18 @@ import { useLocation as useGeo } from '../../lib/location'
 import { useCourtsNearby } from '../../lib/queries'
 import { formatDistance } from '../../lib/format'
 import { SkeletonList } from '../../components/ui'
+import { SportIcon } from '../../components/icons'
+import { hasJeuSport } from '../../jeu/words'
 import { useLobby } from './JeuLayout'
 
-/** Basketball courts near the player, each one an arena. */
+/** Courts near the player with a Mode Jeu sport, each one an arena. */
 export function JeuArenasPage() {
   const { t } = useLocale()
   const tj = t.jeu
   const { center } = useGeo()
-  const { data, isLoading } = useCourtsNearby(center, 'basketball', 15)
+  const { data, isLoading } = useCourtsNearby(center, null, 15)
   const lobby = useLobby()
-  const courts = [...(data ?? [])].sort((a, b) => (a.distance_m ?? Infinity) - (b.distance_m ?? Infinity))
+  const courts = (data ?? []).filter(hasJeuSport).sort((a, b) => (a.distance_m ?? Infinity) - (b.distance_m ?? Infinity))
   return (
     <div className="mx-auto grid max-w-xl gap-3 px-4 py-3">
       <h1 className="display text-3xl font-black uppercase">{tj.arenas.title}</h1>
@@ -26,6 +28,7 @@ export function JeuArenasPage() {
           <Link key={c.id} to={`/jeu/arene/${c.id}`} className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-3">
             <div className="grid min-w-0 flex-1 gap-1">
               <b className="display truncate text-lg font-extrabold uppercase leading-none">{c.name}</b>
+              <span className="flex flex-wrap gap-1.5 text-ink-2">{c.sports.filter((x) => hasJeuSport({ sports: [x] })).map((x) => <SportIcon key={x.slug} slug={x.slug} className="size-4" />)}</span>
               <span className="flex flex-wrap gap-x-3 text-xs text-ink-2">
                 {c.distance_m != null && <span>{formatDistance(c.distance_m)}</span>}
                 <span className="inline-flex items-center gap-1 text-live"><Users className="size-3.5" aria-hidden />{tj.arenas.players.replace('{n}', String(c.player_count))}</span>
