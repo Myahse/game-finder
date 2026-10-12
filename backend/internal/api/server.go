@@ -193,6 +193,7 @@ func (s *Server) Routes() http.Handler {
 			r.Get("/jeu/players", s.jeuPlayers)
 			r.Get("/jeu/arenas/{id}", s.jeuArena)
 			r.Get("/jeu/rooms", s.jeuRooms)
+			r.With(s.rateLimited).Post("/jeu/results", s.jeuResult)
 			r.With(s.rateLimited).Post("/jeu/rooms", s.jeuCreateRoom)
 			r.Get("/users/{id}/head-to-head", s.headToHead)
 			r.Get("/challenges", s.listChallenges)

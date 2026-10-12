@@ -72,7 +72,7 @@ func TestGameMode(t *testing.T) {
 		t.Fatalf("real games should raise attributes: %v vs fresh %v", a, attrs)
 	}
 	src := me["sources"].(map[string]any)
-	if src["games"] != 8.0 || src["wins"] != 8.0 || src["ppg"] != 14.0 || src["games_30d"] != 8.0 {
+	if src["games"] != 8.0 || src["wins"] != 8.0 || src["s1"] != 14.0 || src["games_30d"] != 8.0 {
 		t.Fatalf("sources = %v", src)
 	}
 	hist := me["history"].([]any)
@@ -82,6 +82,43 @@ func TestGameMode(t *testing.T) {
 	// 30 days ago Ana had played nothing.
 	if me["before"].(map[string]any)["tir"].(float64) >= a["tir"].(float64) {
 		t.Fatalf("before = %v, now = %v", me["before"], a)
+	}
+
+	// Football attributes come from football games: Ana has none, so she is at the floor there.
+	foot, _ := e.must(200, ana.Token, "GET", "/api/jeu/me?sport=football", nil)
+	if foot["sport"] != "football" || foot["attributes"].(map[string]any)["tir"].(float64) >= a["tir"].(float64) {
+		t.Fatalf("football avatar = %v", foot["attributes"])
+	}
+
+	// Simulated matches give the avatar XP, at most 200 a week, and badges.
+	res, _ := e.must(200, cat.Token, "POST", "/api/jeu/results", map[string]any{"sport": "football", "won": true, "mvp": true, "stats": map[string]int{"goals": 3}})
+	if res["xp"] != 35.0 || res["week"] != 35.0 || res["cap"] != 200.0 {
+		t.Fatalf("first result = %v", res)
+	}
+	badges := fmt.Sprint(res["new_badges"])
+	if !strings.Contains(badges, "first_win") || !strings.Contains(badges, "hat_trick") {
+		t.Fatalf("badges = %v", res["new_badges"])
+	}
+	// Too soon after the previous one: nothing.
+	res, _ = e.must(200, cat.Token, "POST", "/api/jeu/results", map[string]any{"sport": "football", "won": true})
+	if res["xp"] != 0.0 {
+		t.Fatalf("instant replay gave XP: %v", res)
+	}
+	e.must(422, cat.Token, "POST", "/api/jeu/results", map[string]any{"sport": "chess", "won": true})
+	// The weekly cap: pretend Cat already earned 190 this week.
+	if _, err := e.db.Pool.Exec(ctx, `update game_xp set at = now() - interval '1 minute', xp = 190 where user_id = $1 and raw_xp > 0`, cat.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := e.db.Pool.Exec(ctx, `update game_xp set at = now() - interval '2 minutes' where user_id = $1 and raw_xp = 0`, cat.ID); err != nil {
+		t.Fatal(err)
+	}
+	res, _ = e.must(200, cat.Token, "POST", "/api/jeu/results", map[string]any{"sport": "tennis", "won": true})
+	if res["xp"] != 10.0 || res["capped"] != true || res["week"] != 200.0 {
+		t.Fatalf("capped result = %v", res)
+	}
+	g, _ := e.must(200, cat.Token, "GET", "/api/jeu/me", nil)
+	if g["game"].(map[string]any)["week"] != 200.0 || len(g["game"].(map[string]any)["badges"].([]any)) < 3 {
+		t.Fatalf("game xp = %v", g["game"])
 	}
 
 	// Ben's arena at IUGB: Ana is the player to beat there, and his friend.

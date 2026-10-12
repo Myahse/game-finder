@@ -43,10 +43,47 @@ func friendIDs(d *db.DB) jeu.FriendsFunc {
 	}
 }
 
+// Sports Mode Jeu plays (?sport=, basketball by default).
+var jeuSports = map[string]bool{"basketball": true, "football": true, "volleyball": true, "tennis": true, "badminton": true}
+
+func sportParam(r *http.Request) string {
+	if s := r.URL.Query().Get("sport"); jeuSports[s] {
+		return s
+	}
+	return "basketball"
+}
+
+// jeuResult records a solo Mode Jeu match for the avatar's XP (capped per week)
+// and badges. Online results are recorded by the server itself.
+func (s *Server) jeuResult(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Sport string         `json:"sport"`
+		Won   bool           `json:"won"`
+		MVP   bool           `json:"mvp"`
+		Stats map[string]int `json:"stats"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || !jeuSports[body.Sport] {
+		writeError(w, http.StatusUnprocessableEntity, "invalid", "A sport is required.")
+		return
+	}
+	stats := map[string]int{}
+	for _, k := range []string{"pts", "tpm", "goals", "aces", "smashes"} {
+		if v, ok := body.Stats[k]; ok && v >= 0 && v < 100 {
+			stats[k] = v
+		}
+	}
+	b, err := s.db.JSON(r.Context(), uid(r), `select game_award(app_uid(), $1, 'solo', $2, $3, $4::jsonb, null)`, body.Sport, body.Won, body.MVP, stats)
+	if err != nil {
+		writeDBError(w, r, err)
+		return
+	}
+	writeRaw(w, http.StatusOK, b)
+}
+
 // jeuMe is the signed-in player's Mode Jeu avatar: attributes now and 30 days
 // ago, XP and the real games behind them.
 func (s *Server) jeuMe(w http.ResponseWriter, r *http.Request) {
-	b, err := s.db.JSON(r.Context(), uid(r), `select game_me()`)
+	b, err := s.db.JSON(r.Context(), uid(r), `select game_me($1)`, sportParam(r))
 	if err != nil {
 		writeDBError(w, r, err)
 		return
@@ -62,7 +99,7 @@ func (s *Server) jeuPlayers(w http.ResponseWriter, r *http.Request) {
 			ids = append(ids, id)
 		}
 	}
-	b, err := s.db.JSON(r.Context(), uid(r), `select game_players($1::uuid[])`, ids)
+	b, err := s.db.JSON(r.Context(), uid(r), `select game_players($1::uuid[], $2)`, ids, sportParam(r))
 	if err != nil {
 		writeDBError(w, r, err)
 		return
@@ -77,7 +114,7 @@ func (s *Server) jeuArena(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "not_found", "Not found.")
 		return
 	}
-	b, err := s.db.JSON(r.Context(), uid(r), `select game_arena(c.id) from courts c where c.id = $1`, id)
+	b, err := s.db.JSON(r.Context(), uid(r), `select game_arena(c.id, $2) from courts c where c.id = $1`, id, sportParam(r))
 	if err != nil {
 		writeDBError(w, r, err)
 		return
@@ -135,7 +172,7 @@ func (s *Server) jeuCreateRoom(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "not_found", "Court not found.")
 		return
 	}
-	raw, err := s.db.JSON(r.Context(), uid(r), `select game_players($1::uuid[])`, real)
+	raw, err := s.db.JSON(r.Context(), uid(r), `select game_players($1::uuid[], 'basketball')`, real)
 	if err != nil {
 		writeDBError(w, r, err)
 		return
