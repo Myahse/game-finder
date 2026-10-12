@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { ChevronRight, Crown, Gamepad2, Minus, Pencil, Plus, Shuffle, Star, Trash2, Users } from 'lucide-react'
 import { useLocale } from '../i18n/LocaleProvider'
 import { useAuth } from '../lib/auth'
+import { GAME_MODE_ENABLED } from '../lib/features'
 import { errorMessage } from '../lib/api'
 import { playerUsernameLabel } from '../lib/format'
 import { hasResult, TEAM_COLORS, useSaveScoreboard, useScoreboard, type Scoreboard, type ScoreTeam } from '../lib/scoreboard'
@@ -78,7 +79,7 @@ export function GameScoreboard({ game, canEdit }: { game: Game; canEdit: boolean
           <StatsTable sb={sb} byId={byId} />
           {sb.updated_by && <p className="text-xs text-ink-2">{t.scoreboard.updatedBy.replace('{user}', playerUsernameLabel(sb.updated_by))}</p>}
           {hasResult(sb) && <ShareResultButton game={game} sb={sb} />}
-          {hasResult(sb) && game.joined && game.sport.slug === 'basketball' && <GameModeXpLine sb={sb} />}
+          {GAME_MODE_ENABLED && hasResult(sb) && game.joined && game.sport.slug === 'basketball' && <GameModeXpLine sb={sb} />}
         </Card>
       )}
     </section>

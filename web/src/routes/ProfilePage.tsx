@@ -23,6 +23,7 @@ import { MyProgressCard, UserProgressCard } from '../components/ProgressCard'
 import { PlayerChallengeBlock } from '../components/PlayerChallengeBlock'
 import { PasswordCard } from '../components/PasswordCard'
 import { GameAvatarCard } from '../components/GameAvatarCard'
+import { GAME_MODE_ENABLED } from '../lib/features'
 import { AvatarPortrait } from '../avatar/render/AvatarPortrait'
 import { AVATAR_SPORTS, defaultConfig } from '../avatar/presets'
 import { useMySport } from '../lib/mySport'
@@ -186,7 +187,7 @@ export function ProfilePage() {
             <div data-guide="progress">
               <MyProgressCard avatar={playerAvatar} />
             </div>
-            <GameAvatarCard />
+            {GAME_MODE_ENABLED && <GameAvatarCard />}
             <WhatsAppCommunityCard />
             <ScreenGuide
               screen="profile"

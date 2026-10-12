@@ -24,6 +24,7 @@ import { ALL_SPORT_ICONS, DistanceText, LiveText, SportName } from '../component
 import { ScreenGuide } from '../components/ScreenGuide'
 import { Chip, Spinner, StatusPill } from '../components/ui'
 import { ArrowLeftRight, Gamepad2, Plus, Users } from 'lucide-react'
+import { GAME_MODE_ENABLED } from '../lib/features'
 import { useLocale } from '../i18n/LocaleProvider'
 
 export function MapPage() {
@@ -91,15 +92,17 @@ export function MapPage() {
             <span className="display inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-live px-3 py-1 text-sm font-bold text-white shadow min-[400px]:text-base">
               <LiveText>{t.courts.map.live.replace('{n}', String(liveCount))}</LiveText>
             </span>
-            {/* Mode Jeu: the map becomes a game world */}
-            <Link
-              to="/jeu"
-              state={{ from: '/' }}
-              className="display ftg-press inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-[#11161e] px-3 py-1 text-sm font-bold text-white shadow ring-1 ring-brand min-[400px]:text-base"
-            >
-              <Gamepad2 className="size-4 text-brand" aria-hidden />
-              {t.jeu.entry.map}
-            </Link>
+            {/* Mode Jeu: the map becomes a game world (hidden until launch) */}
+            {GAME_MODE_ENABLED && (
+              <Link
+                to="/jeu"
+                state={{ from: '/' }}
+                className="display ftg-press inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-[#11161e] px-3 py-1 text-sm font-bold text-white shadow ring-1 ring-brand min-[400px]:text-base"
+              >
+                <Gamepad2 className="size-4 text-brand" aria-hidden />
+                {t.jeu.entry.map}
+              </Link>
+            )}
           </div>
         </div>
         <MapSearchBar

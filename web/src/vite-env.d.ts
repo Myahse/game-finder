@@ -9,4 +9,6 @@ interface ImportMetaEnv {
   readonly VITE_MEDIA_PUBLIC_ORIGIN?: string
   /** Google OAuth web client ID; enables "Continue with Google". */
   readonly VITE_GOOGLE_CLIENT_ID?: string
+  /** "on" shows the Mode Jeu buttons (map, court page, profile, game result). */
+  readonly VITE_GAME_MODE?: string
 }

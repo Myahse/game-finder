@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ChevronRight, Gamepad2 } from 'lucide-react'
+import { GAME_MODE_ENABLED } from '../lib/features'
 import { formatDistance, timeAgo } from '../lib/format'
 import { CourtAddPhotos } from '../components/CourtAddPhotos'
 import { CourtInfoEditor } from '../components/CourtInfoEditor'
@@ -114,7 +115,7 @@ export function CourtPage() {
         <CourtChallenges court={court} />
 
         <CourtLeaderboard courtId={court.id} />
-        {court.status === 'approved' && court.sports.some((s) => s.slug === 'basketball') && (
+        {GAME_MODE_ENABLED && court.status === 'approved' && court.sports.some((s) => s.slug === 'basketball') && (
           <Link
             to={`/jeu/arene/${court.id}`}
             state={{ from: `/courts/${court.id}` }}
