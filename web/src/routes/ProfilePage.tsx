@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { WhatsAppCommunityCard } from '../components/WhatsApp'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api, errorMessage, uploadImage } from '../lib/api'
@@ -186,6 +187,7 @@ export function ProfilePage() {
               <MyProgressCard avatar={playerAvatar} />
             </div>
             <GameAvatarCard />
+            <WhatsAppCommunityCard />
             <ScreenGuide
               screen="profile"
               tips={[

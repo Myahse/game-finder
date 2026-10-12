@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { PostGameToWhatsApp } from '../components/WhatsApp'
 import { GameInviteField } from '../components/GameInviteField'
 import { errorMessage } from '../lib/api'
 import { Clock, Navigation, Star, Timer, UserPlus } from 'lucide-react'
@@ -224,6 +225,7 @@ export function GamePage() {
         <GameWeather game={game} isHost={isCreator || viewerIsAdmin} />
 
         {open && game.joined && <GameInviteField gameId={game.id} />}
+        {open && <PostGameToWhatsApp gameId={game.id} title={`${game.court.name} · ${gameTypeLabels[game.game_type]}`} />}
 
         <GameScoreboard game={game} canEdit={isCreator || game.joined || viewerIsAdmin} />
 

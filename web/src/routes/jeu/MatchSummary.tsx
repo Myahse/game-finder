@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Medal, MessageCircle, Plus, RotateCcw, Share2, Swords, Users, X } from 'lucide-react'
+import { ArrowLeft, Medal, MessageCircle, Plus, RotateCcw, Swords, Users, X } from 'lucide-react'
 import { useLocale } from '../../i18n/LocaleProvider'
 import { Avatar, Button } from '../../components/ui'
 import { ChallengeComposer } from '../../components/ChallengeComposer'
 import type { PublicUser } from '../../lib/types'
 import { WHATSAPP_COMMUNITY_URL, whatsappShareUrl } from '../../lib/whatsapp'
+import { WhatsAppIcon } from '../../components/WhatsApp'
 import { W, rating, type Moment, type Shot } from '../../jeu/engine'
 import { courtFloors } from '../../jeu/stage'
 import { FEED_ICON, useFill, type FeedContext } from '../../jeu/FeedText'
@@ -152,7 +153,7 @@ export function MatchSummary({ data, onAgain, onArena }: { data: SummaryData; on
           <Link to={`/games/new?court=${data.court.id}&sport=basketball`} className="display inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-line text-lg font-bold"><Plus className="size-5" aria-hidden />{ts.realGame}</Link>
         )}
         <div className="grid grid-cols-2 gap-2">
-          <a href={whatsappShareUrl(shareText)} target="_blank" rel="noopener noreferrer" className="display inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#1fa855] px-2 text-center text-base font-bold leading-tight text-white"><Share2 className="size-5 shrink-0" aria-hidden />{ts.share}</a>
+          <a href={whatsappShareUrl(shareText)} target="_blank" rel="noopener noreferrer" className="display inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#1fa855] px-2 text-center text-base font-bold leading-tight text-white"><WhatsAppIcon className="size-5 shrink-0" />{ts.share}</a>
           <a href={WHATSAPP_COMMUNITY_URL} target="_blank" rel="noopener noreferrer" className="display inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#1fa855] px-2 text-center text-base font-bold leading-tight text-[#3ddc84]"><Users className="size-5 shrink-0" aria-hidden />{ts.community}</a>
         </div>
         {onAgain && <Button variant="secondary" onClick={onAgain}><RotateCcw className="size-5" aria-hidden />{ts.again}</Button>}

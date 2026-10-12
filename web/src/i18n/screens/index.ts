@@ -8,6 +8,7 @@ import * as errors from './errors'
 import * as games from './games'
 import * as jeu from './jeu'
 import * as legal from './legal'
+import * as whatsapp from './whatsapp'
 
 export const screensEn = {
   account: account.en,
@@ -19,6 +20,7 @@ export const screensEn = {
   games: games.en,
   jeu: jeu.en,
   legal: legal.en,
+  whatsapp: whatsapp.en,
 }
 
 export const screensFr: typeof screensEn = {
@@ -31,4 +33,5 @@ export const screensFr: typeof screensEn = {
   games: games.fr,
   jeu: jeu.fr,
   legal: legal.fr,
+  whatsapp: whatsapp.fr,
 }

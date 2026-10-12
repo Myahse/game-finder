@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Users, Globe, ShieldCheck } from 'lucide-react'
+import { Users, Globe, Minus, Plus, ShieldCheck } from 'lucide-react'
 import { useLocale } from '../../i18n/LocaleProvider'
 import { useAuth } from '../../lib/auth'
 import { useLocation as useGeo } from '../../lib/location'
@@ -9,6 +9,8 @@ import type { Court } from '../../lib/types'
 import { Button } from '../../components/ui'
 import { firstName, headImage, useGamePlayers, useJeuMe } from '../../jeu/data'
 import { useJeuSocket, useLobby } from './JeuLayout'
+import { JeuRealMap } from './JeuRealMap'
+import { mapboxConfigured } from '../../lib/mapbox'
 
 // The game world is the real map around the player, 1 px ≈ 3 m. The avatar
 // starts on the nearest court, so friends only ever see a game position.
@@ -21,7 +23,8 @@ const toPx = (p: Proj, lat: number, lng: number) => ({ x: (lng - p.lng0) * p.kx,
 const toGeo = (p: Proj, x: number, y: number) => ({ lat: p.lat0 - y / p.ky, lng: p.lng0 + x / p.kx })
 let lastSpot: { lat: number; lng: number } | null = null
 
-export function JeuMapPage() {
+/** Without a Mapbox token (local dev, tests): a drawn city with the same courts. */
+function JeuCanvasMap() {
   const { t } = useLocale()
   const tj = t.jeu
   const navigate = useNavigate()
@@ -34,6 +37,8 @@ export function JeuMapPage() {
   const { data: me } = useJeuMe()
   const friendsQ = useGamePlayers(lobby.players.map((p) => p.user_id))
   const [near, setNear] = useState<Court | null>(null)
+  const zoomRef = useRef(1)
+  const zoomBy = (f: number) => { zoomRef.current = Math.max(0.4, Math.min(2.2, zoomRef.current * f)) }
 
   const cvRef = useRef<HTMLCanvasElement>(null)
   const joyRef = useRef<HTMLDivElement>(null)
@@ -61,7 +66,9 @@ export function JeuMapPage() {
     let raf = 0, last = 0, t = 0, R = cv.getBoundingClientRect(), nearId: string | null = null
     const size = () => { R = cv.getBoundingClientRect(); const d = Math.min(2, window.devicePixelRatio || 1); cv.width = R.width * d; cv.height = R.height * d; g.setTransform(d, 0, 0, d, 0, 0) }
     size()
-    const cam = () => ({ x: me.x - R.width / 2, y: me.y - R.height * 0.55 })
+    // VW × VH: the visible world at the current zoom.
+    const VW = () => R.width / zoomRef.current, VH = () => R.height / zoomRef.current
+    const cam = () => ({ x: me.x - VW() / 2, y: me.y - VH() * 0.55 })
     socket.setPosition(spawn.lat, spawn.lng, 'map')
 
     const hash = (x: number, y: number) => { let h = (x * 374761393 + y * 668265263) | 0; h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h >>> 16)) >>> 0) / 4294967295 }
@@ -109,12 +116,12 @@ export function JeuMapPage() {
 
       const c = cam()
       g.clearRect(0, 0, R.width, R.height)
-      g.save(); g.translate(-c.x, -c.y)
+      g.save(); g.scale(zoomRef.current, zoomRef.current); g.translate(-c.x, -c.y)
       // the city, generated block by block around the camera
-      g.fillStyle = '#121821'; g.fillRect(c.x, c.y, R.width, R.height)
+      g.fillStyle = '#121821'; g.fillRect(c.x, c.y, VW(), VH())
       const B = 110
-      for (let bx = Math.floor(c.x / B) - 1; bx <= Math.floor((c.x + R.width) / B) + 1; bx++) {
-        for (let by = Math.floor(c.y / B) - 1; by <= Math.floor((c.y + R.height) / B) + 1; by++) {
+      for (let bx = Math.floor(c.x / B) - 1; bx <= Math.floor((c.x + VW()) / B) + 1; bx++) {
+        for (let by = Math.floor(c.y / B) - 1; by <= Math.floor((c.y + VH()) / B) + 1; by++) {
           const h = hash(bx, by)
           if (h < 0.08) { g.fillStyle = '#16301f'; g.beginPath(); g.roundRect(bx * B + 8, by * B + 8, B - 16, B - 16, 26); g.fill(); continue }
           if (h < 0.85) {
@@ -124,14 +131,14 @@ export function JeuMapPage() {
         }
       }
       g.strokeStyle = '#273141'; g.lineWidth = 12
-      for (let x = Math.floor(c.x / B) * B; x <= c.x + R.width + B; x += B) { g.beginPath(); g.moveTo(x, c.y - B); g.lineTo(x, c.y + R.height + B); g.stroke() }
-      for (let y = Math.floor(c.y / B) * B; y <= c.y + R.height + B; y += B) { g.beginPath(); g.moveTo(c.x - B, y); g.lineTo(c.x + R.width + B, y); g.stroke() }
+      for (let x = Math.floor(c.x / B) * B; x <= c.x + VW() + B; x += B) { g.beginPath(); g.moveTo(x, c.y - B); g.lineTo(x, c.y + VH() + B); g.stroke() }
+      for (let y = Math.floor(c.y / B) * B; y <= c.y + VH() + B; y += B) { g.beginPath(); g.moveTo(c.x - B, y); g.lineTo(c.x + VW() + B, y); g.stroke() }
       if (target) { g.strokeStyle = 'rgba(255,255,255,.6)'; g.lineWidth = 2; g.beginPath(); g.arc(target.x, target.y, 10 + Math.sin(t * 6) * 2, 0, Math.PI * 2); g.stroke() }
 
       let nearest: Court | null = null, nd = 1e9
       for (const a of L.courts) {
         const p = toPx(proj, a.latitude, a.longitude)
-        if (p.x < c.x - 200 || p.x > c.x + R.width + 200 || p.y < c.y - 200 || p.y > c.y + R.height + 200) continue
+        if (p.x < c.x - 200 || p.x > c.x + VW() + 200 || p.y < c.y - 200 || p.y > c.y + VH() + 200) continue
         const d = Math.hypot(p.x - me.x, p.y - me.y); if (d < 95 && d < nd) { nd = d; nearest = a }
         const pulse = REDUCE ? 0.5 : (Math.sin(t * 2.2 + p.x) + 1) / 2
         g.fillStyle = 'rgba(255,90,31,.13)'; g.beginPath(); g.arc(p.x, p.y, 60 + pulse * 14, 0, Math.PI * 2); g.fill()
@@ -168,7 +175,7 @@ export function JeuMapPage() {
     const down = (e: PointerEvent) => { e.stopPropagation(); J.setPointerCapture(e.pointerId); mv(e) }
     const move = (e: PointerEvent) => { if (J.hasPointerCapture(e.pointerId)) mv(e) }
     const up = () => { joy = { x: 0, y: 0 }; K.style.transform = '' }
-    const tap = (e: PointerEvent) => { const r = cv.getBoundingClientRect(), c = cam(); target = { x: e.clientX - r.left + c.x, y: e.clientY - r.top + c.y } }
+    const tap = (e: PointerEvent) => { const r = cv.getBoundingClientRect(), c = cam(); target = { x: (e.clientX - r.left) / zoomRef.current + c.x, y: (e.clientY - r.top) / zoomRef.current + c.y } }
     const keys = new Set<string>()
     const key = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase(); if (!['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'z', 'q', 's', 'd', 'w', 'a'].includes(k)) return
@@ -203,6 +210,10 @@ export function JeuMapPage() {
       {!courtsQ.isLoading && courts.length === 0 && (
         <p className="absolute inset-x-6 top-1/3 rounded-2xl bg-surface p-4 text-center text-sm text-ink-2">{tj.map.noCourts}</p>
       )}
+      <div className="absolute right-3 top-14 grid gap-1.5">
+        <button type="button" onClick={() => zoomBy(1.25)} aria-label={tj.map.zoomIn} className="grid size-11 place-items-center rounded-xl border border-line bg-surface text-ink shadow-lg"><Plus className="size-5" aria-hidden /></button>
+        <button type="button" onClick={() => zoomBy(0.8)} aria-label={tj.map.zoomOut} className="grid size-11 place-items-center rounded-xl border border-line bg-surface text-ink shadow-lg"><Minus className="size-5" aria-hidden /></button>
+      </div>
       <div ref={joyRef} className="absolute bottom-5 left-5 grid size-24 touch-none place-items-center rounded-full border-2 border-white/15 bg-white/5" role="application" aria-label={tj.map.joystick}>
         <span ref={knobRef} className="size-11 rounded-full bg-white/70 shadow-lg transition-transform duration-75" />
       </div>
@@ -220,4 +231,9 @@ export function JeuMapPage() {
       )}
     </div>
   )
+}
+
+/** The game map: the real map when Mapbox is set up. */
+export function JeuMapPage() {
+  return mapboxConfigured() ? <JeuRealMap /> : <JeuCanvasMap />
 }

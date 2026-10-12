@@ -17,6 +17,10 @@ export const en = {
     you: 'You',
     level: 'Lv. {n}',
     joystick: 'Move',
+    hintReal: 'Walk to a court with the joystick, the arrow keys, or tap the map. Pinch or use + and − to zoom.',
+    zoomIn: 'Zoom in',
+    zoomOut: 'Zoom out',
+    recenter: 'Back to my avatar',
   },
   arenas: { title: 'Arenas near you', players: '{n} on site', open: 'Open' },
   arena: {
@@ -203,6 +207,10 @@ export const fr: typeof en = {
     you: 'Toi',
     level: 'Niv. {n}',
     joystick: 'Se déplacer',
+    hintReal: 'Marche jusqu’à un terrain avec le joystick, les flèches, ou touche la carte. Pince ou utilise + et − pour zoomer.',
+    zoomIn: 'Zoomer',
+    zoomOut: 'Dézoomer',
+    recenter: 'Revenir à mon avatar',
   },
   arenas: { title: 'Arènes près de toi', players: '{n} sur place', open: 'Ouvrir' },
   arena: {
