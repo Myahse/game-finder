@@ -65,7 +65,7 @@ func New(cfg config.Config, d *db.DB, hub *realtime.Hub, media *storage.Media) *
 		firebase:        newFirebaseVerifier(cfg),
 		mailer:          mail.NewResend(cfg.ResendAPIKey, cfg.EmailFrom),
 		weather:         newWeatherCache(cfg.WeatherURL),
-		jeu:             jeu.NewHub(friendIDs(d)),
+		jeu:             jeu.NewHub(context.Background(), friendIDs(d)),
 	}
 }
 

@@ -91,7 +91,10 @@ export class JeuSocket {
   hide() { this.pos = null; this.raw({ t: 'hide' }) }
   join(code: string) { this.room = code; this.raw({ t: 'join', code }) }
   leave() { this.room = null; this.raw({ t: 'leave' }) }
-  sendState(s: unknown) { this.raw({ t: 'state', s }) }
+  /** Host only: coach team A on the server's match. */
+  tactic(k: string, v: string) { this.raw({ t: 'tactic', k, v }) }
+  timeout() { this.raw({ t: 'timeout' }) }
+  speed(n: number) { this.raw({ t: 'speed', n }) }
   claim(k: string | null) { this.raw({ t: 'claim', k }) }
   intent(q: number, i: number) { this.raw({ t: 'intent', q, i }) }
   react(e: string) { this.raw({ t: 'react', e }) }

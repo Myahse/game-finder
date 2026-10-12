@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"findthegame/backend/internal/db"
@@ -15,6 +16,8 @@ import (
 	"github.com/coder/websocket"
 	"github.com/go-chi/chi/v5"
 )
+
+var botRe = regexp.MustCompile(`^bot-[0-9]{1,2}$`)
 
 var uuidRe = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 
@@ -87,31 +90,109 @@ func (s *Server) jeuRooms(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, s.jeu.Rooms(r.URL.Query().Get("court_id")))
 }
 
-// jeuCreateRoom opens an online match at a court, hosted by the caller, and
-// tells their friends. The host then joins it over /api/jeu/ws.
+// jeuCreateRoom opens an online match at a court between the host's team and
+// the rivals, and tells the host's friends. The server plays the match; the
+// players join it over /api/jeu/ws. Team A's first player is the host. Real
+// players' attributes are loaded here, never taken from the client.
 func (s *Server) jeuCreateRoom(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		CourtID string `json:"court_id"`
+		CourtID string   `json:"court_id"`
+		A       []string `json:"a"`
+		B       []string `json:"b"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || !uuidRe.MatchString(body.CourtID) {
-		writeError(w, http.StatusUnprocessableEntity, "invalid", "A court is required.")
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || !uuidRe.MatchString(body.CourtID) || len(body.A) != 3 || len(body.B) != 3 {
+		writeError(w, http.StatusUnprocessableEntity, "invalid", "A court and two teams of 3 are required.")
 		return
 	}
-	var exists bool
-	if err := s.db.Pool.QueryRow(r.Context(), `select exists (select 1 from courts where id = $1)`, body.CourtID).Scan(&exists); err != nil {
+	me := strings.ToLower(uid(r))
+	ids := append(append([]string{}, body.A...), body.B...)
+	real := []string{}
+	for i, id := range ids {
+		id = strings.ToLower(strings.TrimSpace(id))
+		ids[i] = id
+		switch {
+		case uuidRe.MatchString(id):
+			real = append(real, id)
+		case !botRe.MatchString(id):
+			writeError(w, http.StatusUnprocessableEntity, "invalid", "Unknown player.")
+			return
+		}
+	}
+	if ids[0] != me {
+		writeError(w, http.StatusUnprocessableEntity, "invalid", "You lead your team.")
+		return
+	}
+	var info struct {
+		Exists bool   `json:"exists"`
+		Locale string `json:"locale"`
+	}
+	if err := s.db.Pool.QueryRow(r.Context(), `select exists (select 1 from courts where id = $1), coalesce((select locale from users where id = $2), 'en')`,
+		body.CourtID, me).Scan(&info.Exists, &info.Locale); err != nil {
 		writeDBError(w, r, err)
 		return
 	}
-	if !exists {
+	if !info.Exists {
 		writeError(w, http.StatusNotFound, "not_found", "Court not found.")
 		return
 	}
-	room, err := s.jeu.CreateRoom(strings.ToLower(uid(r)), body.CourtID)
-	if errors.Is(err, jeu.ErrTooManyRooms) {
-		writeError(w, http.StatusServiceUnavailable, "too_many_rooms", "Too many online matches right now. Try again in a moment.")
+	raw, err := s.db.JSON(r.Context(), uid(r), `select game_players($1::uuid[])`, real)
+	if err != nil {
+		writeDBError(w, r, err)
 		return
 	}
-	if err != nil {
+	var players []struct {
+		User struct {
+			ID        string `json:"id"`
+			FirstName string `json:"first_name"`
+			Username  string `json:"username"`
+		} `json:"user"`
+		Number     int       `json:"number"`
+		Attributes jeu.Attrs `json:"attributes"`
+		Sources    struct {
+			Rpg float64 `json:"rpg"`
+		} `json:"sources"`
+	}
+	if err := json.Unmarshal(raw, &players); err != nil {
+		writeDBError(w, r, err)
+		return
+	}
+	byID := map[string]jeu.RosterEntry{}
+	for _, p := range players {
+		name := strings.Fields(strings.TrimSpace(p.User.FirstName))
+		n := p.User.Username
+		if len(name) > 0 {
+			n = name[0]
+		}
+		byID[strings.ToLower(p.User.ID)] = jeu.RosterEntry{ID: strings.ToLower(p.User.ID), Name: n, Num: p.Number, A: p.Attributes,
+			Big: p.Sources.Rpg >= 5 || p.Attributes.Def+p.Attributes.Pen >= 150}
+	}
+	botName := "Player"
+	if info.Locale == "fr" {
+		botName = "Joueur"
+	}
+	teams := [2][]jeu.RosterEntry{}
+	for i, id := range ids {
+		e, ok := byID[id]
+		if !ok && botRe.MatchString(id) {
+			n, _ := strconv.Atoi(strings.TrimPrefix(id, "bot-"))
+			e = jeu.BotRoster(n, botName, i/3*3)
+			ok = true
+		}
+		if !ok {
+			writeError(w, http.StatusUnprocessableEntity, "invalid", "Unknown player.")
+			return
+		}
+		teams[i/3] = append(teams[i/3], e)
+	}
+	room, err := s.jeu.CreateRoom(me, body.CourtID, teams[0], teams[1])
+	switch {
+	case errors.Is(err, jeu.ErrTooManyRooms):
+		writeError(w, http.StatusServiceUnavailable, "too_many_rooms", "Too many online matches right now. Try again in a moment.")
+		return
+	case errors.Is(err, jeu.ErrBadTeams):
+		writeError(w, http.StatusUnprocessableEntity, "invalid", "Each player can only play once.")
+		return
+	case err != nil:
 		writeDBError(w, r, err)
 		return
 	}

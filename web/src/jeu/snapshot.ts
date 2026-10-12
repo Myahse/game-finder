@@ -1,7 +1,7 @@
-// The match state the online host sends about 20 times a second, and how the
-// other phones read it back. What arrives from the network is untrusted: every
+// The match state the server sends about 20 times a second (it plays online
+// matches itself), and how the phones read it. What arrives from the network is untrusted: every
 // field is checked and clamped before it is drawn.
-import { H, W, clamp, emptyStats, type Banner, type Choice, type FeedLine, type Fx, type Match, type Moment, type Stats } from './engine'
+import { H, W, clamp, emptyStats, type Banner, type Choice, type FeedLine, type Fx, type Moment, type Stats, type Tactics } from './engine'
 
 export interface Snap {
   v: 1
@@ -25,24 +25,9 @@ export interface Snap {
   aw: { k: number; q: number; t: number; o: Choice[]; who: string } | null
   fin: number
   end: Moment[] | null
-}
-
-/** Built by the host from its engine. `claims` maps player index to user id. */
-export function makeSnap(m: Match, claims: Record<string, string>, hostIdx: number, now: number): Snap {
-  const r = Math.round, b = m.ball
-  return {
-    v: 1,
-    ro: m.P.map((p) => [p.id, p.name, p.num]),
-    s: [...m.score] as [number, number],
-    ph: m.phase, off: m.off, po: m.poss, h: m.idx(m.handler), sc: r(m.shotClock * 10), hk: hostIdx,
-    b: [r(b.x), r(b.y), r(b.z), r(b.zb)], bm: b.mode,
-    ps: b.mode === 'pass' && b.to && b.from ? [m.idx(b.from), m.idx(b.to)] : null,
-    pl: m.P.map((p) => [r(p.x), r(p.y), r(p.stam * 100), p.st.pts, p.st.reb, p.st.ast, p.st.stl, p.st.blk, p.st.fgm, p.st.fga, p.fire ? 1 : 0, p.st.tpm, p.st.tpa, p.st.to]),
-    fd: m.feed, bn: m.banner, fx: m.fxRing, cl: claims, mo: r(m.momentum()),
-    aw: m.aw ? { k: m.aw.k, q: m.aw.q, who: m.aw.who, t: Number.isFinite(m.aw.deadline) ? Math.max(0, Math.ceil((m.aw.deadline - now) / 1000)) : 0, o: m.aw.who === 'me' ? [] : m.aw.list } : null,
-    fin: m.finished ? 1 : 0,
-    end: m.finished ? m.moments : null,
-  }
+  tm: { pace: string; focus: string; def: string; to: boolean }
+  sp: number
+  pause: boolean
 }
 
 export interface ViewPlayer { id: string; name: string; num: number; team: 0 | 1; x: number; y: number; tx: number; ty: number; stam: number; st: Stats; fire: boolean; bob: number; jt: number; jd: number; jh: number; jz: number; pts: number }
@@ -66,6 +51,10 @@ export interface ClientView {
   finished: boolean
   moments: Moment[]
   fxSeen: number
+  tactics: Tactics
+  timeoutUsed: boolean
+  speed: number
+  paused: boolean
 }
 
 const n = (v: unknown, d = 0) => (typeof v === 'number' && Number.isFinite(v) ? v : d)
@@ -140,6 +129,14 @@ export function applySnap(prev: ClientView | null, raw: unknown): { view: Client
     finished: s.fin === 1,
     moments: Array.isArray(s.end) ? s.end.slice(0, 40).map((m) => (m && typeof m === 'object' && typeof m.k === 'string' && KEY.test(m.k) ? { k: m.k, p: Array.isArray(m.p) ? m.p.slice(0, 3).map((x) => int(x, 0, 5)) : [], s: [int(m.s?.[0], 0, 99), int(m.s?.[1], 0, 99)] as [number, number], t: n(m.t) } : null)).filter((x): x is Moment => !!x) : [],
     fxSeen: Math.max(seen, ...fresh.map((f) => f[0])),
+    tactics: {
+      pace: (['fast', 'norm', 'slow'] as const).find((x) => x === s.tm?.pace) ?? 'norm',
+      focus: (['out', 'bal', 'in'] as const).find((x) => x === s.tm?.focus) ?? 'bal',
+      def: (['man', 'press'] as const).find((x) => x === s.tm?.def) ?? 'man',
+    },
+    timeoutUsed: s.tm?.to === true,
+    speed: s.sp === 2 || s.sp === 4 ? s.sp : 1,
+    paused: s.pause === true,
   }
   return { view, fx: fresh, newRoster }
 }

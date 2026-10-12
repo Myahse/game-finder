@@ -75,8 +75,9 @@ export function useOpenRooms(courtId: string | undefined) {
     refetchInterval: 8_000,
   })
 }
-export function createRoom(courtId: string) {
-  return api<OpenRoom>('/api/jeu/rooms', { method: 'POST', json: { court_id: courtId } })
+/** Opens an online match the server plays: team A (led by the caller) against team B, by player id. */
+export function createRoom(courtId: string, a: string[], b: string[]) {
+  return api<OpenRoom>('/api/jeu/rooms', { method: 'POST', json: { court_id: courtId, a, b } })
 }
 
 export const firstName = (u: Pick<PublicUser, 'first_name' | 'username'>) => (u.first_name?.trim() || u.username || '?').split(' ')[0]

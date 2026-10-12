@@ -1,17 +1,22 @@
 // Package jeu runs Mode Jeu's live side: who is walking on the game map (a
-// position on the real map, seen by friends only) and online matches. A match is played on its host's phone,
-// which sends the match state; the server relays it to the room and forwards
-// the others' choices to the host, stamped with their user id so nobody can
-// speak for someone else. Rooms live in memory: a restart ends open matches.
+// position on the real map, seen by friends only) and online matches. The
+// server plays each online match itself (engine.go) and sends its state to
+// everyone in the room about 20 times a second, so no phone has to stay awake:
+// the creator can lock their screen, switch apps or leave, and the match goes
+// on. Players send only their choices, stamped with their user id here so
+// nobody can speak for someone else. Rooms live in memory: a restart ends
+// open matches.
 package jeu
 
 import (
 	"context"
 	"crypto/rand"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"math/big"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -24,7 +29,9 @@ const (
 	maxRoomUsers = 12
 	maxRooms     = 500
 	roomTTL      = 2 * time.Hour
-	hostGrace    = 60 * time.Second
+	emptyTTL     = 3 * time.Minute  // a match nobody watches stops after this
+	finishedTTL  = 10 * time.Minute // the final score stays this long for late viewers
+	tickEvery    = 50 * time.Millisecond
 	codeChars    = "abcdefghjkmnpqrstuvwxyz23456789"
 )
 
@@ -33,12 +40,13 @@ var reactions = map[string]bool{"fire": true, "clap": true, "wow": true, "strong
 
 var (
 	ErrTooManyRooms = errors.New("too_many_rooms")
-	ErrNoRoom       = errors.New("not_found")
+	ErrBadTeams     = errors.New("invalid_teams")
 )
 
 // FriendsFunc lists a user's accepted friends (for who sees whom on the map).
 type FriendsFunc func(ctx context.Context, userID string) ([]string, error)
 
+// Room is an online match as listed to players.
 type Room struct {
 	Code      string    `json:"code"`
 	CourtID   string    `json:"court_id"`
@@ -47,12 +55,13 @@ type Room struct {
 	Players   int       `json:"players"`
 	Started   bool      `json:"started"`
 
-	finished  bool
-	state     json.RawMessage
-	members   map[*conn]struct{}
-	hostConn  *conn
-	hostLeft  time.Time
-	lastState time.Time
+	match      *Match
+	claims     map[string]string // player index → user id
+	speed      float64
+	pauseUntil time.Time
+	finishedAt time.Time
+	emptySince time.Time
+	members    map[*conn]struct{}
 }
 
 type conn struct {
@@ -61,7 +70,7 @@ type conn struct {
 	room    *Room
 	friends map[string]bool
 	pos     *position
-	present bool // said hello in Mode Jeu (seen by friends even before walking)
+	present bool // in Mode Jeu (seen by friends even before walking)
 	tokens  float64
 	last    time.Time
 }
@@ -84,12 +93,26 @@ type Hub struct {
 	now     func() time.Time
 }
 
-func NewHub(friends FriendsFunc) *Hub {
-	return &Hub{rooms: map[string]*Room{}, conns: map[*conn]struct{}{}, friends: friends, now: time.Now}
+// NewHub starts the hub; its matches tick until ctx ends.
+func NewHub(ctx context.Context, friends FriendsFunc) *Hub {
+	h := &Hub{rooms: map[string]*Room{}, conns: map[*conn]struct{}{}, friends: friends, now: time.Now}
+	go h.run(ctx)
+	return h
 }
 
-// CreateRoom opens a match hosted by hostID at a court and returns its code.
-func (h *Hub) CreateRoom(hostID, courtID string) (*Room, error) {
+// CreateRoom opens a match hosted by hostID at a court between two teams of 3
+// (team A's first player is the host) and starts it right away.
+func (h *Hub) CreateRoom(hostID, courtID string, a, b []RosterEntry) (*Room, error) {
+	if len(a) != 3 || len(b) != 3 || !strings.EqualFold(a[0].ID, hostID) {
+		return nil, ErrBadTeams
+	}
+	seen := map[string]bool{}
+	for _, r := range append(append([]RosterEntry{}, a...), b...) {
+		if r.ID == "" || seen[strings.ToLower(r.ID)] {
+			return nil, ErrBadTeams
+		}
+		seen[strings.ToLower(r.ID)] = true
+	}
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.sweepLocked()
@@ -109,7 +132,12 @@ func (h *Hub) CreateRoom(hostID, courtID string) (*Room, error) {
 			break
 		}
 	}
-	r := &Room{Code: code, CourtID: courtID, HostID: hostID, CreatedAt: h.now(), members: map[*conn]struct{}{}}
+	var seed [8]byte
+	_, _ = rand.Read(seed[:])
+	now := h.now()
+	r := &Room{Code: code, CourtID: courtID, HostID: hostID, CreatedAt: now, members: map[*conn]struct{}{}, claims: map[string]string{}, speed: 1, emptySince: now}
+	r.match = NewMatch(a, b, binary.LittleEndian.Uint64(seed[:]))
+	r.match.HumanFor = func(i int) string { return r.claims[strconv.Itoa(i)] }
 	h.rooms[code] = r
 	return r.public(), nil
 }
@@ -121,7 +149,7 @@ func (h *Hub) Rooms(courtID string) []Room {
 	h.sweepLocked()
 	out := []Room{}
 	for _, r := range h.rooms {
-		if r.finished || (courtID != "" && r.CourtID != courtID) {
+		if r.match.Finished() || (courtID != "" && r.CourtID != courtID) {
 			continue
 		}
 		out = append(out, *r.public())
@@ -131,14 +159,64 @@ func (h *Hub) Rooms(courtID string) []Room {
 }
 
 func (r *Room) public() *Room {
-	return &Room{Code: r.Code, CourtID: r.CourtID, HostID: r.HostID, CreatedAt: r.CreatedAt, Players: len(r.members), Started: r.state != nil}
+	return &Room{Code: r.Code, CourtID: r.CourtID, HostID: r.HostID, CreatedAt: r.CreatedAt, Players: len(r.members), Started: true}
+}
+
+// run advances every match and sends each room its state.
+func (h *Hub) run(ctx context.Context) {
+	t := time.NewTicker(tickEvery)
+	defer t.Stop()
+	last := h.now()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+		}
+		h.mu.Lock()
+		now := h.now()
+		real := now.Sub(last).Seconds()
+		last = now
+		if real > 0.25 {
+			real = 0.25 // after a stall, don't jump ahead
+		}
+		h.sweepLocked()
+		for _, r := range h.rooms {
+			h.tickLocked(r, now, real)
+		}
+		h.mu.Unlock()
+	}
+}
+
+func (h *Hub) tickLocked(r *Room, now time.Time, real float64) {
+	m := r.match
+	if !r.finishedAt.IsZero() && now.Sub(r.finishedAt) > 8*time.Second {
+		return // the celebration is over; the final state is sent on join
+	}
+	if now.After(r.pauseUntil) {
+		m.Tick(real*r.speed*m.Slow(), real)
+	}
+	if m.Finished() && r.finishedAt.IsZero() {
+		r.finishedAt = now
+	}
+	if len(r.members) > 0 {
+		h.roomcastLocked(r, nil, map[string]any{"t": "state", "s": h.snapLocked(r)})
+	}
+}
+
+func (h *Hub) snapLocked(r *Room) map[string]any {
+	s := r.match.Snapshot(r.claims, 0)
+	s["sp"] = r.speed
+	s["pause"] = h.now().Before(r.pauseUntil)
+	return s
 }
 
 func (h *Hub) sweepLocked() {
 	now := h.now()
 	for code, r := range h.rooms {
-		if now.Sub(r.CreatedAt) > roomTTL || (r.hostConn == nil && !r.hostLeft.IsZero() && now.Sub(r.hostLeft) > hostGrace) ||
-			(r.hostConn == nil && r.hostLeft.IsZero() && now.Sub(r.CreatedAt) > hostGrace) {
+		if now.Sub(r.CreatedAt) > roomTTL ||
+			(len(r.members) == 0 && now.Sub(r.emptySince) > emptyTTL) ||
+			(!r.finishedAt.IsZero() && now.Sub(r.finishedAt) > finishedTTL) {
 			h.closeRoomLocked(code, "closed")
 		}
 	}
@@ -191,25 +269,24 @@ func (h *Hub) Serve(ctx context.Context, ws *websocket.Conn, userID string) {
 	defer lobby.Stop()
 	_ = ws.Write(ctx, websocket.MessageText, []byte(`{"t":"hello"}`))
 	var lastLobby []byte
+	write := func(b []byte) bool {
+		wctx, wc := context.WithTimeout(ctx, 10*time.Second)
+		defer wc()
+		return ws.Write(wctx, websocket.MessageText, b) == nil
+	}
 	for {
 		select {
 		case <-ctx.Done():
 			ws.Close(websocket.StatusNormalClosure, "")
 			return
 		case msg := <-c.send:
-			wctx, wc := context.WithTimeout(ctx, 10*time.Second)
-			err := ws.Write(wctx, websocket.MessageText, msg)
-			wc()
-			if err != nil {
+			if !write(msg) {
 				return
 			}
 		case <-lobby.C:
 			if b := h.lobbyFor(c); string(b) != string(lastLobby) {
 				lastLobby = b
-				wctx, wc := context.WithTimeout(ctx, 10*time.Second)
-				err := ws.Write(wctx, websocket.MessageText, b)
-				wc()
-				if err != nil {
+				if !write(b) {
 					return
 				}
 			}
@@ -224,7 +301,7 @@ func (h *Hub) Serve(ctx context.Context, ws *websocket.Conn, userID string) {
 	}
 }
 
-// lobbyFor is what one player sees: friends on the map and open matches.
+// lobbyFor is what one player sees: friends in Mode Jeu and open matches.
 func (h *Hub) lobbyFor(c *conn) []byte {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -249,7 +326,7 @@ func (h *Hub) lobbyFor(c *conn) []byte {
 	sort.Slice(players, func(i, j int) bool { return players[i].UserID < players[j].UserID })
 	rooms := []*Room{}
 	for _, r := range h.rooms {
-		if !r.finished && r.hostConn != nil {
+		if !r.match.Finished() {
 			rooms = append(rooms, r.public())
 		}
 	}
@@ -259,16 +336,17 @@ func (h *Hub) lobbyFor(c *conn) []byte {
 }
 
 type inMsg struct {
-	T     string          `json:"t"`
-	Code  string          `json:"code"`
-	Lat   float64         `json:"lat"`
-	Lng   float64         `json:"lng"`
-	Scene string          `json:"scene"`
-	S     json.RawMessage `json:"s"`
-	K     *string         `json:"k"`
-	Q     int             `json:"q"`
-	I     int             `json:"i"`
-	E     string          `json:"e"`
+	T     string  `json:"t"`
+	Code  string  `json:"code"`
+	Lat   float64 `json:"lat"`
+	Lng   float64 `json:"lng"`
+	Scene string  `json:"scene"`
+	K     *string `json:"k"`
+	V     string  `json:"v"`
+	N     float64 `json:"n"`
+	Q     int     `json:"q"`
+	I     int     `json:"i"`
+	E     string  `json:"e"`
 }
 
 func (h *Hub) handle(c *conn, data []byte) {
@@ -287,6 +365,8 @@ func (h *Hub) handle(c *conn, data []byte) {
 	if json.Unmarshal(data, &m) != nil {
 		return
 	}
+	r := c.room
+	host := r != nil && c.userID == r.HostID
 	switch m.T {
 	case "pos":
 		scene := m.Scene
@@ -302,42 +382,59 @@ func (h *Hub) handle(c *conn, data []byte) {
 		h.joinLocked(c, strings.ToLower(strings.TrimSpace(m.Code)))
 	case "leave":
 		h.leaveLocked(c)
-	case "state":
-		r := c.room
-		if r == nil || r.hostConn != c || len(m.S) == 0 || len(m.S) > 6<<10 {
-			return
-		}
-		r.state = append(r.state[:0], m.S...)
-		r.lastState = now
-		var fin struct {
-			Fin int `json:"fin"`
-		}
-		if json.Unmarshal(m.S, &fin) == nil && fin.Fin == 1 {
-			r.finished = true
-		}
-		h.roomcastLocked(r, c, map[string]any{"t": "state", "s": m.S})
 	case "claim":
-		r := c.room
-		if r == nil || r.hostConn == nil || r.hostConn == c {
+		// Player 0 is the host's own avatar; the others are free for anyone in the room.
+		if r == nil {
 			return
 		}
-		var k any
-		if m.K != nil && len(*m.K) <= 40 {
-			k = *m.K
+		want := ""
+		if m.K != nil {
+			want = *m.K
 		}
-		h.sendLocked(r.hostConn, map[string]any{"t": "claim", "from": c.userID, "k": k})
+		if want != "" {
+			if n, err := strconv.Atoi(want); err != nil || n < 0 || n > 5 || (n == 0) != host {
+				return
+			}
+			if owner, taken := r.claims[want]; taken && owner != c.userID {
+				return
+			}
+		}
+		for k, u := range r.claims {
+			if u == c.userID && k != want {
+				delete(r.claims, k)
+			}
+		}
+		if want != "" {
+			r.claims[want] = c.userID
+		}
+		h.checkAwaitLocked(r)
 	case "intent":
-		r := c.room
-		if r == nil || r.hostConn == nil || r.hostConn == c || m.I < 0 || m.I > 8 {
-			return
+		if r != nil {
+			r.match.Choose(m.Q, m.I, c.userID)
 		}
-		h.sendLocked(r.hostConn, map[string]any{"t": "intent", "from": c.userID, "q": m.Q, "i": m.I})
+	case "tactic":
+		if host && m.K != nil {
+			r.match.SetTactic(*m.K, m.V)
+		}
+	case "timeout":
+		if host && r.match.Timeout() {
+			r.pauseUntil = now.Add(1600 * time.Millisecond)
+		}
+	case "speed":
+		if host && (m.N == 1 || m.N == 2 || m.N == 4) {
+			r.speed = m.N
+		}
 	case "react":
-		r := c.room
-		if r == nil || !reactions[m.E] {
-			return
+		if r != nil && reactions[m.E] {
+			h.roomcastLocked(r, c, map[string]any{"t": "react", "from": c.userID, "e": m.E})
 		}
-		h.roomcastLocked(r, c, map[string]any{"t": "react", "from": c.userID, "e": m.E})
+	}
+}
+
+// checkAwaitLocked lets the AI play a turn whose player nobody controls anymore.
+func (h *Hub) checkAwaitLocked(r *Room) {
+	if aw := r.match.aw; aw != nil && r.claims[strconv.Itoa(aw.k)] != aw.who {
+		r.match.AITakesOver()
 	}
 }
 
@@ -358,12 +455,7 @@ func (h *Hub) joinLocked(c *conn, code string) {
 	h.leaveLocked(c)
 	c.room = r
 	r.members[c] = struct{}{}
-	isHost := c.userID == r.HostID
-	if isHost {
-		r.hostConn = c
-		r.hostLeft = time.Time{}
-	}
-	h.sendLocked(c, map[string]any{"t": "joined", "code": r.Code, "court_id": r.CourtID, "host_id": r.HostID, "host": isHost, "state": r.state})
+	h.sendLocked(c, map[string]any{"t": "joined", "code": r.Code, "court_id": r.CourtID, "host_id": r.HostID, "host": c.userID == r.HostID, "state": h.snapLocked(r)})
 	h.membersLocked(r)
 }
 
@@ -374,10 +466,21 @@ func (h *Hub) leaveLocked(c *conn) {
 	}
 	delete(r.members, c)
 	c.room = nil
-	if r.hostConn == c {
-		r.hostConn = nil
-		r.hostLeft = h.now()
-		h.roomcastLocked(r, nil, map[string]any{"t": "host_left"})
+	// A player who left (all their tabs) gives their player back to the AI.
+	still := false
+	for o := range r.members {
+		still = still || o.userID == c.userID
+	}
+	if !still {
+		for k, u := range r.claims {
+			if u == c.userID {
+				delete(r.claims, k)
+			}
+		}
+		h.checkAwaitLocked(r)
+	}
+	if len(r.members) == 0 {
+		r.emptySince = h.now()
 	}
 	h.membersLocked(r)
 }
@@ -392,7 +495,7 @@ func (h *Hub) membersLocked(r *Room) {
 		}
 	}
 	sort.Strings(ids)
-	h.roomcastLocked(r, nil, map[string]any{"t": "members", "code": r.Code, "members": ids, "host_online": r.hostConn != nil})
+	h.roomcastLocked(r, nil, map[string]any{"t": "members", "code": r.Code, "members": ids, "host_online": seen[r.HostID]})
 }
 
 func (h *Hub) drop(c *conn) {

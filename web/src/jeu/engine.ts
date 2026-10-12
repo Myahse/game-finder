@@ -200,7 +200,7 @@ export class Match {
       this.opsFor = ops
       this.aw = {
         k: this.idx(this.handler), q: this.awQ, who,
-        deadline: this.now() + (who === 'me' && !this.onlineHost ? Infinity : who === 'me' ? 10_000 : 7_000),
+        deadline: who === 'me' ? Infinity : this.now() + 7_000,
         list: ops.map((o) => [o.kind[0] as 's' | 'd' | 'p', o.to ? this.idx(o.to) : -1, Math.round(o.p * 100), o.to ? Math.round(this.shotProb(o.to, o.to.x, o.to.y) * 100) : 0]),
       }
       this.hooks.onAwait?.(this.aw)
@@ -210,8 +210,6 @@ export class Match {
     for (const o of ops) { const v = o.val * this.r(0.82, 1.18); if (v > bv) { bv = v; best = o } }
     this.act(best)
   }
-  /** Set by the online host so its own turns also time out. */
-  onlineHost = false
   /** Every player on AI (fast-forward). */
   auto = false
   /** A human's choice for the turn `q` (ignored if that turn is over). */

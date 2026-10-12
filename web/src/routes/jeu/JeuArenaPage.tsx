@@ -72,7 +72,7 @@ export function JeuArenaPage() {
   const playOnline = async () => {
     setBusy(true)
     try {
-      const room = await createRoom(court.id)
+      const room = await createRoom(court.id, teams[0].map((r) => r.id), teams[1].map((r) => r.id))
       setPendingMatch({ mode: 'host', code: room.code, court, teams, users })
       navigate(`/jeu/match/${room.code}`)
     } catch (e) {
