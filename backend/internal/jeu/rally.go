@@ -184,9 +184,9 @@ func (m *Rally) setupServe() {
 	} else {
 		s.tx = 120
 	}
-	s.ty = 10
+	s.ty = 28
 	if s.team == 0 {
-		s.ty = courtH - 10
+		s.ty = courtH - 28
 	}
 	m.b = ball{mode: "held", x: s.tx, y: s.ty, z: 22}
 	m.wait = 0.7

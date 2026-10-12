@@ -17,7 +17,6 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-
 var uuidRe = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 
 // friendIDs feeds the Mode Jeu hub: friends see each other on the game map.

@@ -93,7 +93,7 @@ export class RallyMatch {
     for (const p of this.P) { const h = this.home(p); p.tx = h.x; p.ty = h.y }
     const s = this.handler
     s.tx = this.sport === 'volleyball' ? 185 + this.r(-60, 60) : s.slot % 2 ? 250 : 120
-    s.ty = s.team === 0 ? H - 10 : 10
+    s.ty = s.team === 0 ? H - 28 : 28
     this.ball = { mode: 'held', x: s.tx, y: s.ty, z: 22, zb: 0 }
     this.wait = 0.7
   }

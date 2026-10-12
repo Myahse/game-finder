@@ -39,7 +39,11 @@ const (
 // Reactions anyone in a match can send.
 var reactions = map[string]bool{"fire": true, "clap": true, "wow": true, "strong": true}
 
-const countdown = 3 * time.Second
+const (
+	countdown = 3 * time.Second
+	// A player who drops out before kick-off (reload, network) keeps their spot this long.
+	seatGrace = 20 * time.Second
+)
 
 var (
 	ErrTooManyRooms = errors.New("too_many_rooms")
@@ -80,6 +84,7 @@ type Room struct {
 
 	slots      []string // spot → user id ("" free); spot i is the match's player i
 	ready      map[string]bool
+	away       map[string]time.Time // seated players who left, since when
 	startAt    time.Time
 	loading    bool
 	match      Sim
@@ -165,7 +170,7 @@ func (h *Hub) CreateRoom(hostID, courtID, sport string, size int) (*Room, error)
 	}
 	now := h.now()
 	r := &Room{Code: code, CourtID: courtID, HostID: hostID, Sport: sport, Size: size, CreatedAt: now, members: map[*conn]struct{}{},
-		slots: make([]string, size*2), ready: map[string]bool{}, emptySince: now}
+		slots: make([]string, size*2), ready: map[string]bool{}, away: map[string]time.Time{}, emptySince: now}
 	r.slots[0] = hostID
 	h.rooms[code] = r
 	return r.public(), nil
@@ -302,6 +307,17 @@ func (h *Hub) tickLocked(r *Room, now time.Time, real float64) {
 // lobbyTickLocked counts down once every spot is a real player, online and
 // ready, and starts the match when it reaches zero.
 func (h *Hub) lobbyTickLocked(r *Room, now time.Time) {
+	for uid, since := range r.away {
+		if r.online(uid) {
+			delete(r.away, uid)
+		} else if now.Sub(since) > seatGrace {
+			delete(r.away, uid)
+			if i := r.seat(uid); i >= 0 {
+				r.slots[i] = ""
+			}
+			delete(r.ready, uid)
+		}
+	}
 	all := true
 	for _, s := range r.slots {
 		all = all && s != "" && r.ready[s] && r.online(s)
@@ -648,13 +664,11 @@ func (h *Hub) leaveLocked(c *conn) {
 	delete(r.members, c)
 	c.room = nil
 	// A player who left (all their tabs): before kick-off their spot opens
-	// again; during the match the AI plays their turns until they're back.
+	// again after a grace period; during the match the AI plays their turns
+	// until they're back.
 	if !r.online(c.userID) {
-		if r.match == nil && !r.loading {
-			if i := r.seat(c.userID); i >= 0 {
-				r.slots[i] = ""
-			}
-			delete(r.ready, c.userID)
+		if r.match == nil && r.seat(c.userID) >= 0 {
+			r.away[c.userID] = h.now()
 			h.sendRoomLocked(r)
 		}
 		h.checkAwaitLocked(r)

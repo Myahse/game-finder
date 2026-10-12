@@ -274,12 +274,12 @@ func TestGameMode(t *testing.T) {
 	}
 	wait(host, "ben seated", seated)
 
-	// Leaving before kick-off frees the spot.
+	// A reload before kick-off keeps the spot (it opens again 20 s after leaving).
 	send(guest, map[string]any{"t": "leave"})
-	wait(host, "spot freed", func(m map[string]any) bool { s := slots(m); return s != nil && s[1] == "" })
 	send(guest, map[string]any{"t": "join", "code": code})
-	send(guest, map[string]any{"t": "claim", "k": "1"})
-	wait(host, "ben back", seated)
+	if j := wait(guest, "ben back", is("joined")); !seated(j) {
+		t.Fatalf("spot lost on a reload: %v", j)
+	}
 
 	// No AI: the match only starts once both are ready, after a countdown.
 	send(host, map[string]any{"t": "ready", "n": 1})

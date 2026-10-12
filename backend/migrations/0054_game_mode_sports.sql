@@ -225,7 +225,8 @@ $$;
 
 -- Records one Mode Jeu result for a player and returns the XP given (within
 -- the weekly cap) and new badges. Solo results arrive from the phone, so a
--- solo match less than 40 s after the previous one gives nothing.
+-- solo match less than 15 s after the previous one gives nothing (the weekly
+-- limit is the real cap).
 -- p_stats: {"pts": n, "tpm": n, "goals": n, "aces": n, "smashes": n} as the sport has them.
 create or replace function public.game_award(p_user uuid, p_sport text, p_mode text, p_won boolean, p_mvp boolean, p_stats jsonb, p_match text)
 returns jsonb
@@ -243,7 +244,7 @@ begin
   perform pg_advisory_xact_lock(hashtext('game_xp:' || p_user::text));
   v_raw := case when p_mode = 'online' then case when p_won then 40 else 15 end else case when p_won then 25 else 10 end end
            + case when p_mvp then 10 else 0 end;
-  if p_mode = 'solo' and exists (select 1 from game_xp where user_id = p_user and mode = 'solo' and at > now() - interval '40 seconds') then
+  if p_mode = 'solo' and exists (select 1 from game_xp where user_id = p_user and mode = 'solo' and at > now() - interval '15 seconds') then
     v_raw := 0;
   end if;
   select coalesce(sum(xp), 0) into v_week from game_xp
