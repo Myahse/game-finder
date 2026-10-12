@@ -33,6 +33,12 @@ import { PublicProfilePage } from './routes/PublicProfilePage'
 import { VerifyEmailPage } from './routes/VerifyEmailPage'
 import { GameLinkPage } from './routes/GameLinkPage'
 import { GameJoinLanding } from './routes/GameJoinLanding'
+import { JeuLayout } from './routes/jeu/JeuLayout'
+import { JeuMapPage } from './routes/jeu/JeuMapPage'
+import { JeuArenasPage } from './routes/jeu/JeuArenasPage'
+import { JeuArenaPage } from './routes/jeu/JeuArenaPage'
+import { JeuMatchPage } from './routes/jeu/JeuMatchPage'
+import { JeuAvatarPage } from './routes/jeu/JeuAvatarPage'
 import { pathMatchesPendingGame, pendingGamePathAfterAuth } from './lib/gameInvite'
 
 const GUEST_PATHS = new Set(['/register', '/terms', '/privacy', '/login'])
@@ -125,6 +131,19 @@ export const router = createBrowserRouter([
       { path: 'friend/:token', element: <FriendInvitePage /> },
       { path: 'g/:token', element: <GameLinkPage /> },
       { path: 'u/:username', element: <PublicProfilePage /> },
+      {
+        // Mode Jeu: its own space, without the app's tab bar.
+        path: 'jeu',
+        element: <JeuLayout />,
+        children: [
+          { index: true, element: <JeuMapPage /> },
+          { path: 'arenes', element: <JeuArenasPage /> },
+          { path: 'arene/:id', element: <JeuArenaPage /> },
+          { path: 'match', element: <JeuMatchPage /> },
+          { path: 'match/:code', element: <JeuMatchPage /> },
+          { path: 'avatar', element: <JeuAvatarPage /> },
+        ],
+      },
       {
         element: <AppShell />,
         children: [

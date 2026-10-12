@@ -125,6 +125,7 @@ export interface AppNotification {
     | 'friend_accepted'
     | 'achievement'
     | 'challenge'
+    | 'jeu'
     | 'system'
   title: string
   body: string
@@ -134,7 +135,9 @@ export interface AppNotification {
     presence_id?: string
     user_id?: string
     friend_request_id?: string
-    kind?: 'badge' | 'streak' | 'king' | 'challenge' | 'court_change' | 'card_tier'
+    kind?: 'badge' | 'streak' | 'king' | 'challenge' | 'court_change' | 'card_tier' | 'jeu_room'
+    /** Mode Jeu online match code. */
+    code?: string
     challenge_id?: string
     badge_id?: string
     tier?: string

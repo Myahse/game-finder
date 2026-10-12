@@ -1,0 +1,32 @@
+/* Mode Jeu: always the night-court look, whatever the app theme. */
+.jeu {
+  --bg: #0d1117;
+  --surface: #161c25;
+  --surface-2: #1d2430;
+  --ink: #f3f1ec;
+  --ink-2: #9ea7b3;
+  --line: #262d39;
+  --brand: #ff5a1f;
+  --brand-ink: #ffffff;
+  --live: #22c55e;
+  --upcoming: #2f8cff;
+  --gold: #f2b632;
+  --danger: #ef4444;
+  color-scheme: dark;
+  background: var(--bg);
+  color: var(--ink);
+}
+.jeu-ping { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6); animation: jeu-ping 1.6s infinite }
+@keyframes jeu-ping { 0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6) } 80%, 100% { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0) } }
+.jeu-float { position: absolute; bottom: 8%; display: grid; justify-items: center; gap: 2px; animation: jeu-floatup 1.8s ease-out forwards; pointer-events: none }
+@keyframes jeu-floatup { 0% { transform: translateY(0) scale(0.6); opacity: 0 } 15% { transform: translateY(-10px) scale(1.15); opacity: 1 } 100% { transform: translateY(-190px) scale(1); opacity: 0 } }
+.jeu-banner { animation: jeu-banner 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) both }
+@keyframes jeu-banner { 0% { transform: translate(-50%, -50%) scale(1.8); opacity: 0 } 60% { transform: translate(-50%, -50%) scale(0.95); opacity: 1 } 100% { transform: translate(-50%, -50%) scale(1); opacity: 1 } }
+.jeu-pop { animation: jeu-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both }
+@keyframes jeu-pop { from { transform: scale(0.6); opacity: 0 } to { transform: scale(1); opacity: 1 } }
+.jeu-bump { animation: jeu-bump 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) }
+@keyframes jeu-bump { 0% { transform: scale(1) } 35% { transform: scale(1.45); color: var(--gold) } 100% { transform: scale(1) } }
+@media (prefers-reduced-motion: reduce) {
+  .jeu-ping, .jeu-float, .jeu-banner, .jeu-pop, .jeu-bump { animation: none }
+  .jeu-float { opacity: 0 }
+}

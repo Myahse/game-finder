@@ -8,6 +8,7 @@ export function notificationLink(n: NotificationLinkInput): string | undefined {
   if (n.type === 'admin_new_user') return '/admin/users'
   if (n.type === 'friend_request') return '/profile'
   if (n.type === 'challenge') return '/challenges'
+  if (n.type === 'jeu' && n.data.code && /^[a-z0-9]{4}$/.test(n.data.code)) return `/jeu/match/${n.data.code}`
   if (n.data.kind === 'court_change' && !n.data.game_id && n.data.challenge_id) return '/challenges'
   if (n.type === 'achievement' && n.data.kind === 'king' && n.data.court_id) return `/courts/${n.data.court_id}`
   if (n.type === 'achievement' && n.data.kind === 'card_tier') return `/profile?card=${n.data.sport ?? ''}`

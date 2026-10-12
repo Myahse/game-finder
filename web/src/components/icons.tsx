@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   Trophy,
   Swords,
+  Gamepad2,
   Bell,
   CalendarDays,
   Check,
@@ -175,6 +176,7 @@ export const notificationIcons: Record<AppNotification['type'], LucideIcon> = {
   game_cancelled: X,
   achievement: Trophy,
   challenge: Swords,
+  jeu: Gamepad2,
   system: Megaphone,
 }
 

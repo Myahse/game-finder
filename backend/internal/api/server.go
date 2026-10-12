@@ -21,6 +21,7 @@ import (
 	"findthegame/backend/internal/auth"
 	"findthegame/backend/internal/config"
 	"findthegame/backend/internal/db"
+	"findthegame/backend/internal/jeu"
 	"findthegame/backend/internal/mail"
 	"findthegame/backend/internal/push"
 	"findthegame/backend/internal/realtime"
@@ -44,6 +45,7 @@ type Server struct {
 	mailer          *mail.Resend
 	weather         *weatherCache
 	push            push.Sender // nil when FCM isn't configured
+	jeu             *jeu.Hub
 }
 
 func New(cfg config.Config, d *db.DB, hub *realtime.Hub, media *storage.Media) *Server {
@@ -63,6 +65,7 @@ func New(cfg config.Config, d *db.DB, hub *realtime.Hub, media *storage.Media) *
 		firebase:        newFirebaseVerifier(cfg),
 		mailer:          mail.NewResend(cfg.ResendAPIKey, cfg.EmailFrom),
 		weather:         newWeatherCache(cfg.WeatherURL),
+		jeu:             jeu.NewHub(friendIDs(d)),
 	}
 }
 
@@ -135,6 +138,7 @@ func (s *Server) Routes() http.Handler {
 
 	// WebSockets are long-lived: keep them outside the request timeout.
 	r.Get("/api/ws", s.handleWS)
+	r.Get("/api/jeu/ws", s.handleJeuWS)
 
 	r.Route("/api", func(r chi.Router) {
 		r.Use(middleware.Timeout(30 * time.Second))
@@ -185,6 +189,11 @@ func (s *Server) Routes() http.Handler {
 			r.Get("/users/{id}/progress", s.getUserProgress)
 			r.Get("/users/{id}/card", s.getUserCard)
 			r.Get("/kings", s.getKings)
+			r.Get("/jeu/me", s.jeuMe)
+			r.Get("/jeu/players", s.jeuPlayers)
+			r.Get("/jeu/arenas/{id}", s.jeuArena)
+			r.Get("/jeu/rooms", s.jeuRooms)
+			r.With(s.rateLimited).Post("/jeu/rooms", s.jeuCreateRoom)
 			r.Get("/users/{id}/head-to-head", s.headToHead)
 			r.Get("/challenges", s.listChallenges)
 			r.With(s.rateLimitedUser("game")).Post("/challenges", s.createChallenge)
@@ -284,7 +293,7 @@ type principal struct {
 
 func (s *Server) authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/ws" {
+		if r.URL.Path == "/api/ws" || r.URL.Path == "/api/jeu/ws" {
 			if ticket := strings.TrimSpace(r.URL.Query().Get("ticket")); ticket != "" {
 				var userID, role string
 				err := s.db.Pool.QueryRow(r.Context(),

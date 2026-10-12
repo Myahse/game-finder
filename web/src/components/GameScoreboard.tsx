@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
-import { Crown, Minus, Pencil, Plus, Shuffle, Star, Trash2, Users } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { ChevronRight, Crown, Gamepad2, Minus, Pencil, Plus, Shuffle, Star, Trash2, Users } from 'lucide-react'
 import { useLocale } from '../i18n/LocaleProvider'
+import { useAuth } from '../lib/auth'
 import { errorMessage } from '../lib/api'
 import { playerUsernameLabel } from '../lib/format'
 import { hasResult, TEAM_COLORS, useSaveScoreboard, useScoreboard, type Scoreboard, type ScoreTeam } from '../lib/scoreboard'
@@ -76,9 +78,27 @@ export function GameScoreboard({ game, canEdit }: { game: Game; canEdit: boolean
           <StatsTable sb={sb} byId={byId} />
           {sb.updated_by && <p className="text-xs text-ink-2">{t.scoreboard.updatedBy.replace('{user}', playerUsernameLabel(sb.updated_by))}</p>}
           {hasResult(sb) && <ShareResultButton game={game} sb={sb} />}
+          {hasResult(sb) && game.joined && game.sport.slug === 'basketball' && <GameModeXpLine sb={sb} />}
         </Card>
       )}
     </section>
+  )
+}
+
+/** After a real scored game: the XP it gave, and a door to the Mode Jeu avatar it moved. */
+function GameModeXpLine({ sb }: { sb: Scoreboard }) {
+  const { t } = useLocale()
+  const { user } = useAuth()
+  const me = user?.id
+  const myTeam = sb.teams.find((tm) => tm.players.includes(me ?? ''))
+  const xp = 10 + (myTeam && sb.winner_position === myTeam.position ? 15 : 0) + (sb.mvp_user_id === me ? 25 : 0)
+  return (
+    <Link to="/jeu/avatar" state={{ from: window.location.pathname }} className="ftg-press flex items-center gap-2 rounded-xl bg-[#11161e] px-3 py-2.5 text-sm text-white ring-1 ring-brand">
+      <Gamepad2 className="size-5 shrink-0 text-brand" aria-hidden />
+      <b className="text-live">+{xp} XP</b>
+      <span className="min-w-0 flex-1 truncate">{t.jeu.entry.recap}</span>
+      <ChevronRight className="size-4 shrink-0 text-white/60" aria-hidden />
+    </Link>
   )
 }
 

@@ -6,6 +6,7 @@ import * as card from './card'
 import * as courts from './courts'
 import * as errors from './errors'
 import * as games from './games'
+import * as jeu from './jeu'
 import * as legal from './legal'
 
 export const screensEn = {
@@ -16,6 +17,7 @@ export const screensEn = {
   courts: courts.en,
   errors: errors.en,
   games: games.en,
+  jeu: jeu.en,
   legal: legal.en,
 }
 
@@ -27,5 +29,6 @@ export const screensFr: typeof screensEn = {
   courts: courts.fr,
   errors: errors.fr,
   games: games.fr,
+  jeu: jeu.fr,
   legal: legal.fr,
 }

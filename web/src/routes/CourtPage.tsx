@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
+import { ChevronRight, Gamepad2 } from 'lucide-react'
 import { formatDistance, timeAgo } from '../lib/format'
 import { CourtAddPhotos } from '../components/CourtAddPhotos'
 import { CourtInfoEditor } from '../components/CourtInfoEditor'
@@ -113,6 +114,20 @@ export function CourtPage() {
         <CourtChallenges court={court} />
 
         <CourtLeaderboard courtId={court.id} />
+        {court.status === 'approved' && court.sports.some((s) => s.slug === 'basketball') && (
+          <Link
+            to={`/jeu/arene/${court.id}`}
+            state={{ from: `/courts/${court.id}` }}
+            className="ftg-press flex items-center gap-3 rounded-2xl bg-[#11161e] p-4 text-white ring-1 ring-brand"
+          >
+            <Gamepad2 className="size-7 shrink-0 text-brand" aria-hidden />
+            <span className="min-w-0 flex-1">
+              <b className="display block text-lg font-extrabold uppercase leading-tight">{t.jeu.entry.court}</b>
+              <span className="text-sm text-white/70">{t.jeu.entry.courtSub}</span>
+            </span>
+            <ChevronRight className="size-5 shrink-0 text-white/60" aria-hidden />
+          </Link>
+        )}
 
         {!canEditCourt && (
           <Card>

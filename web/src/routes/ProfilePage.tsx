@@ -21,6 +21,7 @@ import { RecapButton } from '../components/RecapSheet'
 import { MyProgressCard, UserProgressCard } from '../components/ProgressCard'
 import { PlayerChallengeBlock } from '../components/PlayerChallengeBlock'
 import { PasswordCard } from '../components/PasswordCard'
+import { GameAvatarCard } from '../components/GameAvatarCard'
 import { AvatarPortrait } from '../avatar/render/AvatarPortrait'
 import { AVATAR_SPORTS, defaultConfig } from '../avatar/presets'
 import { useMySport } from '../lib/mySport'
@@ -184,6 +185,7 @@ export function ProfilePage() {
             <div data-guide="progress">
               <MyProgressCard avatar={playerAvatar} />
             </div>
+            <GameAvatarCard />
             <ScreenGuide
               screen="profile"
               tips={[
