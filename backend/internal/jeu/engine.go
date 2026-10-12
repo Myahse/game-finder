@@ -8,7 +8,6 @@ package jeu
 import (
 	"math"
 	"math/rand/v2"
-	"sort"
 	"strconv"
 )
 
@@ -18,7 +17,8 @@ const (
 	hoopX  = 185.0
 	hoopY  = 36.0
 	r3     = 160.0
-	win    = 15
+	winB   = 15 // basketball: first to 15
+	winF   = 5  // football: first to 5 goals
 	rim    = 40.0
 )
 
@@ -115,8 +115,11 @@ type pendingShot struct {
 	x, y                 float64
 }
 
-// Match is one online match, advanced by Update.
+// Match is one online basketball or football match, advanced by Tick.
 type Match struct {
+	sport         string
+	foot          bool
+	win           int
 	P             []*player
 	score         [2]int
 	off           int
@@ -158,8 +161,12 @@ type Match struct {
 	clock float64
 }
 
-func NewMatch(a, b []RosterEntry, seed uint64) *Match {
-	m := &Match{phase: "check", shotClock: 8, slow: 1, tactics: Tactics{"norm", "bal", "man"}, timeoutOK: true, hist: []int{0}, rnd: rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15))}
+// NewMatch starts a basketball or football match between two teams of the same size (1 to 3).
+func NewMatch(sport string, a, b []RosterEntry, seed uint64) *Match {
+	m := &Match{sport: sport, foot: sport == "football", win: winB, phase: "check", shotClock: 8, slow: 1, tactics: Tactics{"norm", "bal", "man"}, timeoutOK: true, hist: []int{0}, rnd: rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15))}
+	if m.foot {
+		m.win = winF
+	}
 	for i, r := range a {
 		m.P = append(m.P, m.mk(r, 0, i))
 	}
@@ -185,10 +192,22 @@ func (m *Match) mk(r RosterEntry, team, slot int) *player {
 	return &player{RosterEntry: r, team: team, slot: slot, x: 185 + float64(slot-1)*60, y: y, tx: 185, ty: 300, stam: 1}
 }
 
-func ip(v int) *int                     { return &v }
-func clamp(v, a, b float64) float64     { return math.Max(a, math.Min(b, v)) }
-func lerp(a, b, k float64) float64      { return a + (b-a)*k }
-func isThree(x, y float64) bool         { return math.Hypot(x-hoopX, y-hoopY) >= r3-2 }
+func ip(v int) *int                        { return &v }
+func clamp(v, a, b float64) float64        { return math.Max(a, math.Min(b, v)) }
+func lerp(a, b, k float64) float64         { return a + (b-a)*k }
+func isThree(x, y float64) bool            { return math.Hypot(x-hoopX, y-hoopY) >= r3-2 }
+func (m *Match) isThree(x, y float64) bool { return !m.foot && isThree(x, y) }
+
+// value is what a made shot is worth: a goal is always one.
+func (m *Match) value(three bool) int {
+	if m.foot {
+		return 1
+	}
+	if three {
+		return 3
+	}
+	return 2
+}
 func (m *Match) r(a, b float64) float64 { return a + m.rnd.Float64()*(b-a) }
 func (m *Match) team(i int) []*player {
 	var out []*player
@@ -296,6 +315,12 @@ func (m *Match) shotProb(p *player, x, y float64) float64 {
 	d, a := math.Hypot(x-hoopX, y-hoopY), p.A
 	var pr float64
 	switch {
+	case m.foot && d < 72:
+		pr = 0.3 + a.Pen*0.0036
+	case m.foot && d < r3-2:
+		pr = 0.14 + a.Tir*0.0026
+	case m.foot:
+		pr = 0.05 + a.Tir*0.0016
 	case d < 72:
 		pr = 0.4 + a.Pen*0.0045
 	case d < r3-2:
@@ -319,7 +344,11 @@ func (m *Match) shotProb(p *player, x, y float64) float64 {
 	if p.fire {
 		pr += 0.07
 	}
-	if math.Max(float64(m.score[0]), float64(m.score[1])) >= win-5 {
+	late := 5
+	if m.foot {
+		late = 2
+	}
+	if math.Max(float64(m.score[0]), float64(m.score[1])) >= float64(m.win-late) {
 		pr += (a.Men - 66) * 0.003
 	}
 	if p.team == 0 {
@@ -362,10 +391,9 @@ func (m *Match) options(h *player) []op {
 		fo = m.tactics.Focus
 	}
 	uh := m.usage(h)
-	pShot, three := m.shotProb(h, h.x, h.y), isThree(h.x, h.y)
-	v, f := 2.0, 1.0
+	pShot, three := m.shotProb(h, h.x, h.y), m.isThree(h.x, h.y)
+	v, f := float64(m.value(three)), 1.0
 	if three {
-		v = 3
 		if fo == "out" {
 			f = 1.3
 		} else if fo == "in" {
@@ -386,17 +414,14 @@ func (m *Match) options(h *player) []op {
 		} else if fo == "out" {
 			ff = 0.8
 		}
-		ops = append(ops, op{kind: "drive", p: pd, val: pd * 2 * uh * ff})
+		ops = append(ops, op{kind: "drive", p: pd, val: pd * float64(m.value(false)) * uh * ff})
 	}
 	for _, q := range m.team(h.team) {
 		if q == h {
 			continue
 		}
 		_, open := m.nearestDef(q)
-		ps, vv := m.shotProb(q, q.x, q.y), 2.0
-		if isThree(q.x, q.y) {
-			vv = 3
-		}
+		ps, vv := m.shotProb(q, q.x, q.y), float64(m.value(m.isThree(q.x, q.y)))
 		steal := m.passSteal(h, q)
 		ops = append(ops, op{kind: "pass", to: q, p: 1 - steal, val: (ps*vv*0.9 + math.Min(open, 60)/400) * m.usage(q) * (1 - steal*2.2) * (0.85 + h.A.Col/400)})
 	}
@@ -490,9 +515,9 @@ func (m *Match) act(o op) {
 
 func (m *Match) release(x, y float64, layup bool) {
 	h := m.handler
-	three, d := isThree(x, y), math.Hypot(x-hoopX, y-hoopY)
+	three, d := m.isThree(x, y), math.Hypot(x-hoopX, y-hoopY)
 	nq, nd := m.nearestDef(h)
-	dunk := layup && h.A.Pen >= 72 && h.stam > 0.5 && m.rnd.Float64() < 0.45
+	dunk := !m.foot && layup && h.A.Pen >= 72 && h.stam > 0.5 && m.rnd.Float64() < 0.45
 	blockP := 0.0
 	reach := 24.0
 	if layup {
@@ -515,11 +540,7 @@ func (m *Match) release(x, y float64, layup bool) {
 	if three {
 		h.st.tpa++
 	}
-	v := 2
-	if three {
-		v = 3
-	}
-	winning := made && m.score[h.team]+v >= win
+	winning := made && m.score[h.team]+m.value(three) >= m.win
 	m.pending = &pendingShot{by: h, three: three, made: made, blocked: blocked, blocker: nq, dunk: dunk, layup: layup, x: x, y: y}
 	m.phase, m.pt = "shot", 0
 	dur, hh := 0.62, 70.0
@@ -532,6 +553,18 @@ func (m *Match) release(x, y float64, layup bool) {
 		dur, hh = 0.45, 34
 	case d > r3:
 		dur, hh = 0.78, 92
+	}
+	if m.foot {
+		switch {
+		case blocked:
+			hh = 8
+		case layup:
+			hh = 10
+		case d > r3:
+			hh = 34
+		default:
+			hh = 22
+		}
 	}
 	tx, ty := hoopX, hoopY
 	if blocked {
@@ -564,10 +597,7 @@ func (m *Match) landed() {
 		return
 	}
 	if s.made {
-		v := 2
-		if s.three {
-			v = 3
-		}
+		v := m.value(s.three)
 		m.score[p.team] += v
 		p.st.pts += v
 		p.st.fgm++
@@ -623,15 +653,19 @@ func (m *Match) landed() {
 			}
 		}
 		m.hist = append(m.hist, m.score[0]-m.score[1])
-		if m.score[p.team] >= win {
+		if m.score[p.team] >= m.win {
 			m.finish(p)
 			return
 		}
-		if run := m.runOf(p.team); run >= 7 {
+		runMin, mp := 7, m.win-3
+		if m.foot {
+			runMin, mp = 3, m.win-1
+		}
+		if run := m.runOf(p.team); run >= runMin {
 			m.say(FeedLine{K: "run", N: ip(run), Team: ip(p.team)})
 			m.moment("run", p)
 		}
-		if m.score[p.team] >= win-3 && m.score[p.team]-v < win-3 {
+		if m.score[p.team] >= mp && m.score[p.team]-v < mp {
 			m.showBanner(Banner{K: "matchPoint", Team: ip(p.team), MS: 900})
 		}
 		m.celebrate, m.phase, m.pt, m.off = 0.5, "celebrate", 0, 1-p.team
@@ -672,7 +706,7 @@ func (m *Match) runOf(t int) int {
 func (m *Match) rebound(blocked bool) {
 	a, r := m.r(0.15, math.Pi-0.15), m.r(26, 78)
 	z0 := rim
-	if blocked {
+	if blocked || m.foot {
 		z0 = 10
 	}
 	m.b = ball{mode: "loose", x: hoopX, y: hoopY, tx: hoopX + math.Cos(a)*r, ty: hoopY + math.Sin(a)*r + 6, zb: z0, z0: z0}
@@ -892,13 +926,13 @@ func (m *Match) update(dt float64) {
 			if h.team == 1 && m.tactics.Def == "press" {
 				extra = -0.06
 			}
-			if m.rnd.Float64() < clamp(gd.A.Def/210-h.A.Pen/320+extra+0.12, 0.05, 0.45) {
-				var mates []*player
-				for _, q := range m.team(m.off) {
-					if q != h {
-						mates = append(mates, q)
-					}
+			var mates []*player
+			for _, q := range m.team(m.off) {
+				if q != h {
+					mates = append(mates, q)
 				}
+			}
+			if m.rnd.Float64() < clamp(gd.A.Def/210-h.A.Pen/320+extra+0.12, 0.05, 0.45) && len(mates) > 0 {
 				mate := mates[m.rnd.IntN(len(mates))]
 				m.say(FeedLine{K: "kickOut", P: []int{m.idx(h)}})
 				m.b = ball{mode: "pass", fx: h.x, fy: h.y, to: mate, from: h, dur: 0.35, x: h.x, y: h.y, z: 10, zb: 6}
@@ -941,6 +975,8 @@ func (m *Match) update(dt float64) {
 		top := rim - 10
 		if m.b.blocked {
 			top = 20
+		} else if m.foot {
+			top = 0
 		}
 		m.b.zb = top * k
 		if k >= 1 {
@@ -962,7 +998,7 @@ func (m *Match) update(dt float64) {
 		}
 	case "over":
 		wt := 1
-		if m.score[0] >= win {
+		if m.score[0] >= m.win {
 			wt = 0
 		}
 		for _, p := range m.P {
@@ -993,51 +1029,22 @@ func (m *Match) momentum() int {
 }
 
 // Snapshot is the state phones draw, in the web app's Snap format (snapshot.ts).
-func (m *Match) Snapshot(claims map[string]string, creatorIdx int) map[string]any {
-	rd := func(v float64) int { return int(math.Round(v)) }
-	ro := make([][3]any, len(m.P))
-	pl := make([][14]int, len(m.P))
-	for i, p := range m.P {
-		ro[i] = [3]any{p.ID, p.Name, p.Num}
-		f := 0
-		if p.fire {
-			f = 1
-		}
-		pl[i] = [14]int{rd(p.x), rd(p.y), rd(p.stam * 100), p.st.pts, p.st.reb, p.st.ast, p.st.stl, p.st.blk, p.st.fgm, p.st.fga, f, p.st.tpm, p.st.tpa, p.st.to}
-	}
-	var ps any
+func (m *Match) Snapshot(claims map[string]string) map[string]any {
+	var lane any
 	if m.b.mode == "pass" && m.b.to != nil && m.b.from != nil {
-		ps = []int{m.idx(m.b.from), m.idx(m.b.to)}
+		lane = []int{m.idx(m.b.from), m.idx(m.b.to)}
 	}
-	var aw any
-	if m.aw != nil {
-		aw = map[string]any{"k": m.aw.k, "q": m.aw.q, "who": m.aw.who, "t": int(math.Max(0, math.Ceil(m.aw.deadline-m.clock))), "o": m.aw.list}
-	}
-	var end any
-	fin := 0
-	if m.finished {
-		fin = 1
-		end = m.moments
-	}
-	cl := map[string]string{}
-	keys := make([]string, 0, len(claims))
-	for k := range claims {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	for _, k := range keys {
-		cl[k] = claims[k]
-	}
-	return map[string]any{
-		"v": 1, "ro": ro, "s": m.sc(), "ph": m.phase, "off": m.off, "po": m.poss, "h": m.idx(m.handler),
-		"sc": rd(m.shotClock * 10), "hk": creatorIdx,
-		"b": []int{rd(m.b.x), rd(m.b.y), rd(m.b.z), rd(m.b.zb)}, "bm": m.b.mode, "ps": ps, "pl": pl,
-		"fd": m.feed, "bn": m.banner, "fx": m.fxRing, "cl": cl, "mo": m.momentum(), "aw": aw, "fin": fin, "end": end,
-		"tm": map[string]any{"pace": m.tactics.Pace, "focus": m.tactics.Focus, "def": m.tactics.Def, "to": !m.timeoutOK},
-	}
+	return snapshot(snapIn{sport: m.sport, P: m.P, score: m.score, phase: m.phase, off: m.off, poss: m.poss, handler: m.idx(m.handler), shotClock: m.shotClock, b: m.b, lane: lane,
+		feed: m.feed, banner: m.banner, fx: m.fxRing, claims: claims, mo: m.momentum(), aw: m.aw, clock: m.clock, finished: m.finished, moments: m.moments, tactics: m.tactics, timeoutOK: m.timeoutOK})
 }
 
-// Finished reports whether a team reached 15.
+func (m *Match) awaiting() *await                { return m.aw }
+func (m *Match) setHuman(f func(idx int) string) { m.HumanFor = f }
+
+// Results are each player's line for XP and badges.
+func (m *Match) Results() []Result { return results(m.sport, m.P, m.score) }
+
+// Finished reports whether a team reached its winning score.
 func (m *Match) Finished() bool { return m.finished }
 
 // Slow is the slow-motion factor on a winning shot.

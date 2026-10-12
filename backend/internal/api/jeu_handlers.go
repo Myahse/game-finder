@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"findthegame/backend/internal/db"
@@ -17,7 +17,6 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-var botRe = regexp.MustCompile(`^bot-[0-9]{1,2}$`)
 
 var uuidRe = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 
@@ -133,110 +132,100 @@ func (s *Server) jeuRooms(w http.ResponseWriter, r *http.Request) {
 // players' attributes are loaded here, never taken from the client.
 func (s *Server) jeuCreateRoom(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		CourtID string   `json:"court_id"`
-		A       []string `json:"a"`
-		B       []string `json:"b"`
+		CourtID string `json:"court_id"`
+		Sport   string `json:"sport"`
+		Size    int    `json:"size"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || !uuidRe.MatchString(body.CourtID) || len(body.A) != 3 || len(body.B) != 3 {
-		writeError(w, http.StatusUnprocessableEntity, "invalid", "A court and two teams of 3 are required.")
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || !uuidRe.MatchString(body.CourtID) || !jeu.ValidSize(body.Sport, body.Size) {
+		writeError(w, http.StatusUnprocessableEntity, "invalid", "A court, a sport and a team size are required.")
 		return
 	}
 	me := strings.ToLower(uid(r))
-	ids := append(append([]string{}, body.A...), body.B...)
-	real := []string{}
-	for i, id := range ids {
-		id = strings.ToLower(strings.TrimSpace(id))
-		ids[i] = id
-		switch {
-		case uuidRe.MatchString(id):
-			real = append(real, id)
-		case !botRe.MatchString(id):
-			writeError(w, http.StatusUnprocessableEntity, "invalid", "Unknown player.")
-			return
-		}
-	}
-	if ids[0] != me {
-		writeError(w, http.StatusUnprocessableEntity, "invalid", "You lead your team.")
-		return
-	}
-	var info struct {
-		Exists bool   `json:"exists"`
-		Locale string `json:"locale"`
-	}
-	if err := s.db.Pool.QueryRow(r.Context(), `select exists (select 1 from courts where id = $1), coalesce((select locale from users where id = $2), 'en')`,
-		body.CourtID, me).Scan(&info.Exists, &info.Locale); err != nil {
+	var exists bool
+	if err := s.db.Pool.QueryRow(r.Context(), `select exists (select 1 from courts where id = $1)`, body.CourtID).Scan(&exists); err != nil {
 		writeDBError(w, r, err)
 		return
 	}
-	if !info.Exists {
+	if !exists {
 		writeError(w, http.StatusNotFound, "not_found", "Court not found.")
 		return
 	}
-	raw, err := s.db.JSON(r.Context(), uid(r), `select game_players($1::uuid[], 'basketball')`, real)
-	if err != nil {
-		writeDBError(w, r, err)
-		return
-	}
-	var players []struct {
-		User struct {
-			ID        string `json:"id"`
-			FirstName string `json:"first_name"`
-			Username  string `json:"username"`
-		} `json:"user"`
-		Number     int       `json:"number"`
-		Attributes jeu.Attrs `json:"attributes"`
-		Sources    struct {
-			Rpg float64 `json:"rpg"`
-		} `json:"sources"`
-	}
-	if err := json.Unmarshal(raw, &players); err != nil {
-		writeDBError(w, r, err)
-		return
-	}
-	byID := map[string]jeu.RosterEntry{}
-	for _, p := range players {
-		name := strings.Fields(strings.TrimSpace(p.User.FirstName))
-		n := p.User.Username
-		if len(name) > 0 {
-			n = name[0]
-		}
-		byID[strings.ToLower(p.User.ID)] = jeu.RosterEntry{ID: strings.ToLower(p.User.ID), Name: n, Num: p.Number, A: p.Attributes,
-			Big: p.Sources.Rpg >= 5 || p.Attributes.Def+p.Attributes.Pen >= 150}
-	}
-	botName := "Player"
-	if info.Locale == "fr" {
-		botName = "Joueur"
-	}
-	teams := [2][]jeu.RosterEntry{}
-	for i, id := range ids {
-		e, ok := byID[id]
-		if !ok && botRe.MatchString(id) {
-			n, _ := strconv.Atoi(strings.TrimPrefix(id, "bot-"))
-			e = jeu.BotRoster(n, botName, i/3*3)
-			ok = true
-		}
-		if !ok {
-			writeError(w, http.StatusUnprocessableEntity, "invalid", "Unknown player.")
-			return
-		}
-		teams[i/3] = append(teams[i/3], e)
-	}
-	room, err := s.jeu.CreateRoom(me, body.CourtID, teams[0], teams[1])
+	room, err := s.jeu.CreateRoom(me, body.CourtID, body.Sport, body.Size)
 	switch {
 	case errors.Is(err, jeu.ErrTooManyRooms):
 		writeError(w, http.StatusServiceUnavailable, "too_many_rooms", "Too many online matches right now. Try again in a moment.")
 		return
-	case errors.Is(err, jeu.ErrBadTeams):
-		writeError(w, http.StatusUnprocessableEntity, "invalid", "Each player can only play once.")
-		return
 	case err != nil:
-		writeDBError(w, r, err)
+		writeError(w, http.StatusUnprocessableEntity, "invalid", "This sport can't be played with that team size.")
 		return
 	}
 	if err := s.db.Exec(r.Context(), uid(r), `select notify_game_room($1, $2)`, room.Code, body.CourtID); err != nil {
 		slog.Error("notify game room", "code", room.Code, "err", err)
 	}
 	writeJSON(w, http.StatusCreated, room)
+}
+
+// jeuLoad gives the hub the players of an online match, with their attributes for the sport.
+func jeuLoad(d *db.DB) jeu.LoadFunc {
+	return func(ctx context.Context, sport string, ids []string) ([]jeu.RosterEntry, error) {
+		if len(ids) == 0 {
+			return nil, errors.New("no players")
+		}
+		raw, err := d.JSON(ctx, ids[0], `select game_players($1::uuid[], $2)`, ids, sport)
+		if err != nil {
+			return nil, err
+		}
+		var players []struct {
+			User struct {
+				ID        string `json:"id"`
+				FirstName string `json:"first_name"`
+				Username  string `json:"username"`
+			} `json:"user"`
+			Number     int       `json:"number"`
+			Attributes jeu.Attrs `json:"attributes"`
+		}
+		if err := json.Unmarshal(raw, &players); err != nil {
+			return nil, err
+		}
+		byID := map[string]jeu.RosterEntry{}
+		for _, p := range players {
+			name := strings.Fields(strings.TrimSpace(p.User.FirstName))
+			n := p.User.Username
+			if len(name) > 0 {
+				n = name[0]
+			}
+			byID[strings.ToLower(p.User.ID)] = jeu.RosterEntry{ID: strings.ToLower(p.User.ID), Name: n, Num: p.Number, A: p.Attributes,
+				Big: p.Attributes.Def+p.Attributes.Pen >= 150}
+		}
+		out := make([]jeu.RosterEntry, len(ids))
+		for i, id := range ids {
+			e, ok := byID[strings.ToLower(id)]
+			if !ok {
+				return nil, fmt.Errorf("unknown player %s", id)
+			}
+			out[i] = e
+		}
+		return out, nil
+	}
+}
+
+// jeuAward records an online match for each player (XP within the weekly limit, badges).
+func jeuAward(d *db.DB) jeu.AwardFunc {
+	return func(ctx context.Context, ref, sport string, res []jeu.Result) (map[string]json.RawMessage, error) {
+		out := map[string]json.RawMessage{}
+		for _, p := range res {
+			if !uuidRe.MatchString(p.ID) {
+				continue
+			}
+			b, err := d.JSON(ctx, p.ID, `select game_award($1::uuid, $2, 'online', $3, $4, $5::jsonb, $6)`, p.ID, sport, p.Won, p.MVP, p.Stats, ref)
+			if err != nil {
+				slog.Error("jeu award", "user", p.ID, "err", err)
+				continue
+			}
+			out[strings.ToLower(p.ID)] = b
+		}
+		return out, nil
+	}
 }
 
 // handleJeuWS is Mode Jeu's live connection (signed-in players only, ?ticket=).

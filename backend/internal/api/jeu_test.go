@@ -5,11 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"slices"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/coder/websocket"
+
+	"findthegame/backend/internal/api"
+	"findthegame/backend/internal/jeu"
 )
 
 func TestGameMode(t *testing.T) {
@@ -141,15 +145,13 @@ func TestGameMode(t *testing.T) {
 		t.Fatalf("players = %v", players)
 	}
 
-	// Ana opens an online match: Ben (a friend) is told, Cat is not.
-	teamA := []string{ana.ID, ben.ID, "bot-1"}
-	teamB := []string{"bot-4", "bot-5", "bot-6"}
-	// Ana must lead her team, and a player can't play twice.
-	e.must(422, ana.Token, "POST", "/api/jeu/rooms", map[string]any{"court_id": courtID, "a": []string{ben.ID, ana.ID, "bot-1"}, "b": teamB})
-	e.must(422, ana.Token, "POST", "/api/jeu/rooms", map[string]any{"court_id": courtID, "a": []string{ana.ID, "bot-4", "bot-1"}, "b": teamB})
-	room, _ := e.must(201, ana.Token, "POST", "/api/jeu/rooms", map[string]any{"court_id": courtID, "a": teamA, "b": teamB})
+	// Ana opens an online tennis match, 1 against 1: Ben (a friend) is told, Cat is not.
+	e.must(422, ana.Token, "POST", "/api/jeu/rooms", map[string]any{"court_id": courtID, "sport": "chess", "size": 1})
+	e.must(422, ana.Token, "POST", "/api/jeu/rooms", map[string]any{"court_id": courtID, "sport": "tennis", "size": 3})
+	e.must(404, ana.Token, "POST", "/api/jeu/rooms", map[string]any{"court_id": "00000000-0000-0000-0000-000000000000", "sport": "tennis", "size": 1})
+	room, _ := e.must(201, ana.Token, "POST", "/api/jeu/rooms", map[string]any{"court_id": courtID, "sport": "tennis", "size": 1})
 	code := room["code"].(string)
-	if len(code) != 4 || room["host_id"] != strings.ToLower(ana.ID) {
+	if len(code) != 4 || room["host_id"] != strings.ToLower(ana.ID) || room["sport"] != "tennis" || room["size"] != 1.0 || room["filled"] != 1.0 || room["started"] != false {
 		t.Fatalf("room = %v", room)
 	}
 	e.must(422, ana.Token, "POST", "/api/jeu/rooms", map[string]any{"court_id": "nope"})
@@ -225,10 +227,26 @@ func TestGameMode(t *testing.T) {
 		return func(m map[string]any) bool { return m["t"] == kind }
 	}
 
+	lobbyOf := func(m map[string]any) map[string]any {
+		if m["t"] == "room" {
+			return m["r"].(map[string]any)
+		}
+		if m["t"] == "joined" {
+			return m["room"].(map[string]any)
+		}
+		return nil
+	}
+	slots := func(m map[string]any) []any {
+		if r := lobbyOf(m); r != nil {
+			return r["slots"].([]any)
+		}
+		return nil
+	}
+
 	host := dial(ana)
 	send(host, map[string]any{"t": "pos", "lat": 5.35, "lng": -3.99, "scene": "arena"})
 	send(host, map[string]any{"t": "join", "code": code})
-	if j := wait(host, "host joined", is("joined")); j["host"] != true {
+	if j := wait(host, "host joined", is("joined")); j["state"] != nil || j["sport"] != "tennis" || slots(j)[0] != strings.ToLower(ana.ID) || slots(j)[1] != "" {
 		t.Fatalf("host joined = %v", j)
 	}
 	guest := dial(ben)
@@ -245,42 +263,43 @@ func TestGameMode(t *testing.T) {
 		t.Fatalf("cat sees %v", l)
 	}
 
-	// The server plays the match: the guest gets its state without the host doing anything.
+	// Ben joins and takes the free spot (Ana's is taken).
 	send(guest, map[string]any{"t": "join", "code": code})
-	j := wait(guest, "guest joined", is("joined"))
-	ro := j["state"].(map[string]any)["ro"].([]any)
-	if j["host"] != false || len(ro) != 6 || ro[0].([]any)[0] != strings.ToLower(ana.ID) || ro[0].([]any)[1] != "Ana" || ro[3].([]any)[1] != "Player 4" {
-		t.Fatalf("guest joined = %v", j)
-	}
-	wait(host, "members", func(m map[string]any) bool { return m["t"] == "members" && len(m["members"].([]any)) == 2 })
-	st := wait(guest, "state", is("state"))
-	if st["s"].(map[string]any)["v"] != 1.0 {
-		t.Fatalf("state = %v", st)
-	}
-
-	// Only the host takes player 0; the others are free.
+	wait(guest, "guest joined", is("joined"))
 	send(guest, map[string]any{"t": "claim", "k": "0"})
 	send(guest, map[string]any{"t": "claim", "k": "1"})
-	send(host, map[string]any{"t": "claim", "k": "0"})
-	claimed := func(m map[string]any) bool {
-		if m["t"] != "state" {
-			return false
-		}
-		cl := m["s"].(map[string]any)["cl"].(map[string]any)
-		return cl["1"] == strings.ToLower(ben.ID) && cl["0"] == strings.ToLower(ana.ID)
+	seated := func(m map[string]any) bool {
+		s := slots(m)
+		return s != nil && s[0] == strings.ToLower(ana.ID) && s[1] == strings.ToLower(ben.ID)
 	}
-	wait(guest, "claims", claimed)
+	wait(host, "ben seated", seated)
 
-	// The host coaches: tactics show up in the state.
-	send(guest, map[string]any{"t": "tactic", "k": "pace", "v": "fast"})
-	send(host, map[string]any{"t": "tactic", "k": "def", "v": "press"})
-	wait(guest, "tactic", func(m map[string]any) bool {
-		if m["t"] != "state" {
-			return false
-		}
-		tm := m["s"].(map[string]any)["tm"].(map[string]any)
-		return tm["def"] == "press" && tm["pace"] == "norm"
-	})
+	// Leaving before kick-off frees the spot.
+	send(guest, map[string]any{"t": "leave"})
+	wait(host, "spot freed", func(m map[string]any) bool { s := slots(m); return s != nil && s[1] == "" })
+	send(guest, map[string]any{"t": "join", "code": code})
+	send(guest, map[string]any{"t": "claim", "k": "1"})
+	wait(host, "ben back", seated)
+
+	// No AI: the match only starts once both are ready, after a countdown.
+	send(host, map[string]any{"t": "ready", "n": 1})
+	r := wait(guest, "ana ready", func(m map[string]any) bool { r := lobbyOf(m); return r != nil && len(r["ready"].([]any)) == 1 })
+	if lobbyOf(r)["start_in"] != nil {
+		t.Fatalf("countdown with one player ready: %v", r)
+	}
+	send(guest, map[string]any{"t": "ready", "n": 1})
+	wait(guest, "countdown", func(m map[string]any) bool { r := lobbyOf(m); return r != nil && r["start_in"] != nil })
+	st := wait(guest, "kick-off", is("state"))["s"].(map[string]any)
+	ro := st["ro"].([]any)
+	if st["g"] != "tennis" || len(ro) != 2 || ro[0].([]any)[1] != "Ana" || ro[1].([]any)[1] != "Ben" || st["cl"].(map[string]any)["1"] != strings.ToLower(ben.ID) {
+		t.Fatalf("kick-off state = %v", st)
+	}
+	_, rooms = e.must(200, cat.Token, "GET", "/api/jeu/rooms", nil)
+	if rooms[0].(map[string]any)["started"] != true {
+		t.Fatalf("rooms = %v", rooms)
+	}
+	// Spots are fixed once the match is on.
+	send(guest, map[string]any{"t": "claim", "k": nil})
 
 	send(guest, map[string]any{"t": "react", "e": "<b>"})
 	send(guest, map[string]any{"t": "react", "e": "fire"})
@@ -288,17 +307,42 @@ func TestGameMode(t *testing.T) {
 		t.Fatalf("react = %v", re)
 	}
 
-	// The host leaves (phone asleep, app closed): the match keeps going for the guest.
+	// Ana leaves (phone asleep, app closed): the match keeps going for Ben.
 	host.ws.CloseNow()
 	wait(guest, "host gone", func(m map[string]any) bool { return m["t"] == "members" && m["host_online"] == false })
 	time.Sleep(600 * time.Millisecond)
 	after := wait(guest, "state", is("state"))["s"].(map[string]any)
-	if after["cl"].(map[string]any)["0"] != nil {
-		t.Fatalf("host's claim kept after leaving: %v", after["cl"])
+	if after["cl"].(map[string]any)["1"] != strings.ToLower(ben.ID) {
+		t.Fatalf("spots changed after kick-off: %v", after["cl"])
 	}
 	_, rooms = e.must(200, ben.Token, "GET", "/api/jeu/rooms", nil)
 	if len(rooms) != 1 {
 		t.Fatalf("match closed when the host left: %v", rooms)
+	}
+
+	// At the final whistle every player's result is recorded once (online XP, badges).
+	award := api.JeuAward(e.db)
+	results := []jeu.Result{{ID: ana.ID, Won: true, MVP: true, Stats: map[string]int{"pts": 7, "aces": 3}}, {ID: ben.ID, Stats: map[string]int{"pts": 4}}, {ID: "bot-1"}}
+	out, err := award(ctx, "test:1", "tennis", results)
+	if err != nil || len(out) != 2 {
+		t.Fatalf("award = %v, %v", out, err)
+	}
+	var aw struct {
+		XP        int      `json:"xp"`
+		NewBadges []string `json:"new_badges"`
+	}
+	_ = json.Unmarshal(out[strings.ToLower(ana.ID)], &aw)
+	if aw.XP != 50 || !slices.Contains(aw.NewBadges, "online_win") || !slices.Contains(aw.NewBadges, "ace_tennis") {
+		t.Fatalf("ana award = %s", out[strings.ToLower(ana.ID)])
+	}
+	_ = json.Unmarshal(out[strings.ToLower(ben.ID)], &aw)
+	if aw.XP != 15 {
+		t.Fatalf("ben award = %s", out[strings.ToLower(ben.ID)])
+	}
+	again, _ := award(ctx, "test:1", "tennis", results)
+	_ = json.Unmarshal(again[strings.ToLower(ana.ID)], &aw)
+	if aw.XP != 0 {
+		t.Fatalf("same match counted twice: %s", again[strings.ToLower(ana.ID)])
 	}
 
 	// Signed out: no live connection.

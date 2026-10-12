@@ -106,8 +106,8 @@ export class RallyMatch {
     let err = shot === 's' ? 0.22 : shot === 'd' ? 0.16 : 0.07
     let win = shot === 's' ? 0.3 : shot === 'd' ? 0.2 : 0.05
     if (serve) { err = 0.1; win = 0.08 }
-    err *= (1.5 - skill) * (1.3 - 0.3 * q) * (1.25 - 0.25 * p.stam)
-    win *= (0.6 + skill * 0.8) * (0.7 + 0.3 * q)
+    err *= (1.6 - 1.2 * skill) * (1.3 - 0.3 * q) * (1.25 - 0.25 * p.stam)
+    win *= (0.4 + skill * 1.1) * (0.7 + 0.3 * q)
     if (agg === 'out') { err *= 1.2; win *= 1.25 } else if (agg === 'in') { err *= 0.8; win *= 0.8 }
     if (Math.max(...this.score) >= this.rules.win - 2) err *= 1.15 - (a.men - 60) * 0.004
     return [clamp(err, 0.02, 0.6), clamp(win, 0.02, 0.6)] as const
