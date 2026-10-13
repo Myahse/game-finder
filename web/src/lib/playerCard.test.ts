@@ -34,5 +34,6 @@ describe('player card helpers', () => {
   it('opens the own card from a tier-up notification', () => {
     expect(notificationLink({ type: 'achievement', data: { kind: 'card_tier', tier: 'or', sport: 'basketball' } })).toBe('/profile?card=basketball')
     expect(notificationLink({ type: 'achievement', data: { kind: 'badge' } })).toBe('/profile')
+    expect(notificationLink({ type: 'achievement', data: { kind: 'quest' } })).toBe('/play')
   })
 })

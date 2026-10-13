@@ -35,7 +35,7 @@ func RunOnce(ctx context.Context, d *db.DB, dispatcher *push.Dispatcher) {
 		return
 	}
 	slog.Debug("tick", "summary", string(summary))
-	for _, q := range []string{"select public.progress_tick()::text", "select public.challenge_tick()::text"} {
+	for _, q := range []string{"select public.progress_tick()::text", "select public.challenge_tick()::text", "select public.quest_tick()::text"} {
 		if err := d.Pool.QueryRow(ctx, q).Scan(&summary); err != nil && ctx.Err() == nil {
 			slog.Error("tick failed", "query", q, "err", err)
 		}

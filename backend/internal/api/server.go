@@ -186,6 +186,8 @@ func (s *Server) Routes() http.Handler {
 			r.Delete("/me/bump", s.bumpCancel)
 			r.Get("/me/recap", s.getMyRecap)
 			r.Get("/me/progress", s.getMyProgress)
+			r.Get("/me/quests", s.getMyQuests)
+			r.With(s.rateLimitedUser("game")).Post("/me/quests/{id}/claim", s.claimQuest)
 			r.Get("/users/{id}/progress", s.getUserProgress)
 			r.Get("/users/{id}/card", s.getUserCard)
 			r.Get("/kings", s.getKings)
@@ -472,6 +474,7 @@ var appErrors = map[string]struct {
 }{
 	"not_authenticated":          {http.StatusUnauthorized, "Please sign in."},
 	"admin_only":                 {http.StatusForbidden, "Admins only."},
+	"quest_not_done":             {http.StatusUnprocessableEntity, "This quest isn't done yet."},
 	"not_allowed":                {http.StatusForbidden, "You can't do that."},
 	"use_cancel_game":            {http.StatusForbidden, "Use cancel to stop a game."},
 	"game_not_found":             {http.StatusNotFound, "Game not found."},

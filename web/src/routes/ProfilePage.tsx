@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { WhatsAppCommunityCard } from '../components/WhatsApp'
+import { DailyQuests } from '../components/DailyQuests'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api, errorMessage, uploadImage } from '../lib/api'
@@ -187,6 +188,7 @@ export function ProfilePage() {
             <div data-guide="progress">
               <MyProgressCard avatar={playerAvatar} />
             </div>
+            <DailyQuests />
             {GAME_MODE_ENABLED && <GameAvatarCard />}
             <WhatsAppCommunityCard />
             <ScreenGuide

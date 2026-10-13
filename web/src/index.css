@@ -1424,3 +1424,8 @@ body {
   25% { transform: translateY(-10px) scale(1.2); opacity: 1; }
   100% { transform: translateY(-50px); opacity: 0; }
 }
+
+/* Daily quests: the streak flame flickers once today's streak is safe. */
+@keyframes ftg-flame { 0%, 100% { transform: scale(1) rotate(-2deg); } 50% { transform: scale(1.08) rotate(3deg); } }
+.ftg-flame { animation: ftg-flame 1.6s ease-in-out infinite; transform-origin: 50% 80%; }
+@media (prefers-reduced-motion: reduce) { .ftg-flame { animation: none; } }

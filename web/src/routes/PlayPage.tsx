@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { WhatsAppCommunityCard } from '../components/WhatsApp'
+import { DailyQuests } from '../components/DailyQuests'
 import { Link, useSearchParams } from 'react-router-dom'
 import { subscribeLiveGamePulse } from '../lib/liveGames'
 import { useLocation } from '../lib/location'
@@ -78,6 +79,7 @@ export function PlayPage() {
             )
           )}
         </div>
+        <DailyQuests className="mb-3" />
         <WhatsAppCommunityCard className="mb-4" />
         {waitingGps && (
           <p className="mb-3 text-sm text-ink-2">
