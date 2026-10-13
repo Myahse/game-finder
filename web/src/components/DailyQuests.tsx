@@ -114,13 +114,13 @@ export function DailyQuests({ className = '' }: { className?: string }) {
           )
         })}
         <li className="flex items-center gap-2.5 rounded-xl border border-dashed border-line p-2">
-          <span className={`grid size-9 shrink-0 place-items-center rounded-lg ${data.all.done ? 'bg-[var(--gold)]/20 text-[var(--gold)]' : 'bg-surface-2 text-ink-2'}`}><Gift className="size-5" aria-hidden /></span>
+          <span className={`grid size-9 shrink-0 place-items-center rounded-lg ${data.all.done ? 'bg-[#f2b632]/20 text-[#f2b632]' : 'bg-surface-2 text-ink-2'}`}><Gift className="size-5" aria-hidden /></span>
           <span className="min-w-0 flex-1 text-sm"><b className="block font-semibold">{tq.all}</b><span className="text-ink-2">{tq.allBody}</span></span>
           {data.all.claimed ? (
             <span className="display inline-flex shrink-0 items-center gap-1 text-sm font-bold uppercase text-live"><Check className="size-4" aria-hidden />{tq.claimed}</span>
           ) : data.all.done ? (
             <button type="button" disabled={claim.isPending} onClick={() => claim.mutate('all')}
-              className="ftg-press display shrink-0 rounded-full bg-[var(--gold)] px-3 py-1.5 text-sm font-bold uppercase text-[#12151a] disabled:opacity-60">
+              className="ftg-press display shrink-0 rounded-full bg-[#f2b632] px-3 py-1.5 text-sm font-bold uppercase text-[#12151a] disabled:opacity-60">
               {tq.claim.replace('{n}', String(data.all.xp))}
             </button>
           ) : (
