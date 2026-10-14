@@ -255,6 +255,10 @@ func (s *Server) Routes() http.Handler {
 
 			r.Post("/uploads", s.upload)
 
+			r.Get("/announcements/pending", s.getPendingAnnouncement)
+			r.Get("/announcements/{id}", s.getAnnouncement)
+			r.Post("/announcements/{id}/seen", s.markAnnouncementSeen)
+
 			r.Route("/admin", func(r chi.Router) {
 				r.Use(s.requireAdmin)
 				r.Get("/stats", s.adminStats)
@@ -275,6 +279,9 @@ func (s *Server) Routes() http.Handler {
 				r.Post("/reports/{id}/resolve", s.adminResolveReport)
 				r.Get("/settings", s.adminSettings)
 				r.Patch("/settings", s.adminUpdateSettings)
+				r.Get("/announcements", s.adminAnnouncements)
+				r.Post("/announcements", s.adminCreateAnnouncement)
+				r.Patch("/announcements/{id}", s.adminUpdateAnnouncement)
 			})
 		})
 	})
@@ -474,6 +481,7 @@ var appErrors = map[string]struct {
 }{
 	"not_authenticated":          {http.StatusUnauthorized, "Please sign in."},
 	"admin_only":                 {http.StatusForbidden, "Admins only."},
+	"announcement_not_found":     {http.StatusNotFound, "This announcement doesn't exist."},
 	"quest_not_done":             {http.StatusUnprocessableEntity, "This quest isn't done yet."},
 	"not_allowed":                {http.StatusForbidden, "You can't do that."},
 	"use_cancel_game":            {http.StatusForbidden, "Use cancel to stop a game."},

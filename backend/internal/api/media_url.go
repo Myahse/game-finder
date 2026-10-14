@@ -24,7 +24,7 @@ func (s *Server) allowedUploadURL(raw string) bool {
 // canonicalPhotoRef matches stored upload URLs even when hosts differ (R2 vs API proxy).
 func canonicalPhotoRef(raw string) string {
 	raw = strings.TrimSpace(raw)
-	for _, prefix := range []string{"/court/", "/avatar/", "/uploads/"} {
+	for _, prefix := range []string{"/court/", "/avatar/", "/announcement/", "/uploads/"} {
 		if i := strings.Index(raw, prefix); i >= 0 {
 			return raw[i:]
 		}

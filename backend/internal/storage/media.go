@@ -60,7 +60,7 @@ func (m *Media) UsesR2() bool { return m.r2 != nil }
 
 // Save writes an image and returns the URL stored in the database.
 func (m *Media) Save(ctx context.Context, kind, userID, ext, contentType string, body io.Reader) (string, error) {
-	if kind != "avatar" && kind != "court" {
+	if kind != "avatar" && kind != "court" && kind != "announcement" {
 		return "", fmt.Errorf("invalid kind")
 	}
 	rnd := make([]byte, 16)
@@ -126,7 +126,7 @@ func (m *Media) AllowedStoredURL(raw string) bool {
 	if m.r2Public != "" {
 		pub, err := url.Parse(m.r2Public)
 		if err == nil && strings.EqualFold(u.Host, pub.Host) {
-			return strings.HasPrefix(u.Path, "/avatar/") || strings.HasPrefix(u.Path, "/court/")
+			return strings.HasPrefix(u.Path, "/avatar/") || strings.HasPrefix(u.Path, "/court/") || strings.HasPrefix(u.Path, "/announcement/")
 		}
 	}
 	return false

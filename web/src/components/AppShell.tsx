@@ -15,6 +15,7 @@ import { OfflineBanner } from './OfflineBanner'
 import { EngagementPrompts } from './EngagementPrompts'
 import { hasPlayerAvatar } from '../avatar/resolve'
 import { PresenceWatcher } from './PresenceWatcher'
+import { AnnouncementGate } from './AnnouncementModal'
 import type { RealtimeEvent } from '../lib/types'
 import { useLocale } from '../i18n/LocaleProvider'
 import { prefersReducedMotion } from '../lib/motion'
@@ -223,6 +224,7 @@ export function AppShell() {
 
       <PresenceWatcher />
       <CourtChangeAlert enabled={!!user} />
+      <AnnouncementGate enabled={!!user} />
       <EngagementPrompts
         enabled={!!user}
         onCreateAvatar={user && !hasPlayerAvatar(user) && pathname !== '/profile/avatar' ? () => navigate('/profile/avatar') : null}
