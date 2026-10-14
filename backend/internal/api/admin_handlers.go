@@ -323,9 +323,16 @@ func (s *Server) upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	kind := r.FormValue("kind")
-	if kind != "avatar" && kind != "court" {
+	if kind != "avatar" && kind != "court" && kind != "announcement" {
 		writeError(w, http.StatusUnprocessableEntity, "invalid_kind", "kind must be avatar or court.")
 		return
+	}
+	if kind == "announcement" { // flyers are admin-only
+		var admin bool
+		if err := s.db.Pool.QueryRow(r.Context(), "select exists(select 1 from users where id=$1 and role='admin' and suspended_at is null)", uid(r)).Scan(&admin); err != nil || !admin {
+			writeError(w, http.StatusForbidden, "admin_only", "Admins only.")
+			return
+		}
 	}
 	f, _, err := r.FormFile("file")
 	if err != nil {

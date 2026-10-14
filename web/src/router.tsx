@@ -28,6 +28,7 @@ import { AdminGames } from './routes/admin/AdminGames'
 import { AdminUsers } from './routes/admin/AdminUsers'
 import { AdminReports } from './routes/admin/AdminReports'
 import { AdminSettings } from './routes/admin/AdminSettings'
+import { AdminAnnouncements } from './routes/admin/AdminAnnouncements'
 import { FriendInvitePage } from './routes/FriendInvitePage'
 import { PublicProfilePage } from './routes/PublicProfilePage'
 import { VerifyEmailPage } from './routes/VerifyEmailPage'
@@ -175,6 +176,7 @@ export const router = createBrowserRouter([
                   { path: 'games', element: <AdminGames /> },
                   { path: 'users', element: <AdminUsers /> },
                   { path: 'reports', element: <AdminReports /> },
+                  { path: 'announcements', element: <AdminAnnouncements /> },
                   { path: 'settings', element: <AdminSettings /> },
                 ],
               },

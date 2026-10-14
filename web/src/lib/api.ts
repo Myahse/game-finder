@@ -307,7 +307,7 @@ async function prepareImageUpload(file: File): Promise<File> {
   }
 }
 
-export async function uploadImage(file: File, kind: 'avatar' | 'court'): Promise<string> {
+export async function uploadImage(file: File, kind: 'avatar' | 'court' | 'announcement'): Promise<string> {
   const prepared = await prepareImageUpload(file)
   const form = new FormData()
   form.append('kind', kind)

@@ -135,7 +135,8 @@ export interface AppNotification {
     presence_id?: string
     user_id?: string
     friend_request_id?: string
-    kind?: 'badge' | 'streak' | 'king' | 'challenge' | 'court_change' | 'card_tier' | 'jeu_room'
+    kind?: 'badge' | 'streak' | 'king' | 'challenge' | 'court_change' | 'card_tier' | 'jeu_room' | 'announcement'
+    announcement_id?: string
     /** Mode Jeu online match code. */
     code?: string
     challenge_id?: string
@@ -184,3 +185,17 @@ export type RealtimeEvent =
       body: string
       data: AppNotification['data']
     }
+
+/** An admin announcement (flyer + text + optional button), shown once as a pop-up. */
+export interface Announcement {
+  id: string
+  title: string
+  body: string
+  image_url: string | null
+  link_url: string | null
+  cta_label: string | null
+  active: boolean
+  created_at: string
+  notified?: number
+  seen?: number
+}
