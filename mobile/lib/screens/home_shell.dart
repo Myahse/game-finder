@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../core/announcements.dart';
 import '../core/api.dart';
 import '../core/auth.dart';
 import '../core/notification_links.dart';
@@ -42,6 +43,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   bool _alertOpen = false;
   Timer? _changesTimer;
   Timer? _avatarPromptTimer;
+  Timer? _announcementTimer;
+  bool _announcementOpen = false;
   /// Once per app run, like the web's per-session prompt cycle.
   static bool _avatarPromptShown = false;
   int _unread = 0;
@@ -97,6 +100,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     _loadUnread();
     WidgetsBinding.instance.addObserver(this);
     _changesTimer = Timer.periodic(const Duration(seconds: 60), (_) => _checkCourtChanges());
+    // Web AnnouncementGate: the newest unseen admin announcement, once, after the other launch prompts.
+    _announcementTimer = Timer(const Duration(milliseconds: 2500), _maybeAnnouncement);
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkCourtChanges());
   }
 
@@ -132,7 +137,10 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _checkCourtChanges();
+    if (state == AppLifecycleState.resumed) {
+      _checkCourtChanges();
+      _maybeAnnouncement();
+    }
   }
 
   /// A game/challenge I'm in moved court → alert until acknowledged.
@@ -161,6 +169,35 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       if (list.length > 1) _checkCourtChanges();
     } catch (_) {
       _alertOpen = false;
+    }
+  }
+
+  void _openTab(int tab) {
+    if (!mounted) return;
+    Navigator.of(context).popUntil((r) => r.isFirst);
+    setState(() => _tab = tab);
+  }
+
+  /// Shows the newest announcement the player hasn't seen (flyer pop-up), once.
+  Future<void> _maybeAnnouncement() async {
+    if (!mounted || _announcementOpen) return;
+    // Not over another prompt or screen; try again a bit later.
+    if (_promptOpen || _alertOpen || ModalRoute.of(context)?.isCurrent == false) {
+      _announcementTimer?.cancel();
+      _announcementTimer = Timer(const Duration(seconds: 4), _maybeAnnouncement);
+      return;
+    }
+    _announcementOpen = true;
+    try {
+      final a = await fetchPendingAnnouncement(context.read<Api>());
+      if (a != null && mounted) {
+        await presentAnnouncement(context, a,
+            openProfileTab: _openProfileTab, openPlayTab: () => _openTab(1), openMapTab: () => _openTab(0));
+        _loadUnread();
+      }
+    } catch (_) {
+    } finally {
+      _announcementOpen = false;
     }
   }
 
@@ -205,6 +242,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _changesTimer?.cancel();
     _avatarPromptTimer?.cancel();
+    _announcementTimer?.cancel();
     _presence.removeListener(_onPresence);
     for (final s in _subs) {
       s.cancel();
@@ -263,6 +301,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       extendBody: true,
       body: HomeTabScope(
         openProfile: _openProfileTab,
+        openTab: _openTab,
         child: ExcludeSemantics(excluding: mapPaused, child: body),
       ),
       bottomNavigationBar: _FloatingNavBar(

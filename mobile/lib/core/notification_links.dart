@@ -1,8 +1,10 @@
 import 'dart:convert';
 
+import 'announcements.dart';
+
 /// Where tapping a notification goes (web lib/notificationLinks.ts).
 /// [card]: the signed-in player's card sheet, for the sport slug in the id.
-enum NotificationDest { profileFriends, profile, challenges, court, game, user, card }
+enum NotificationDest { profileFriends, profile, challenges, court, game, user, card, announcement }
 
 class NotificationTarget {
   final NotificationDest dest;
@@ -24,6 +26,11 @@ NotificationTarget? notificationTarget(String? type, Map<String, dynamic> data) 
   final courtId = _str(data['court_id']);
   final gameId = _str(data['game_id']);
   final userId = _str(data['user_id']);
+  // An admin announcement: show its flyer again.
+  if (data['kind'] == 'announcement') {
+    final id = _str(data['announcement_id']);
+    return isAnnouncementId(id) ? NotificationTarget(NotificationDest.announcement, id) : null;
+  }
   if (type == 'court_pending_review' && courtId != null) return NotificationTarget(NotificationDest.court, courtId);
   if (type == 'friend_request') return const NotificationTarget(NotificationDest.profileFriends);
   if (type == 'challenge') return const NotificationTarget(NotificationDest.challenges);
