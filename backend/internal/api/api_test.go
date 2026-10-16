@@ -477,6 +477,27 @@ func TestCourtProposalAndAdmin(t *testing.T) {
 	if detail["status"] != "approved" {
 		t.Fatalf("admin court detail status = %v", detail["status"])
 	}
+	// The author hears it was approved; every other player (even far away, no sport, no location) hears it was added.
+	courtNote := func(token string) map[string]any {
+		t.Helper()
+		obj, _ := e.must(200, token, "GET", "/api/notifications", nil)
+		for _, n := range obj["items"].([]any) {
+			m := n.(map[string]any)
+			if d, _ := m["data"].(map[string]any); m["type"] == "court_added" && d != nil && d["court_id"] == court["id"] {
+				return m
+			}
+		}
+		return nil
+	}
+	if n := courtNote(u.Token); n == nil || n["title"] != "Your court is approved" || n["body"] != "New Court is now on the map. Share it with your crew!" {
+		t.Fatalf("author approval notification = %v", n)
+	}
+	if n := courtNote(other.Token); n == nil || n["title"] != "New court on the map" || n["body"] != "The court New Court was added." {
+		t.Fatalf("everyone notification = %v", n)
+	}
+	if n := courtNote(admin.Token); n != nil {
+		t.Fatalf("approving admin notified: %v", n)
+	}
 	e.must(204, admin.Token, "POST", "/api/admin/courts/"+court["id"].(string)+"/review", map[string]any{"pending": true})
 	if detail, _ = e.must(200, admin.Token, "GET", "/api/admin/courts/"+court["id"].(string), nil); detail["status"] != "pending" {
 		t.Fatalf("after unapprove status = %v", detail["status"])
