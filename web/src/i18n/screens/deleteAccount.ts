@@ -9,7 +9,7 @@ export const en = {
   confirm: 'Delete',
   cancel: 'Cancel',
   done: 'Your account has been deleted.',
-  pageTitle: 'Delete your Out For Ground account',
+  pageTitle: 'Delete my account',
   pageIntro: 'You can delete your Out For Ground account and its data at any time, without contacting us.',
   inAppTitle: 'In the app',
   inAppBody: 'Open the Out For Ground app, go to Profile, scroll to the bottom and tap “Delete my account”. Accounts with a password are asked for it to confirm.',
@@ -20,7 +20,7 @@ export const en = {
   deletedTitle: 'What is deleted',
   deletedBody: 'Your account and everything linked to it: name, username, email, password, profile photo and avatar, friends and friend requests, check-ins and location data, game seats and history, challenges, scores and progress, notifications and device push tokens. Upcoming games you organise are cancelled. Deletion is immediate.',
   keptTitle: 'What is kept',
-  keptBody: 'Courts you added and court photos you uploaded stay on the map without your name, because other players rely on them. Server security logs are kept for up to 30 days.',
+  keptBody: 'Courts you added and court photos you uploaded stay on the map without your name, because other players rely on them. Server logs may be kept for a short time for security.',
 }
 
 export const fr: typeof en = {
@@ -32,7 +32,7 @@ export const fr: typeof en = {
   confirm: 'Supprimer',
   cancel: 'Annuler',
   done: 'Votre compte a été supprimé.',
-  pageTitle: 'Supprimer votre compte Out For Ground',
+  pageTitle: 'Supprimer mon compte',
   pageIntro: 'Vous pouvez supprimer votre compte Out For Ground et ses données à tout moment, sans nous contacter.',
   inAppTitle: 'Dans l’application',
   inAppBody: 'Ouvrez l’application Out For Ground, allez dans Profil, faites défiler jusqu’en bas et touchez « Supprimer mon compte ». Si votre compte a un mot de passe, il vous est demandé pour confirmer.',
@@ -43,5 +43,5 @@ export const fr: typeof en = {
   deletedTitle: 'Ce qui est supprimé',
   deletedBody: 'Votre compte et tout ce qui y est lié : nom, pseudo, e-mail, mot de passe, photo de profil et avatar, amis et demandes d’ami, présences et données de localisation, places et historique de matchs, défis, scores et progression, notifications et jetons de notification de vos appareils. Les matchs à venir que vous organisez sont annulés. La suppression est immédiate.',
   keptTitle: 'Ce qui est conservé',
-  keptBody: 'Les terrains que vous avez ajoutés et les photos de terrain que vous avez envoyées restent sur la carte sans votre nom, car d’autres joueurs en dépendent. Les journaux de sécurité du serveur sont conservés 30 jours au maximum.',
+  keptBody: 'Les terrains que vous avez ajoutés et les photos de terrain que vous avez envoyées restent sur la carte sans votre nom, car d’autres joueurs en dépendent. Certains journaux du serveur peuvent être conservés brièvement pour des raisons de sécurité.',
 }

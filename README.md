@@ -141,6 +141,10 @@ cd mobile && flutter analyze && flutter test
 
 CI runs all three (`.github/workflows/ci.yml`).
 
+## Releasing the Android app
+
+See [`docs/PLAY_STORE.md`](docs/PLAY_STORE.md): upload key, Firebase, building the `.aab` (locally or with the **Android release** workflow), and the Play Console checklist.
+
 ## Map tiles
 
 - **Web:** [Mapbox GL](https://www.mapbox.com/) via `react-map-gl` — set `VITE_MAPBOX_ACCESS_TOKEN` in `.env` (baked in at `docker compose build`). Optional style overrides: `VITE_MAP_STYLE_LIGHT` / `VITE_MAP_STYLE_DARK` (Mapbox style URLs).

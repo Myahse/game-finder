@@ -62,7 +62,11 @@ flutter run --dart-define=API_URL=http://10.0.2.2:8080
 flutter run --dart-define=API_URL=http://192.168.x.x:8080 --dart-define=MAPBOX_ACCESS_TOKEN=pk....
 ```
 
-Debug builds allow HTTP to your LAN API. Release builds should use HTTPS.
+Debug builds allow HTTP to your LAN API. Release builds only use HTTPS: they call the production API (`productionApiUrl` in `lib/core/env.dart`) unless `assets/.env` or `--dart-define` gives an `https://` `API_URL`.
+
+## Release (Google Play)
+
+App ID `com.outforground.app`. Signing, building the `.aab` and the Play Console checklist: [`docs/PLAY_STORE.md`](../docs/PLAY_STORE.md).
 
 Push notifications need Firebase (`google-services.json`, `GoogleService-Info.plist`); without them you still get in-app notifications.
 

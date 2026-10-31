@@ -66,7 +66,7 @@ export const en = {
     {
       title: 'Retention & deletion',
       body:
-        'We keep data while your account is active. You can delete your account at any time in the app (Profile → Delete my account) or on the web at /delete-account. Deletion is immediate and removes your profile, friends, check-ins, game history and notifications; courts and court photos you contributed stay without your name. Server security logs are kept for up to 30 days.',
+        'We keep data while your account is active. You can delete your account at any time in the app (Profile → Delete my account) or on the web at /delete-account. Deletion is immediate and removes your profile, friends, check-ins, game history and notifications; courts and court photos you contributed stay without your name. Some server logs may be kept briefly for security.',
     },
     {
       title: 'Contact',
@@ -140,7 +140,7 @@ export const fr: typeof en = {
     {
       title: 'Conservation et suppression',
       body:
-        'Nous conservons les données tant que votre compte est actif. Vous pouvez supprimer votre compte à tout moment dans l’application (Profil → Supprimer mon compte) ou sur le web à l’adresse /delete-account. La suppression est immédiate et efface votre profil, vos amis, vos présences, votre historique de matchs et vos notifications ; les terrains et photos de terrain que vous avez ajoutés restent sans votre nom. Les journaux de sécurité du serveur sont conservés 30 jours au maximum.',
+        'Nous conservons les données tant que votre compte est actif. Vous pouvez supprimer votre compte à tout moment dans l’application (Profil → Supprimer mon compte) ou sur le web à l’adresse /delete-account. La suppression est immédiate et efface votre profil, vos amis, vos présences, votre historique de matchs et vos notifications ; les terrains et photos de terrain que vous avez ajoutés restent sans votre nom. Certains journaux du serveur peuvent être conservés brièvement pour des raisons de sécurité.',
     },
     {
       title: 'Contact',
