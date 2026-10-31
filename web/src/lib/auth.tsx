@@ -31,6 +31,8 @@ interface AuthState {
   /** Exchange a Google / Firebase ID token for a session; returns true for a new account. */
   googleSignIn: (idToken: string, viaFirebase?: boolean) => Promise<boolean>
   logout: () => Promise<void>
+  /** Permanently deletes the account (DELETE /api/me); password accounts must confirm. */
+  deleteAccount: (password?: string) => Promise<void>
   updateUser: (u: Me) => void
 }
 
@@ -77,14 +79,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     qc.clear()
   }, [qc])
 
+  const deleteAccount = useCallback(
+    async (password?: string) => {
+      await api('/api/me', { method: 'DELETE', json: password ? { password } : undefined })
+      await unregisterWebPush().catch(() => {})
+      setSession(null)
+      qc.clear()
+    },
+    [qc],
+  )
+
   const updateUser = useCallback((u: Me) => {
     const s = getSession()
     if (s) setSession({ ...s, user: u })
   }, [])
 
   const value = useMemo(
-    () => ({ user, sessionReady, login, register, googleSignIn, logout, updateUser }),
-    [user, sessionReady, login, register, googleSignIn, logout, updateUser],
+    () => ({ user, sessionReady, login, register, googleSignIn, logout, deleteAccount, updateUser }),
+    [user, sessionReady, login, register, googleSignIn, logout, deleteAccount, updateUser],
   )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

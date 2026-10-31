@@ -15,11 +15,16 @@ bool apiReachable = false;
 
 String _normalizeBase(String base) => base.trim().replaceAll(RegExp(r'/+$'), '');
 
+/// Dev probes are short because the subnet scan fires hundreds of them. In
+/// release there is one URL, and a sleeping free-tier host (Render) needs
+/// 30-60 s to wake up, so each probe waits longer.
+const _probeTimeout = kReleaseMode ? Duration(seconds: 15) : Duration(seconds: 2);
+
 Future<bool> _probeHealthz(String base) async {
   final root = _normalizeBase(base);
   if (root.isEmpty) return false;
   try {
-    final res = await http.get(Uri.parse('$root/healthz')).timeout(const Duration(seconds: 2));
+    final res = await http.get(Uri.parse('$root/healthz')).timeout(_probeTimeout);
     if (res.statusCode != 200) return false;
     final data = jsonDecode(res.body);
     return data is Map && data['ok'] == true;
@@ -61,6 +66,11 @@ List<String> _candidateUrls(SharedPreferences prefs) {
 
   const defineApi = String.fromEnvironment('API_URL');
   add(defineApi.isNotEmpty ? defineApi : null);
+  if (kReleaseMode) {
+    // Store builds: only the configured API, never a remembered LAN address.
+    add(apiUrl);
+    return out;
+  }
   add(prefs.getString(_prefsApiUrl));
   add(apiUrl);
   if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
@@ -107,24 +117,28 @@ Future<String?> _discoverOnSubnet(String wifiIp) async {
 Future<bool> _tryUrl(String url, SharedPreferences prefs) async {
   if (!await _probeHealthz(url)) return false;
   setApiUrl(url);
-  await prefs.setString(_prefsApiUrl, url);
+  if (!kReleaseMode) await prefs.setString(_prefsApiUrl, url);
   apiReachable = true;
   if (kDebugMode) debugPrint('Out For Ground API reachable at $url');
   return true;
 }
 
 /// Picks a working API base URL before the UI loads data.
-Future<bool> ensureApiReachable({Duration budget = const Duration(seconds: 25)}) async {
+///
+/// Debug/profile: tries the configured, remembered and emulator URLs, then scans
+/// the Wi-Fi subnet for a dev API on :8080. Release: only the configured
+/// (production) URL, with a budget long enough for a cold start.
+Future<bool> ensureApiReachable({Duration? budget}) async {
   apiReachable = false;
   final prefs = await SharedPreferences.getInstance();
-  final deadline = DateTime.now().add(budget);
+  final deadline = DateTime.now().add(budget ?? (kReleaseMode ? const Duration(seconds: 75) : const Duration(seconds: 25)));
 
   while (DateTime.now().isBefore(deadline)) {
     for (final url in _candidateUrls(prefs)) {
       if (await _tryUrl(url, prefs)) return true;
     }
 
-    final wifi = await _localWifiIPv4();
+    final wifi = kReleaseMode ? null : await _localWifiIPv4();
     if (wifi != null && !wifi.startsWith('10.0.2.')) {
       final found = await _discoverOnSubnet(wifi);
       if (found != null && await _tryUrl(found, prefs)) return true;

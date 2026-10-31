@@ -5,6 +5,7 @@ import * as announcements from './announcements'
 import * as avatarLabels from './avatarLabels'
 import * as card from './card'
 import * as courts from './courts'
+import * as deleteAccount from './deleteAccount'
 import * as errors from './errors'
 import * as games from './games'
 import * as jeu from './jeu'
@@ -18,6 +19,7 @@ export const screensEn = {
   avatarLabels: avatarLabels.en,
   card: card.en,
   courts: courts.en,
+  deleteAccount: deleteAccount.en,
   errors: errors.en,
   games: games.en,
   jeu: jeu.en,
@@ -32,6 +34,7 @@ export const screensFr: typeof screensEn = {
   avatarLabels: avatarLabels.fr,
   card: card.fr,
   courts: courts.fr,
+  deleteAccount: deleteAccount.fr,
   errors: errors.fr,
   games: games.fr,
   jeu: jeu.fr,

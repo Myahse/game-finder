@@ -131,3 +131,35 @@ func (m *Media) AllowedStoredURL(raw string) bool {
 	}
 	return false
 }
+
+// DeleteUserAvatars removes every profile photo a user uploaded (keys
+// avatar/<userID>/...). Used when an account is deleted. Court photos are
+// community content attached to courts and are kept.
+func (m *Media) DeleteUserAvatars(ctx context.Context, userID string) error {
+	if userID == "" || strings.ContainsAny(userID, `/\.`) {
+		return fmt.Errorf("invalid user id")
+	}
+	prefix := "avatar/" + userID + "/"
+	if m.r2 == nil {
+		return os.RemoveAll(filepath.Join(m.localDir, "avatar", userID))
+	}
+	p := s3.NewListObjectsV2Paginator(m.r2, &s3.ListObjectsV2Input{
+		Bucket: aws.String(m.r2Bucket),
+		Prefix: aws.String(prefix),
+	})
+	for p.HasMorePages() {
+		page, err := p.NextPage(ctx)
+		if err != nil {
+			return err
+		}
+		for _, obj := range page.Contents {
+			if _, err := m.r2.DeleteObject(ctx, &s3.DeleteObjectInput{
+				Bucket: aws.String(m.r2Bucket),
+				Key:    obj.Key,
+			}); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}

@@ -123,7 +123,7 @@ VITE_FIREBASE_PROJECT_ID=your-project-id
 5. **Render** — set `FIREBASE_PROJECT_ID` (or reuse `FCM_PROJECT_ID` if push uses the same project). Redeploy API.
 6. **Vercel** — set the `VITE_FIREBASE_*` vars above. Redeploy web.
 7. **Mobile** — run `.\mobile\sync-env.ps1`. **Google sign-in** works from env alone; **push (FCM)** needs native config:
-   - Firebase → **Add app** → **Android** (`com.findthegame.find_the_game`) and **iOS** (`com.findthegame.findTheGame`).
+   - Firebase → **Add app** → **Android** (`com.outforground.app`) and **iOS** (`com.findthegame.findTheGame`).
    - Download `google-services.json` and `GoogleService-Info.plist` into repo root, then `.\mobile\scripts\sync-firebase-native.ps1`.
    - Open the **mobile app**, sign in, allow notifications — admin will show **Push on (1 device)**.
 8. **Render (send push)** — `FCM_PROJECT_ID` + `FCM_SERVICE_ACCOUNT_JSON` (Firebase → Project settings → Service accounts → Generate key). Without these, devices can register but the API only delivers in-app notifications.
@@ -152,7 +152,7 @@ Some accounts or regions cannot finish Google Cloud billing verification, and th
 | Client type | Settings | Used by |
 |---|---|---|
 | **Web application** | Authorized JavaScript origins: `https://game-finder-swart.vercel.app`, your custom domain, `http://localhost:5173`, `http://localhost:9099`. No redirect URIs needed. | Web, and Android/iOS as the token audience |
-| **Android** | Package `com.findthegame.find_the_game` + SHA-1 of each signing key (`keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android`, plus your release/Play key) | Android app |
+| **Android** | Package `com.outforground.app` + SHA-1 of each signing key (`keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android`, plus your release/Play key) | Android app |
 | **iOS** | Bundle ID `com.findthegame.findTheGame` (`Runner` target in Xcode) | iOS app |
 
 **2. Set the IDs** (from repo root):

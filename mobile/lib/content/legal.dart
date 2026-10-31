@@ -1,7 +1,7 @@
 /// Terms & privacy copy (align with web/src/content/legal.ts).
 library;
 
-const legalLastUpdated = 'October 2025';
+const legalLastUpdated = 'October 2026';
 
 const termsSummary =
     'By creating an account you agree to use Out For Ground responsibly: real identity, no harassment, '

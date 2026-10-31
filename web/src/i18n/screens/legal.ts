@@ -4,7 +4,7 @@ type Section = { title: string; body: string }
 
 export const en = {
   lastUpdatedLabel: 'Last updated:',
-  lastUpdated: 'October 2025',
+  lastUpdated: 'October 2026',
   disclaimer: 'This is a community product template. Have a lawyer review before a large public launch.',
   termsTitle: 'Terms of use',
   privacyTitle: 'Privacy policy',
@@ -66,7 +66,7 @@ export const en = {
     {
       title: 'Retention & deletion',
       body:
-        'We keep data while your account is active. You can ask us to delete your account; some logs may be retained briefly for security.',
+        'We keep data while your account is active. You can delete your account at any time in the app (Profile → Delete my account) or on the web at /delete-account. Deletion is immediate and removes your profile, friends, check-ins, game history and notifications; courts and court photos you contributed stay without your name. Server security logs are kept for up to 30 days.',
     },
     {
       title: 'Contact',
@@ -77,7 +77,7 @@ export const en = {
 
 export const fr: typeof en = {
   lastUpdatedLabel: 'Dernière mise à jour :',
-  lastUpdated: 'octobre 2025',
+  lastUpdated: 'octobre 2026',
   disclaimer:
     'Ceci est un modèle de produit communautaire. Faites-le relire par un avocat avant un lancement public à grande échelle.',
   termsTitle: 'Conditions d’utilisation',
@@ -140,7 +140,7 @@ export const fr: typeof en = {
     {
       title: 'Conservation et suppression',
       body:
-        'Nous conservons les données tant que votre compte est actif. Vous pouvez nous demander de supprimer votre compte ; certains journaux peuvent être conservés brièvement pour des raisons de sécurité.',
+        'Nous conservons les données tant que votre compte est actif. Vous pouvez supprimer votre compte à tout moment dans l’application (Profil → Supprimer mon compte) ou sur le web à l’adresse /delete-account. La suppression est immédiate et efface votre profil, vos amis, vos présences, votre historique de matchs et vos notifications ; les terrains et photos de terrain que vous avez ajoutés restent sans votre nom. Les journaux de sécurité du serveur sont conservés 30 jours au maximum.',
     },
     {
       title: 'Contact',

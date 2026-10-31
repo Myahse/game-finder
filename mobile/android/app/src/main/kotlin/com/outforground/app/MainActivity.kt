@@ -1,4 +1,4 @@
-package com.findthegame.find_the_game
+package com.outforground.app
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 

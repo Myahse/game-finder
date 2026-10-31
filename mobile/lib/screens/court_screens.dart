@@ -663,7 +663,7 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen>
     final me = context.watch<AuthState>().user;
     final canEditCourt =
         c != null && me != null && (c.createdBy == me.id || me.isAdmin);
-    final canAddPhotos = canEditCourt && c != null && c.photos.length < 6;
+    final canAddPhotos = canEditCourt && c.photos.length < 6;
     if (c != null && canEditCourt) {
       _syncInfoFromCourt(c);
     }
@@ -1286,7 +1286,7 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
             children: [
               TileLayer(
                 urlTemplate: mapboxTileUrl(dark: Theme.of(context).brightness == Brightness.dark),
-                userAgentPackageName: 'com.findthegame.find_the_game',
+                userAgentPackageName: 'com.outforground.app',
                 retinaMode: RetinaMode.isHighDensity(context),
               ),
               if (loc.position != null)

@@ -1,0 +1,6 @@
+# Copy to key.properties (git-ignored) and fill in. See docs/PLAY_STORE.md.
+# storeFile is relative to mobile/android/ (absolute paths work too).
+storeFile=upload-keystore.jks
+storePassword=CHANGE_ME
+keyAlias=upload
+keyPassword=CHANGE_ME

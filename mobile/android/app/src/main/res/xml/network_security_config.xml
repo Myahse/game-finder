@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Dev API is HTTP on LAN / emulator. Use HTTPS in production. -->
+<!-- Release: HTTPS only. Debug and profile builds override this file
+     (src/debug, src/profile) to reach a dev API over HTTP on the LAN/emulator. -->
 <network-security-config>
-    <base-config cleartextTrafficPermitted="true" />
+    <base-config cleartextTrafficPermitted="false" />
 </network-security-config>

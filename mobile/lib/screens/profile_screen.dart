@@ -20,6 +20,7 @@ import '../core/player_avatar_config.dart' show defaultPlayerConfig;
 import '../ui/player_portrait.dart';
 import 'avatar_builder_screen.dart';
 import 'biometric_card.dart';
+import 'delete_account.dart';
 import 'auth_screens.dart' show RegisterScreen, showLoginSheet;
 import 'friends_panel.dart';
 import 'password_card.dart';
@@ -302,6 +303,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             },
             child: Text(tr('LOG OUT', 'SE DÉCONNECTER')),
           ),
+          const SizedBox(height: 8),
+          DeleteAccountButton(me: me),
         ]),
       ),
     );

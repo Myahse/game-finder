@@ -125,5 +125,5 @@ Write-Host "     http://localhost:5173, http://localhost:9099, https://game-find
 if ($IosClientId) {
   Write-Host "4. Google Cloud → iOS client → Bundle ID: com.findthegame.findTheGame"
 }
-Write-Host "5. Google Cloud → Android → package com.findthegame.find_the_game + debug SHA-1"
+Write-Host "5. Google Cloud → Android → package com.outforground.app + debug, upload and Play app-signing SHA-1"
 Write-Host "`nRun: .\scripts\render-env.ps1 -VercelOrigin https://game-finder-swart.vercel.app`n"

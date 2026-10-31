@@ -59,7 +59,8 @@ class Notifications {
     tzdata.initializeTimeZones();
     await _local.initialize(
       settings: InitializationSettings(
-        android: const AndroidInitializationSettings('@mipmap/ic_launcher'),
+        // White silhouette: Android draws status-bar icons from the alpha channel only.
+        android: const AndroidInitializationSettings('@drawable/ic_stat_notify'),
         iOS: DarwinInitializationSettings(
           requestAlertPermission: false,
           requestBadgePermission: false,

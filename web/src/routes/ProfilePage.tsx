@@ -22,6 +22,7 @@ import { RecapButton } from '../components/RecapSheet'
 import { MyProgressCard, UserProgressCard } from '../components/ProgressCard'
 import { PlayerChallengeBlock } from '../components/PlayerChallengeBlock'
 import { PasswordCard } from '../components/PasswordCard'
+import { DeleteAccountCard } from '../components/DeleteAccountCard'
 import { GameAvatarCard } from '../components/GameAvatarCard'
 import { GAME_MODE_ENABLED } from '../lib/features'
 import { AvatarPortrait } from '../avatar/render/AvatarPortrait'
@@ -226,6 +227,7 @@ export function ProfilePage() {
         >
           {t.common.logOut}
         </Button>
+        {!editing && <DeleteAccountCard me={current} />}
       </div>
     </div>
   )

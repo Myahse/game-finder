@@ -3,7 +3,7 @@ import { useAuth } from './lib/auth'
 import { Spinner } from './components/ui'
 import { AppShell } from './components/AppShell'
 import { WelcomePage } from './routes/WelcomePage'
-import { PrivacyPage, TermsPage } from './routes/LegalPage'
+import { DeleteAccountInfoPage, PrivacyPage, TermsPage } from './routes/LegalPage'
 import { LoginPage, RegisterPage } from './routes/AuthPages'
 import { OnboardingPage } from './routes/OnboardingPage'
 import { MapPage } from './routes/MapPage'
@@ -42,7 +42,7 @@ import { JeuMatchPage } from './routes/jeu/JeuMatchPage'
 import { JeuAvatarPage } from './routes/jeu/JeuAvatarPage'
 import { pathMatchesPendingGame, pendingGamePathAfterAuth } from './lib/gameInvite'
 
-const GUEST_PATHS = new Set(['/register', '/terms', '/privacy', '/login'])
+const GUEST_PATHS = new Set(['/register', '/terms', '/privacy', '/delete-account', '/login'])
 
 function isFriendInvitePath(path: string) {
   return path.startsWith('/friend/')
@@ -126,6 +126,7 @@ export const router = createBrowserRouter([
       { path: 'welcome', element: <Navigate to="/" replace /> },
       { path: 'terms', element: <TermsPage /> },
       { path: 'privacy', element: <PrivacyPage /> },
+      { path: 'delete-account', element: <DeleteAccountInfoPage /> },
       { path: 'login', element: <LoginPage /> },
       { path: 'register', element: <RegisterPage /> },
       { path: 'verify-email', element: <VerifyEmailPage /> },

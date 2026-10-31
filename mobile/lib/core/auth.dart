@@ -4,6 +4,7 @@ import 'account.dart';
 import 'api.dart';
 import 'env.dart';
 import 'apple_auth.dart';
+import 'biometric_auth.dart';
 import 'friend_invite.dart';
 import 'google_auth.dart';
 import 'models.dart';
@@ -111,6 +112,21 @@ class AuthState extends ChangeNotifier {
   Future<void> _storeUser(Map<String, dynamic> j) async {
     final s = api.session;
     if (s != null) await api.setSession(Session(s.accessToken, s.refreshToken, s.accessExpiresAt, j));
+  }
+
+  /// Permanently deletes the account (DELETE /api/me), then forgets the
+  /// session, social sign-ins and any remembered quick login on this device.
+  /// [password] is required for accounts that have one.
+  Future<void> deleteAccount({String? password}) async {
+    final me = user;
+    await api.delete('/api/me', password == null || password.isEmpty ? null : {'password': password});
+    await api.setSession(null);
+    await GoogleAuth.signOut();
+    await AppleAuth.signOut();
+    final stored = await BiometricAuth.storedCredentials();
+    if (me != null && stored != null && stored.belongsTo(email: me.email, username: me.username)) {
+      await BiometricAuth.clearCredentials();
+    }
   }
 
   Future<void> logout() async {

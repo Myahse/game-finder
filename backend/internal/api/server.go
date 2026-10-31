@@ -166,6 +166,7 @@ func (s *Server) Routes() http.Handler {
 
 			r.Get("/me", s.getMe)
 			r.Patch("/me", s.updateMe)
+			r.With(s.rateLimitedUser("court")).Delete("/me", s.deleteMe)
 			r.With(s.rateLimitedUser("court")).Post("/me/password", s.setPassword)
 			r.Get("/me/avatar", s.getMyAvatar)
 			r.Put("/me/avatar", s.putMyAvatar)

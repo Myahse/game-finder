@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -76,7 +77,7 @@ class _ServerConnectScreenState extends State<ServerConnectScreen> {
   }
 
   Future<void> _saveAndRetry() async {
-    setApiUrl(_url.text);
+    if (!kReleaseMode) setApiUrl(_url.text);
     setState(() => _busy = true);
     try {
       await widget.onRetry();
@@ -99,18 +100,26 @@ class _ServerConnectScreenState extends State<ServerConnectScreen> {
               const SizedBox(height: 16),
               Text(tr('CAN\'T REACH THE SERVER', 'SERVEUR INJOIGNABLE'), style: Theme.of(context).textTheme.headlineMedium),
               const SizedBox(height: 8),
-              Text(
-                tr('Start Docker on your PC: docker compose up -d db api\nPhone and PC must be on the same Wi‑Fi.',
-                    'Lancez Docker sur votre PC : docker compose up -d db api\nLe téléphone et le PC doivent être sur le même Wi‑Fi.'),
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 24),
-              TextField(
-                controller: _url,
-                decoration: InputDecoration(labelText: tr('API URL', 'URL de l’API'), hintText: 'http://192.168.1.10:8080'),
-                keyboardType: TextInputType.url,
-                autocorrect: false,
-              ),
+              if (kReleaseMode)
+                Text(
+                  tr('Check your internet connection and try again.',
+                      'Vérifiez votre connexion internet et réessayez.'),
+                  style: Theme.of(context).textTheme.bodyMedium,
+                )
+              else ...[
+                Text(
+                  tr('Start Docker on your PC: docker compose up -d db api\nPhone and PC must be on the same Wi‑Fi.',
+                      'Lancez Docker sur votre PC : docker compose up -d db api\nLe téléphone et le PC doivent être sur le même Wi‑Fi.'),
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 24),
+                TextField(
+                  controller: _url,
+                  decoration: InputDecoration(labelText: tr('API URL', 'URL de l’API'), hintText: 'http://192.168.1.10:8080'),
+                  keyboardType: TextInputType.url,
+                  autocorrect: false,
+                ),
+              ],
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: _busy ? null : _saveAndRetry,

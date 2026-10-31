@@ -1,6 +1,14 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-const _defaultApi = 'http://10.0.2.2:8080';
+/// Production API. Release builds (Play Store) use it unless `--dart-define=API_URL`
+/// or an `https://` API_URL in assets/.env says otherwise.
+const productionApiUrl = 'https://game-finder-ddcm.onrender.com';
+
+/// Debug/profile default: the host machine as seen from the Android emulator.
+const _devApi = 'http://10.0.2.2:8080';
+
+const _defaultApi = kReleaseMode ? productionApiUrl : _devApi;
 
 String _apiUrl = _defaultApi;
 String _mapboxToken = '';
@@ -28,7 +36,11 @@ Future<void> loadAppEnv() async {
   final fileApi = dotenv.env['API_URL']?.trim() ?? '';
   final fileMapbox = (dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? dotenv.env['VITE_MAPBOX_ACCESS_TOKEN'] ?? '').trim();
 
-  _apiUrl = defineApi.isNotEmpty ? defineApi : (fileApi.isNotEmpty ? fileApi : _defaultApi);
+  // A release build never talks to a LAN dev API: cleartext HTTP is blocked in
+  // release (network_security_config.xml), so an http:// value synced from a
+  // local .env would just leave the app stuck on "can't reach the server".
+  final usableFileApi = kReleaseMode && !fileApi.startsWith('https://') ? '' : fileApi;
+  _apiUrl = defineApi.isNotEmpty ? defineApi : (usableFileApi.isNotEmpty ? usableFileApi : _defaultApi);
   _mapboxToken = defineMapbox.isNotEmpty ? defineMapbox : fileMapbox;
   _mediaPublicOrigin = (dotenv.env['MEDIA_PUBLIC_ORIGIN'] ?? dotenv.env['R2_PUBLIC_URL'] ?? '').trim();
 

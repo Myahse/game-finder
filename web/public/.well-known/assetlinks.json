@@ -3,7 +3,7 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.findthegame.find_the_game",
+      "package_name": "com.outforground.app",
       "sha256_cert_fingerprints": [
         "TODO:REPLACE_WITH_RELEASE_SIGNING_SHA256_FINGERPRINT (keytool -list -v -keystore <release.jks> or Play Console > App integrity > App signing key certificate)"
       ]

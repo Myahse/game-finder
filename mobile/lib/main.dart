@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -154,7 +156,15 @@ class _RootGateState extends State<RootGate> {
 
   Future<void> _boot() async {
     setState(() => _bootStatus = tr('Connecting to server…', 'Connexion au serveur…'));
+    // The production API sleeps when idle and can take up to a minute to wake.
+    final slow = Timer(const Duration(seconds: 6), () {
+      if (mounted && _booting) {
+        setState(() => _bootStatus = tr('Waking up the server, this can take a minute…',
+            'Réveil du serveur, cela peut prendre une minute…'));
+      }
+    });
     await ensureApiReachable();
+    slow.cancel();
     if (!mounted) return;
     if (!apiReachable) {
       setState(() => _booting = false);

@@ -15,7 +15,7 @@ class LegalTextScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          Text(tr('Last updated: October 2025', 'Dernière mise à jour : octobre 2025'), style: Theme.of(context).textTheme.bodySmall),
+          Text(tr('Last updated: October 2026', 'Dernière mise à jour : octobre 2026'), style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 8),
           Text(
             tr('This is a community product template. Have a lawyer review before a large public launch.',
@@ -113,8 +113,8 @@ List<(String, String)> get privacySections => [
       (
         tr('Retention & deletion', 'Conservation et suppression'),
         tr(
-          'We keep data while your account is active. You can ask us to delete your account; some logs may be retained briefly for security.',
-          'Nous conservons les données tant que votre compte est actif. Vous pouvez nous demander de supprimer votre compte ; certains journaux peuvent être conservés brièvement pour des raisons de sécurité.',
+          'We keep data while your account is active. You can delete your account at any time in the app (Profile → Delete my account) or on the web at /delete-account. Deletion is immediate and removes your profile, friends, check-ins, game history and notifications; courts and court photos you contributed stay without your name. Server security logs are kept for up to 30 days.',
+          'Nous conservons les données tant que votre compte est actif. Vous pouvez supprimer votre compte à tout moment dans l’application (Profil → Supprimer mon compte) ou sur le web à l’adresse /delete-account. La suppression est immédiate et efface votre profil, vos amis, vos présences, votre historique de matchs et vos notifications ; les terrains et photos de terrain que vous avez ajoutés restent sans votre nom. Les journaux de sécurité du serveur sont conservés 30 jours au maximum.',
         ),
       ),
       (
