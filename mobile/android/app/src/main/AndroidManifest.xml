@@ -14,6 +14,10 @@
          access, so make sure no plugin merges them in. -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" tools:node="remove"/>
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" tools:node="remove"/>
+    <!-- geolocator declares this for its optional background-tracking service.
+         The app only reads location in the foreground (lib/core/location.dart),
+         and Google Play requires a declaration + video for this permission. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" tools:node="remove"/>
     <!-- Re-schedules the "Are you still playing?" reminder after a reboot. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <!-- Fingerprint / face unlock (local_auth): quick login and app lock. -->
