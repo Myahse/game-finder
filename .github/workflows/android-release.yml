@@ -45,7 +45,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -118,8 +118,12 @@ jobs:
           echo "### Permissions in the merged manifest" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           manifest=$(find build/app/intermediates -path '*release*' -name AndroidManifest.xml | grep -i merged | head -1)
-          grep -o 'uses-permission[^>]*android:name="[^"]*"' "$manifest" | sed 's/.*android:name=//' | sort -u >> "$GITHUB_STEP_SUMMARY"
+          perms=$(grep -o 'uses-permission[^>]*android:name="[^"]*"' "$manifest" | sed 's/.*android:name=//; s/"//g' | sort -u)
+          echo "$perms" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+          # Also as annotations, shown on the run page.
+          echo "::notice title=Permissions::$(echo "$perms" | sed 's/android.permission.//' | paste -sd ' ' -)"
+          echo "::notice title=Signing certificate::$(keytool -printcert -jarfile build/app/outputs/bundle/release/app-release.aab | grep -E 'SHA1:|SHA256:' | paste -sd ' ' -)"
           ls -la build/app/outputs/bundle/release/
 
       - uses: actions/upload-artifact@v4
