@@ -29,7 +29,7 @@ for (const f of wanted) {
   }
   if (f !== 'icone') await p.waitForFunction(() => window.__ready === true);
   await p.waitForLoadState('networkidle');
-  const file = path.join(out, `artsyde-${f}.png`);
+  const file = path.join(out, `outforground-${f}.png`);
   await p.screenshot({ path: file, omitBackground: f === 'icone' });
   console.log(`${file}  ${width}×${height}`);
   await p.close();
