@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Out For Ground — affiches</title>
+<style>
+@font-face { font-family: 'Barlow Condensed'; font-weight: 700; src: url(fonts/barlow-condensed-latin-700-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 800; src: url(fonts/barlow-condensed-latin-800-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 900; src: url(fonts/barlow-condensed-latin-900-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Inter'; font-weight: 500; src: url(fonts/inter-latin-500-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Inter'; font-weight: 600; src: url(fonts/inter-latin-600-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Inter'; font-weight: 700; src: url(fonts/inter-latin-700-normal.woff2) format('woff2'); }
+
+:root { --ink: #12151a; --bg: #0b0e12; --brand: #ff5a1f; --accent: #ffb020; --live: #22c55e; --players: #facc15; --text: #f3f1ec; --text-2: #aab2bd; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--bg); }
+body { width: var(--w); height: var(--h); overflow: hidden; position: relative; font-family: 'Inter', sans-serif; color: var(--text); }
+
+.bgmap, .scrim, .content { position: absolute; inset: 0; }
+.bgmap { width: 100%; height: 100%; }
+
+/* ---------- zone carte + pins ---------- */
+.stage { position: relative; overflow: hidden; }
+.stage > svg.map { position: absolute; inset: 0; width: 100%; height: 100%; }
+.card { flex: 1 1 auto; min-height: 0; border-radius: 28px; border: 2px solid #262d37; box-shadow: 0 30px 80px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.03); }
+.full { position: absolute; inset: 0; overflow: visible; }
+.right { position: absolute; top: 0; bottom: 0; right: 0; overflow: visible; }
+
+.pin { position: absolute; transform: translate(-50%, -100%); width: var(--s); height: calc(var(--s) * 1.3); }
+.pin svg { position: absolute; inset: 0; width: 100%; height: 100%; filter: drop-shadow(0 calc(var(--s) * .08) calc(var(--s) * .12) rgba(0,0,0,.55)); }
+.pin .n { position: absolute; top: calc(var(--s) * .22); left: 0; right: 0; text-align: center; font: 900 calc(var(--s) * .5)/1 'Barlow Condensed'; color: #fff; }
+.pin.players .n { color: var(--ink); }
+.pin .ring { position: absolute; left: 50%; bottom: 0; transform: translate(-50%, 50%); width: calc(var(--s) * 1.7); height: calc(var(--s) * .62); border-radius: 50%; border: calc(var(--s) * .035) solid rgba(34,197,94,.7); box-shadow: 0 0 0 calc(var(--s) * .2) rgba(34,197,94,.14); }
+.pin .shadow { position: absolute; left: 50%; bottom: 0; transform: translate(-50%, 50%); width: calc(var(--s) * .5); height: calc(var(--s) * .16); border-radius: 50%; background: rgba(0,0,0,.5); }
+.tag { position: absolute; left: calc(var(--s) * 1.05); top: calc(var(--s) * .18); white-space: nowrap; background: rgba(21,26,33,.94); border: 1px solid rgba(255,255,255,.1); border-radius: calc(var(--s) * .5); padding: calc(var(--s) * .13) calc(var(--s) * .3); font: 600 calc(var(--s) * .27)/1.15 'Inter'; color: var(--text); box-shadow: 0 calc(var(--s)*.08) calc(var(--s)*.25) rgba(0,0,0,.5); }
+.tag b { font: 900 calc(var(--s) * .31)/1 'Barlow Condensed'; letter-spacing: .04em; margin-right: .4em; }
+.live .tag b { color: var(--live); }
+.players .tag b { color: var(--players); }
+.tag.left { left: auto; right: calc(var(--s) * 1.05); }
+
+/* ---------- texte ---------- */
+.content { display: flex; flex-direction: column; }
+.logo { display: block; width: auto; align-self: flex-start; }
+.eyebrow { display: inline-flex; align-items: center; gap: .55em; align-self: flex-start; font-weight: 700; letter-spacing: .01em; background: rgba(34,197,94,.14); border: 2px solid rgba(34,197,94,.45); padding: .5em .95em; border-radius: 999px; }
+.eyebrow i { width: .6em; height: .6em; border-radius: 50%; background: var(--live); box-shadow: 0 0 0 .22em rgba(34,197,94,.25); }
+h1 { font-family: 'Barlow Condensed'; font-weight: 900; line-height: .9; text-transform: uppercase; }
+h1 span { display: block; }
+h1 .l1 { font-size: .58em; letter-spacing: .015em; margin-bottom: .12em; }
+h1 .l2 { color: var(--brand); }
+.sub { font-weight: 500; line-height: 1.35; color: var(--text-2); }
+.sub strong { color: var(--text); font-weight: 700; }
+.sports { font: 800 1em/1 'Barlow Condensed'; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+.cta { display: flex; align-items: center; gap: 1.1em; }
+.btn { font-family: 'Barlow Condensed'; font-weight: 900; line-height: 1; text-transform: uppercase; letter-spacing: .03em; background: var(--brand); color: #fff; padding: .42em .85em .4em; border-radius: .25em; white-space: nowrap; box-shadow: 0 .2em .6em rgba(255,90,31,.35); }
+.url { font-family: 'Barlow Condensed'; font-weight: 800; line-height: 1; letter-spacing: .01em; white-space: nowrap; }
+.url em { font-style: normal; color: var(--brand); }
+
+/* formats verticaux : logo / accroche / carte / CTA */
+.v .content { gap: var(--gap); padding: var(--pad); }
+.v h1 { margin-top: calc(var(--gap) * .4); }
+
+[data-f=story]    { --pad: 260px 80px 340px; --gap: 30px; }
+[data-f=story] .logo { height: 96px; }
+[data-f=story] .eyebrow { font-size: 30px; }
+[data-f=story] h1 { font-size: 166px; }
+[data-f=story] .sub { font-size: 38px; }
+[data-f=story] .sports { font-size: 36px; }
+[data-f=story] .btn { font-size: 56px; }
+[data-f=story] .url { font-size: 52px; }
+
+[data-f=portrait] { --pad: 70px 76px 76px; --gap: 26px; }
+[data-f=portrait] .logo { height: 84px; }
+[data-f=portrait] .eyebrow { font-size: 26px; }
+[data-f=portrait] h1 { font-size: 160px; }
+[data-f=portrait] .sub { font-size: 32px; }
+[data-f=portrait] .sports { font-size: 30px; }
+[data-f=portrait] .btn { font-size: 48px; }
+[data-f=portrait] .url { font-size: 46px; }
+
+[data-f=carre]    { --pad: 62px 70px 66px; --gap: 22px; }
+[data-f=carre] .logo { height: 76px; }
+[data-f=carre] .eyebrow { font-size: 24px; }
+[data-f=carre] h1 { font-size: 150px; }
+[data-f=carre] .sub { display: none; }
+[data-f=carre] .sports { font-size: 28px; }
+[data-f=carre] .btn { font-size: 44px; }
+[data-f=carre] .url { font-size: 44px; }
+
+[data-f=sucette]  { --pad: 100px 100px 110px; --gap: 36px; }
+[data-f=sucette] .logo { height: 120px; }
+[data-f=sucette] .eyebrow { font-size: 36px; }
+[data-f=sucette] h1 { font-size: 214px; }
+[data-f=sucette] .sub { font-size: 44px; }
+[data-f=sucette] .sports { font-size: 44px; }
+[data-f=sucette] .btn { font-size: 64px; }
+[data-f=sucette] .url { font-size: 62px; }
+
+/* panneau 2400x1200 : logo + adresse centrés */
+[data-f=panneau] .content { align-items: center; justify-content: center; text-align: center; gap: 46px; }
+[data-f=panneau] .logo { height: 300px; align-self: center; margin-bottom: -10px; }
+[data-f=panneau] h1 { font-size: 196px; }
+[data-f=panneau] .sports { font-size: 50px; }
+[data-f=panneau] .url { font-size: 108px; }
+
+/* LED 1800x1000 : lecture rapide */
+[data-f=led] .content { padding: 80px 90px; justify-content: space-between; }
+[data-f=led] .logo { height: 100px; }
+[data-f=led] h1 { font-size: 186px; }
+[data-f=led] h1 .l1 { font-size: .6em; }
+[data-f=led] .sports { font-size: 44px; margin-top: 26px; }
+[data-f=led] .url { font-size: 80px; }
+
+/* géant 2860x1000 */
+[data-f=geant] .content { padding: 90px 120px; justify-content: space-between; }
+[data-f=geant] .logo { height: 128px; }
+[data-f=geant] h1 { font-size: 236px; }
+[data-f=geant] .url { font-size: 96px; }
+
+/* banderole 2500x400 */
+[data-f=banderole] .content { flex-direction: row; align-items: center; padding: 0 100px; gap: 70px; }
+[data-f=banderole] .logo { height: 112px; align-self: center; }
+[data-f=banderole] h1 { font-size: 140px; white-space: nowrap; flex: 1; text-align: center; }
+[data-f=banderole] .url { font-size: 76px; background: var(--brand); color: #fff; padding: .2em .45em .16em; border-radius: .14em; }
+[data-f=banderole] .url em { color: #fff; opacity: .8; }
+</style>
+</head>
+<body>
+<svg class="bgmap" id="bgmap" xmlns="http://www.w3.org/2000/svg"></svg>
+<div class="scrim" id="scrim"></div>
+<div class="content" id="content"></div>
+
+<script>
+// Pins : x, y en % de la zone carte (pointe du pin) ; s = taille relative
+const P = (x, y, t, n, tag, side, s = 1) => ({ x, y, t, n, tag, side, s });
+const LIVE = (sport, c) => `<b>EN DIRECT</b>${c} · ${sport}`;
+const PLAY = (n) => `<b>${n} JOUEURS</b>sur place`;
+
+const vPins = [P(18,64,'live',8,LIVE('Basket','8/10')), P(80,34,'players',3,PLAY(3),'left'), P(58,86,'live',6,LIVE('Volley','6/8'),'left',.8), P(90,80,'idle','',null,null,.7), P(10,36,'idle','',null,null,.6)];
+const F = {
+  panneau:   { w: 2400, h: 1200, stage: 'full', pinBase: 120,
+               pins: [P(10,36,'live',8,LIVE('Basket','8/10')), P(7,86,'players',3,PLAY(3)), P(14,62,'idle','',null,null,.7), P(91,30,'live',10,LIVE('Foot','10/14'),'left'), P(93,84,'players',4,PLAY(4),'left'), P(87,60,'idle','',null,null,.7), P(25,12,'idle','',null,null,.55), P(74,10,'idle','',null,null,.55)],
+               scrim: 'radial-gradient(ellipse 40% 60% at 50% 50%, rgba(11,14,18,.97) 40%, rgba(11,14,18,.8) 70%, rgba(11,14,18,.3) 100%)' },
+  story:     { w: 1080, h: 1920, stage: 'card', v: true, pins: vPins },
+  portrait:  { w: 1080, h: 1350, stage: 'card', v: true, pins: vPins },
+  carre:     { w: 1080, h: 1080, stage: 'card', v: true, pins: [P(20,60,'live',8,LIVE('Basket','8/10')), P(78,46,'players',3,PLAY(3),'left'), P(90,92,'idle','',null,null,.7), P(50,94,'idle','',null,null,.6)] },
+  sucette:   { w: 1400, h: 2000, stage: 'card', v: true, pins: vPins },
+  led:       { w: 1800, h: 1000, stage: 'right', left: 58, pinBase: 96, fitW: 900,
+               pins: [P(16,34,'live',8,LIVE('Basket','8/10'),null,1.2), P(82,66,'players',3,PLAY(3),'left'), P(30,86,'idle','',null,null,.8), P(84,22,'idle','',null,null,.75)],
+               scrim: 'linear-gradient(90deg, rgba(11,14,18,.98) 0%, rgba(11,14,18,.94) 50%, rgba(11,14,18,.25) 64%, rgba(11,14,18,.35) 100%)' },
+  geant:     { w: 2860, h: 1000, stage: 'right', left: 57, pinBase: 120, fitW: 1380,
+               pins: [P(14,60,'live',8,LIVE('Basket','8/10'),null,1.2), P(86,30,'live',10,LIVE('Foot','10/14'),'left'), P(60,90,'players',3,PLAY(3)), P(40,22,'idle','',null,null,.75), P(94,72,'idle','',null,null,.7), P(30,92,'idle','',null,null,.7)],
+               scrim: 'linear-gradient(90deg, rgba(11,14,18,.98) 0%, rgba(11,14,18,.94) 48%, rgba(11,14,18,.2) 60%, rgba(11,14,18,.3) 100%)' },
+  banderole: { w: 2500, h: 400, stage: null, pins: [], scrim: 'rgba(11,14,18,.84)' },
+};
+
+const f = new URLSearchParams(location.search).get('f') || 'portrait';
+const cfg = F[f];
+document.body.dataset.f = f;
+if (cfg.v) document.body.classList.add('v');
+document.body.style.setProperty('--w', cfg.w + 'px');
+document.body.style.setProperty('--h', cfg.h + 'px');
+
+// ---------- carte stylisée (rues, lagune, terrains), déterministe ----------
+function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
+function drawMap(svg, w, h, seed, base) {
+  const r = rng(seed);
+  svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+  const step = base, D = Math.hypot(w, h);
+  let s = `<rect width="${w}" height="${h}" fill="#0f1318"/>`;
+  s += `<path d="M${-w*.1} ${h*.84} C ${w*.2} ${h*.74}, ${w*.42} ${h*.98}, ${w*.7} ${h*.88} S ${w*1.05} ${h*.8}, ${w*1.1} ${h*.9} L ${w*1.1} ${h*1.2} L ${-w*.1} ${h*1.2} Z" fill="#0c1a25"/>`;
+  s += `<g transform="rotate(-14 ${w/2} ${h/2})">`;
+  for (const dir of [0, 1]) for (let i = -D; i < D; i += step * (0.7 + r() * 0.6)) {
+    const major = r() < .22, c = major ? '#262e38' : '#1a2029', sw = major ? step * .13 : step * .055;
+    s += dir ? `<line x1="${w/2-D}" y1="${h/2+i}" x2="${w/2+D}" y2="${h/2+i}" stroke="${c}" stroke-width="${sw}"/>`
+             : `<line x1="${w/2+i}" y1="${h/2-D}" x2="${w/2+i}" y2="${h/2+D}" stroke="${c}" stroke-width="${sw}"/>`;
+  }
+  for (let k = 0; k < Math.round(w * h / (step * step) / 9); k++) {
+    const cx = w/2 + (r() - .5) * w * 1.1, cy = h/2 + (r() - .5) * h * 1.1, cw = step * .55, ch = step * .32;
+    s += `<g opacity=".35" fill="none" stroke="#ff5a1f" stroke-width="${step*.016}"><rect x="${cx-cw/2}" y="${cy-ch/2}" width="${cw}" height="${ch}" rx="${step*.02}"/><line x1="${cx}" y1="${cy-ch/2}" x2="${cx}" y2="${cy+ch/2}"/><circle cx="${cx}" cy="${cy}" r="${ch*.22}"/></g>`;
+  }
+  s += `</g>`;
+  svg.innerHTML = s;
+}
+
+const PIN = (c) => `<svg viewBox="9 2 46 60"><path d="M32 4c-11.6 0-21 9.4-21 21 0 15.8 21 35 21 35s21-19.2 21-35c0-11.6-9.4-21-21-21z" fill="${c}" stroke="#fff" stroke-opacity=".9" stroke-width="1.8"/></svg>`;
+const color = { live: '#22c55e', players: '#facc15', idle: '#5d6571' };
+function drawPins(el, pins, size) {
+  el.insertAdjacentHTML('beforeend', pins.map(p => `
+    <div class="pin ${p.t}" style="left:${p.x}%;top:${p.y}%;--s:${Math.round(size * p.s)}px">
+      ${p.t === 'live' ? '<span class="ring"></span>' : '<span class="shadow"></span>'}
+      ${PIN(color[p.t])}<span class="n">${p.n}</span>
+      ${p.tag ? `<div class="tag ${p.side === 'left' ? 'left' : ''}">${p.tag}</div>` : ''}
+    </div>`).join(''));
+}
+
+// ---------- texte ----------
+const logoH = 'logo-horizontal.svg', logoS = 'logo-stacked.svg';
+const H1 = `<h1><span class="l1">Ne cherche plus un terrain.</span><span class="l2">Trouve le match.</span></h1>`;
+const URL_ = `<span class="url">outforground<em>.com</em></span>`;
+const T = {
+  vertical: `
+    <img class="logo" src="${logoH}" alt="Out For Ground">
+    <span class="eyebrow"><i></i>Des matchs en direct près de toi</span>
+    ${H1}
+    <p class="sub">Vois qui joue <strong>maintenant</strong>, rejoins la partie en un tap et va droit au terrain.</p>
+    <p class="sports">Basket · Foot · Volley · Tennis · Badminton</p>
+    <div class="stage card" id="stage"></div>
+    <div class="cta"><span class="btn">Télécharge l’app</span>${URL_}</div>`,
+  panneau: `
+    <div class="stage full" id="stage"></div>
+    <img class="logo" src="${logoS}" alt="Out For Ground" style="position:relative">
+    <div style="position:relative">${H1}</div>
+    <p class="sports" style="position:relative">Basket · Foot · Volley · Tennis — c’est gratuit</p>
+    <div style="position:relative">${URL_}</div>`,
+  led: `
+    <div class="stage right" id="stage" style="left:${cfg.left}%"></div>
+    <img class="logo" src="${logoH}" alt="Out For Ground" style="position:relative">
+    <div style="position:relative">${H1}<p class="sports">Basket · Foot · Volley · Tennis</p></div>
+    <div style="position:relative">${URL_}</div>`,
+  geant: `
+    <div class="stage right" id="stage" style="left:${cfg.left}%"></div>
+    <img class="logo" src="${logoH}" alt="Out For Ground" style="position:relative">
+    <div style="position:relative">${H1}</div>
+    <div style="position:relative">${URL_}</div>`,
+  banderole: `
+    <img class="logo" src="${logoH}" alt="Out For Ground">
+    <h1><span class="l2">Trouve le match.</span></h1>
+    ${URL_}`,
+};
+document.getElementById('content').innerHTML = cfg.v ? T.vertical : T[f];
+
+(async () => {
+await document.fonts.ready;
+await Promise.all([...document.images].map(i => i.decode().catch(() => {})));
+
+// accroche : chaque ligne ajustée à la largeur disponible
+function fit(el, maxW, maxPx) {
+  let lo = 10, hi = maxPx;
+  el.style.whiteSpace = 'nowrap'; el.style.display = 'inline-block';
+  while (hi - lo > 1) { const mid = (lo + hi) / 2; el.style.fontSize = mid + 'px'; (el.getBoundingClientRect().width <= maxW ? lo = mid : hi = mid); }
+  el.style.fontSize = lo + 'px'; el.style.display = 'block';
+}
+const h1 = document.querySelector('h1');
+if (cfg.v || cfg.fitW) {
+  const W = cfg.fitW || h1.getBoundingClientRect().width;
+  const l1 = h1.querySelector('.l1'), l2 = h1.querySelector('.l2');
+  fit(l2, W, 400);
+  fit(l1, W, parseFloat(l2.style.fontSize) * .62);
+}
+
+// fond plein écran
+drawMap(document.getElementById('bgmap'), cfg.w, cfg.h, 7, Math.max(cfg.w, cfg.h) / 13);
+document.getElementById('scrim').style.background = cfg.scrim || 'rgba(11,14,18,.93)';
+
+// zone carte
+const stage = document.getElementById('stage');
+if (stage) {
+  const { width, height } = stage.getBoundingClientRect();
+  if (cfg.stage === 'card') {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.classList.add('map');
+    stage.appendChild(svg);
+    drawMap(svg, width, height, 11, Math.max(width, height) / 6);
+  }
+  drawPins(stage, cfg.pins, cfg.pinBase || Math.min(width, height) * .2);
+}
+window.__ready = true;
+})();
+</script>
+</body>
+</html>
